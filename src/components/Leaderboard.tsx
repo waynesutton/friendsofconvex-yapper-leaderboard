@@ -19,7 +19,8 @@ import type { Id } from "../../convex/_generated/dataModel";
 import { FilterDropdown, type FilterDropdownOption } from "./FilterDropdown";
 import { compactNumber, formatSyncTime, initials, relativeSyncTime } from "./formatters";
 
-const PAGE_SIZE = 10;
+// Load-more step when the board is on "All yappers"; Top N picks show all N.
+const PAGE_SIZE = 30;
 
 // Top N cap applied after search and sort; "all" shows everyone.
 type TopFilterValue = "30" | "60" | "100" | "150" | "all";
@@ -191,9 +192,9 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
   const display = useQuery(api.boardSettings.getBoardDisplay, {}) ?? ALL_VISIBLE;
   const [mode, setMode] = useState<BoardMode>("impressions");
   const [search, setSearch] = useState(initialSearch);
-  // Load-more list: how many sorted rows are revealed right now.
+  // Only used on "All yappers": how many sorted rows are revealed right now.
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-  // Board opens capped to the top 30; Load more walks through them ten at a time.
+  // Board opens on Top 30 and shows the whole selection at once.
   const [topFilter, setTopFilter] = useState<TopFilterValue>("30");
   const [copied, setCopied] = useState<string | null>(null);
   // Engagement is the default story even when impressions are visible.
@@ -307,10 +308,12 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
     });
   }, [activeRows, activeSortKey, canonicalRanks, search, sortDirection]);
 
-  // Top N cap applies after search and sort, then load-more reveals rows.
+  // The dropdown drives the list length: Top 30 renders 30 rows, Top 60
+  // renders 60, and so on. Load more only appears on "All yappers", stepping
+  // through everyone thirty at a time.
   const topLimit = topFilter === "all" ? null : Number(topFilter);
   const cappedProfiles = topLimit ? sortedProfiles.slice(0, topLimit) : sortedProfiles;
-  const visibleProfiles = cappedProfiles.slice(0, visibleCount);
+  const visibleProfiles = topLimit ? cappedProfiles : cappedProfiles.slice(0, visibleCount);
   const remainingCount = cappedProfiles.length - visibleProfiles.length;
   const syncedProfiles = profiles?.filter((profile) => profile.syncStatus === "synced") ?? [];
   const latestSync = syncedProfiles.reduce<number | null>(
@@ -813,7 +816,9 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
 
         <div className="board-load-more" aria-live="polite">
           <span>
-            Showing {visibleProfiles.length} of {cappedProfiles.length}
+            {remainingCount > 0
+              ? `Showing ${visibleProfiles.length} of ${cappedProfiles.length}`
+              : `Showing all ${visibleProfiles.length}`}
           </span>
           {remainingCount > 0 ? (
             <button
