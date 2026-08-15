@@ -1,5 +1,33 @@
 # Task log
 
+## Completed — 2026-08-15 18:40 UTC
+
+- [x] Admins can permanently remove a handle from the Friends on the board section. New admin only `profiles.remove` mutation deletes the profile plus all its snapshots and is idempotent. PRD: `prds/admin-remove-handle.md`.
+- [x] Remove button per admin row with a two step confirm: first click arms it (red Confirm state plus an info message), second click deletes; any other row action disarms it. New `.icon-text-button.danger` style on `--signal-red`.
+- [x] Verified: `npm run check` passes (lint, typecheck, build).
+
+## Completed — 2026-08-15 18:30 UTC
+
+- [x] FRIENDS OF CONVEX GIFT footer removed from the gift pass card (the campaign title span and its `<footer>` are gone from `GiftPortal.tsx`; the unused footer CSS selector was trimmed). The center block now uses `margin-block: auto` so it stays vertically centered without the footer.
+- [x] Gradient wash animation removed for good: `gift-card-animated` classes deleted from both cards and the `::before` overlay plus `gift-card-wash` keyframes deleted from `globals.css`.
+- [x] Verified: `npm run check` passes; live DOM shows no footer text and class lists without `gift-card-animated`; screenshot of `/gift/test-portal-token-og` confirms the flat field and centered content.
+
+## Completed — 2026-08-15 18:25 UTC
+
+- [x] Updated `public/background-image-sidebar.svg` art applied: stripes now sweep along the bottom edge and rise to the right. Card text left aligned (identity block, name, status line); FRIENDS OF CONVEX header and FRIENDS OF CONVEX GIFT footer stay where they were. The 23cqi right margins are gone; the center block keeps 16cqi so long names clear the rising stripes. PRD: `prds/gift-card-16x9-sidebar-and-font-swap.md`.
+- [x] OG renderer and preview script draw the new bottom stripe paths (shifted up 45px to bottom align on the 1200x630 canvas) with left aligned text at x=80. Big handle sizing opened up to the wider field (860px budget).
+- [x] Gradient wash animation mask flipped from a right fade to a bottom fade so it still never touches the stripe lines.
+- [x] Verified: `npm run check` passes; `node scripts/preview-share-og.mjs` renders the new layout; live screenshots of `/gift/test-portal-token-og` and `/gift/share/test-share-token-og` confirm left aligned text clear of the stripes.
+
+## Completed — 2026-08-15 17:58 UTC
+
+- [x] Gift pass card is 16:9 (Twitter card shape) with `public/background-image-sidebar.svg` art. "PERSONAL PASS / 2026" and "ONE GIFT / ONE PERSON" labels removed; the READY TO REVEAL status line moved below the name with extra spacing. Header, center block, and footer keep a 23cqi right margin so no text lands on the stripe lines. PRD: `prds/gift-card-16x9-sidebar-and-font-swap.md`.
+- [x] Public share card and its server OG image dropped "COMMUNITY / 2026", "FRIEND OF CONVEX", "FRIENDS OF CONVEX GIFT", and "BUILT TOGETHER". Both use the sidebar art; the OG renderer draws the stripe paths and centers text in the solid field (x=462).
+- [x] Space Grotesk removed app-wide. `--font-display` is Inter, `index.html` loads Inter from Google Fonts, the OG renderer and preview script load `inter-500.ttf` / `inter-700.ttf`, and the Space Grotesk TTFs are deleted from `public/render/fonts/`.
+- [x] Slow gradient wash animation (`gift-card-animated` class) on both cards, masked so it only touches the solid area, never the stripes. Remove the class in `GiftPortal.tsx` to kill it.
+- [x] Board settings checkbox overflow fixed: `clear: both` on labels (the floated legend was pushing the first label out of the fieldset) plus `min-width: 0` on the fieldset.
+- [x] Verified: `npm run check` passes; `node scripts/preview-share-og.mjs` renders correctly; browser DOM checks show both cards at ratio 1.78 with the sidebar background and no removed labels.
+
 ## Completed — 2026-08-15 17:30 UTC
 
 - [x] Repo link updated everywhere from `https://github.com/waynesutton/convexyappers` to `https://github.com/waynesutton/friendsofconvex-yapper-leaderboard`: `src/components/BuiltWithFooter.tsx`, `index.html` JSON-LD, `task.md`, `changelog.md`, and `prds/footer-convex-socials.md`.

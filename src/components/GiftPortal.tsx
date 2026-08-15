@@ -24,9 +24,7 @@ function GiftRotor() {
 // the container-query font-size rule on .gift-card-center h2.
 function GiftCardName({ handle }: { handle: string }) {
   const text = `@${handle}`;
-  return (
-    <h2 style={{ "--gift-name-length": text.length } as CSSProperties}>{text}</h2>
-  );
+  return <h2 style={{ "--gift-name-length": text.length } as CSSProperties}>{text}</h2>;
 }
 
 function GiftIdentity({
@@ -121,7 +119,9 @@ export function GiftPortal({ token }: { token: string }) {
           <p className="eyebrow">Gift signal closed</p>
           <h1>{messages[portal.reason]}</h1>
           {portal.handle ? <p>This pass was reserved for @{portal.handle}.</p> : null}
-          <Link className="text-link" to="/">Return to the Yapper Board</Link>
+          <Link className="text-link" to="/">
+            Return to the Yapper Board
+          </Link>
         </div>
       </section>
     );
@@ -138,15 +138,20 @@ export function GiftPortal({ token }: { token: string }) {
           A signal of thanks for
           <span
             className="gift-portal-handle"
-            style={{ "--gift-name-length": portal.handle.length + 1 } as CSSProperties}
-          >
+            style={{ "--gift-name-length": portal.handle.length + 1 } as CSSProperties}>
             @{portal.handle}
           </span>
         </h1>
-        <p>This private pass reveals one free Fourthwall gift. Fourthwall collects the shipping details only after you continue.</p>
+        <p>
+          This private pass reveals one free Fourthwall gift. Fourthwall collects the shipping
+          details only after you continue.
+        </p>
         <div className="gift-trust-line">
           <CheckCircleIcon aria-hidden="true" />
-          <span>The claim button goes directly to fourthwall.com. This page never asks for an address or payment method.</span>
+          <span>
+            The claim button goes directly to fourthwall.com. This page never asks for an address or
+            payment method.
+          </span>
         </div>
       </div>
 
@@ -156,40 +161,56 @@ export function GiftPortal({ token }: { token: string }) {
             <GiftRotor />
             <span>Friends of Convex</span>
           </div>
-          <span>PERSONAL PASS / 2026</span>
         </header>
 
         <div className="gift-card-center">
-          <GiftIdentity handle={portal.handle} displayName={portal.displayName} profileImageUrl={portal.profileImageUrl} />
+          <GiftIdentity
+            handle={portal.handle}
+            displayName={portal.displayName}
+            profileImageUrl={portal.profileImageUrl}
+          />
           <GiftCardName handle={portal.handle} />
           <p>{isRedeemed ? "GIFT REDEEMED" : giftUrl ? "GIFT REVEALED" : "READY TO REVEAL"}</p>
         </div>
-
-        <footer>
-          <span>{portal.campaignTitle}</span>
-          <span>{isRedeemed ? "THANK YOU" : "ONE GIFT / ONE PERSON"}</span>
-        </footer>
       </article>
 
       <div className="gift-portal-actions">
         {isRedeemed ? (
           <div className="gift-redeemed-message">
             <CheckCircleIcon aria-hidden="true" />
-            <div><strong>Fourthwall confirmed your gift.</strong><span>Thank you for being a Friend of Convex.</span></div>
+            <div>
+              <strong>Fourthwall confirmed your gift.</strong>
+              <span>Thank you for being a Friend of Convex.</span>
+            </div>
           </div>
         ) : giftUrl ? (
-          <button type="button" className="gift-primary-action" disabled={busy === "fourthwall"} onClick={() => void openFourthwall()}>
-            {busy === "fourthwall" ? "Opening Fourthwall" : "Choose your gift on Fourthwall"} <ArrowRightIcon aria-hidden="true" />
+          <button
+            type="button"
+            className="gift-primary-action"
+            disabled={busy === "fourthwall"}
+            onClick={() => void openFourthwall()}>
+            {busy === "fourthwall" ? "Opening Fourthwall" : "Choose your gift on Fourthwall"}{" "}
+            <ArrowRightIcon aria-hidden="true" />
           </button>
         ) : (
-          <button type="button" className="gift-primary-action" disabled={busy === "reveal"} onClick={() => void revealGift()}>
-            <GiftIcon aria-hidden="true" /> {busy === "reveal" ? "Revealing your gift" : "Reveal my gift"}
+          <button
+            type="button"
+            className="gift-primary-action"
+            disabled={busy === "reveal"}
+            onClick={() => void revealGift()}>
+            <GiftIcon aria-hidden="true" />{" "}
+            {busy === "reveal" ? "Revealing your gift" : "Reveal my gift"}
           </button>
         )}
         <button type="button" className="gift-share-action" onClick={shareOnX}>
-          <XLogoIcon aria-hidden="true" /> Share a safe public card <ShareNetworkIcon aria-hidden="true" />
+          <XLogoIcon aria-hidden="true" /> Share a safe public card{" "}
+          <ShareNetworkIcon aria-hidden="true" />
         </button>
-        {feedback ? <p className="gift-portal-error" role="alert">{feedback}</p> : null}
+        {feedback ? (
+          <p className="gift-portal-error" role="alert">
+            {feedback}
+          </p>
+        ) : null}
       </div>
     </section>
   );
@@ -204,7 +225,9 @@ export function GiftShareCard({ token }: { token: string }) {
         <div className="gift-closed-card">
           <WarningCircleIcon aria-hidden="true" />
           <h1>This public gift card does not exist.</h1>
-          <Link className="text-link" to="/">Return to the Yapper Board</Link>
+          <Link className="text-link" to="/">
+            Return to the Yapper Board
+          </Link>
         </div>
       </section>
     );
@@ -218,15 +241,19 @@ export function GiftShareCard({ token }: { token: string }) {
       </div>
       <article className="gift-signal-card gift-public-card">
         <header>
-          <div className="gift-card-brand"><GiftRotor /><span>Friends of Convex</span></div>
-          <span>COMMUNITY / 2026</span>
+          <div className="gift-card-brand">
+            <GiftRotor />
+            <span>Friends of Convex</span>
+          </div>
         </header>
         <div className="gift-card-center">
-          <GiftIdentity handle={card.handle} displayName={card.displayName} profileImageUrl={card.profileImageUrl} />
+          <GiftIdentity
+            handle={card.handle}
+            displayName={card.displayName}
+            profileImageUrl={card.profileImageUrl}
+          />
           <GiftCardName handle={card.handle} />
-          <p>{card.redeemed ? "FRIEND + GIFT RECIPIENT" : "FRIEND OF CONVEX"}</p>
         </div>
-        <footer><span>{card.campaignTitle}</span><span>BUILT TOGETHER</span></footer>
       </article>
     </section>
   );

@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
+- Remove button in the Friends on the board admin section: a two step confirm (Remove, then Confirm in red) permanently deletes a profile and its snapshot history. Gift ledger rows keep their own name copies, so gift history is unaffected (2026-08-15).
 - A full README: what the board does, the stack, required environment values, a one prompt setup block for coding agents with Convex agent mode, manual run steps, and Convex docs links (2026-08-15).
 - Download CSV in the Recipient ledger: one click exports the whole selected campaign (gift number, name, handle, status, sent/opened/redeemed times, consent source, DM opt out, delivery error, pass URL) as a spreadsheet-safe CSV named after the campaign and date (2026-08-15).
 - Board freshness chip next to This week's board showing how recently the numbers synced (Updated 2h ago), with the exact time on hover and Awaiting first sync before the first pull (2026-08-15).
@@ -29,6 +30,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Changed
 
+- Gift pass and public share cards are now 16:9 with the racing stripe art (`public/background-image-sidebar.svg`), which sweeps along the bottom edge and rises to the right. Card labels trimmed: "PERSONAL PASS / 2026", "ONE GIFT / ONE PERSON", "COMMUNITY / 2026", "FRIEND OF CONVEX", "FRIENDS OF CONVEX GIFT", and "BUILT TOGETHER" are gone. FRIENDS OF CONVEX stays top left; the identity block, name, and status line are left aligned and vertically centered above the stripes (2026-08-15).
+- The personalized share OG image matches the new card: solid `#2A1E1D` field, stripe lines along the bottom, text left aligned in the solid area (2026-08-15).
+- Space Grotesk is gone from the app. Inter is the display face in CSS, `index.html`, the OG renderer, and the preview script; the old TTFs were removed from `public/render/fonts/` (2026-08-15).
+- A slow gradient wash animation on the gift cards was tried and removed on request; the cards sit on the flat `#2A1E1D` field from the art (2026-08-15).
 - The public repository link in the footer, `index.html` JSON-LD, and project docs moved from `waynesutton/convexyappers` to `https://github.com/waynesutton/friendsofconvex-yapper-leaderboard` (2026-08-15).
 - Top 3 rank badges now show in both board modes, Yappers and Convex mentions. Each badge is a bigger plain medal floating just left of the profile avatar, no background or border. First place is larger still (2026-08-15).
 - Daily X metrics cron moved from 08:17 UTC to 15:17 UTC, which is 8:17 AM Pacific during daylight time. Same internal refresh action. Minute 17 stays off the top of the hour (2026-08-15).
@@ -47,6 +52,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Fixed
 
+- Board settings column checkboxes no longer overflow their boxes on `/admin`. The floated legend was pushing the first label outside the fieldset; labels now clear the float (2026-08-15).
 - Admins no longer have to sign in twice to reach `/admin`. The gate now waits for the Convex Auth token exchange to finish instead of flashing a second sign in screen (2026-08-15).
 - Long gift pass usernames no longer clip against the pass card (2026-08-15).
 

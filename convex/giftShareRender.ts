@@ -6,9 +6,10 @@ import { api } from "./_generated/api";
 import { internalAction } from "./_generated/server";
 
 // Renders the personalized 1200x630 OpenGraph PNG for a public gift share
-// page. The wash matches public/background-image.svg: a dark radial vignette
-// from #2A1E1D to #906763. Site-wide shares still use
-// public/og-friends-of-convex.png from index.html.
+// page. The art matches public/background-image-sidebar.svg: a solid #2A1E1D
+// field with racing stripe lines sweeping along the bottom edge and rising
+// toward the right. Text is left aligned in the solid field above the lines.
+// Site-wide shares still use public/og-friends-of-convex.png from index.html.
 
 const OG_WIDTH = 1200;
 const OG_HEIGHT = 630;
@@ -35,8 +36,8 @@ function loadRenderer(): Promise<Uint8Array[]> {
       const base = siteUrl();
       const [wasm, medium, bold] = await Promise.all([
         fetchBytes(`${base}/render/resvg.wasm`),
-        fetchBytes(`${base}/render/fonts/space-grotesk-500.ttf`),
-        fetchBytes(`${base}/render/fonts/space-grotesk-700.ttf`),
+        fetchBytes(`${base}/render/fonts/inter-500.ttf`),
+        fetchBytes(`${base}/render/fonts/inter-700.ttf`),
       ]);
       await initWasm(wasm);
       return [medium, bold];
@@ -83,66 +84,61 @@ const CONVEX_SYMBOL = `
   <path d="M114.637 61.8552C103.89 46.8701 87.0686 36.6684 68.6387 36.358C104.264 20.1876 148.085 46.4045 152.856 85.1654C153.3 88.7635 152.717 92.4322 151.122 95.6775C144.466 109.195 132.124 119.679 117.702 123.559C128.269 103.96 126.965 80.0151 114.637 61.8552Z" fill="#EE342F"/>
 `;
 
+// Racing stripe lines from public/background-image-sidebar.svg. The art is
+// drawn for a 1200x675 frame with the stripes anchored to the bottom edge,
+// so a -45px vertical shift bottom-aligns them on the 1200x630 OG canvas.
+// The lines run flat near y=604 on the left and rise to y=356 on the right.
+const BOTTOM_STRIPES = `
+  <g transform="translate(0, -45)">
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M0 604.47L895.679 604.47C913.235 604.47 927.916 592.681 932.205 575.651L982.897 383.956C987.186 366.926 1001.87 355.859 1019.42 355.859H1211.41V674.416L0 674.416L0 604.47ZM0 628.029L945.289 628.029C962.809 628.029 977.443 616.329 981.785 599.365L1032.82 408.012C1037.16 391.054 1051.8 379.714 1069.32 379.714H1211.41V674.416L0 674.416L0 628.029Z" fill="#F3B01D"/>
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M0 628.03L945.289 628.03C962.809 628.03 977.443 616.33 981.785 599.365L1032.82 408.012C1037.16 391.054 1051.8 379.715 1069.32 379.715H1211.41V674.416L0 674.416L0 628.03ZM0 651.595L994.863 651.595C1012.37 651.595 1026.98 639.943 1031.35 623.02L1082.86 431.874C1087.23 414.951 1101.84 403.623 1119.34 403.623H1211.41V674.416L0 674.416L0 651.595Z" fill="#EE3430"/>
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M0 651.595L994.863 651.595C1012.37 651.595 1026.98 639.943 1031.35 623.02L1082.86 431.874C1087.23 414.951 1101.84 403.623 1119.34 403.623H1211.41V674.416L0 674.416L0 651.595ZM1211.64 427.165H1174.4C1156.9 427.165 1142.29 438.493 1137.92 455.416L1086.41 646.562C1082.04 663.485 1067.43 674.546 1049.93 674.546H1211.64V427.165Z" fill="#8D2676"/>
+  </g>
+`;
+
+// Left edge for the left-aligned text column in the solid field.
+const FIELD_LEFT = 80;
+
 function buildShareSvg(args: {
   handle: string;
   displayName: string;
-  campaignTitle: string;
-  redeemed: boolean;
   avatar: string | null;
 }): string {
   const bigText = `@${args.handle}`;
-  const bigSize = Math.min(96, Math.max(32, Math.floor(980 / (bigText.length * 0.62))));
-  const statusText = args.redeemed ? "FRIEND + GIFT RECIPIENT" : "FRIEND OF CONVEX";
-  const displayName = fitLabel(args.displayName, 36);
-  const campaign = fitLabel(args.campaignTitle.toUpperCase(), 42);
+  const bigSize = Math.min(96, Math.max(30, Math.floor(860 / (bigText.length * 0.62))));
+  const displayName = fitLabel(args.displayName, 32);
 
   const avatarBlock = args.avatar
     ? `
-      <clipPath id="avatar-clip"><circle cx="600" cy="196" r="40" /></clipPath>
-      <image href="${args.avatar}" x="560" y="156" width="80" height="80"
+      <clipPath id="avatar-clip"><circle cx="${FIELD_LEFT + 40}" cy="210" r="40" /></clipPath>
+      <image href="${args.avatar}" x="${FIELD_LEFT}" y="170" width="80" height="80"
         preserveAspectRatio="xMidYMid slice" clip-path="url(#avatar-clip)" />
-      <circle cx="600" cy="196" r="44" fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="1.5" />
+      <circle cx="${FIELD_LEFT + 40}" cy="210" r="44" fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="1.5" />
     `
     : `
-      <circle cx="600" cy="196" r="40" fill="rgba(255,255,255,0.08)" />
-      <circle cx="600" cy="196" r="44" fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="1.5" />
-      <text x="600" y="210" text-anchor="middle" font-family="Space Grotesk" font-weight="700"
+      <circle cx="${FIELD_LEFT + 40}" cy="210" r="40" fill="rgba(255,255,255,0.08)" />
+      <circle cx="${FIELD_LEFT + 40}" cy="210" r="44" fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="1.5" />
+      <text x="${FIELD_LEFT + 40}" y="224" text-anchor="middle" font-family="Inter" font-weight="700"
         font-size="36" fill="rgba(255,254,250,0.7)">@</text>
     `;
 
   return `<svg width="${OG_WIDTH}" height="${OG_HEIGHT}" viewBox="0 0 ${OG_WIDTH} ${OG_HEIGHT}" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <radialGradient id="card-wash" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse"
-      gradientTransform="translate(600 171) rotate(90) scale(968 1722)">
-      <stop offset="0.0721154" stop-color="#2A1E1D"/>
-      <stop offset="0.504808" stop-color="#4F3A39"/>
-      <stop offset="0.865385" stop-color="#906763"/>
-    </radialGradient>
-  </defs>
-  <rect width="${OG_WIDTH}" height="${OG_HEIGHT}" fill="url(#card-wash)" />
+  <rect width="${OG_WIDTH}" height="${OG_HEIGHT}" fill="#2A1E1D" />
+  ${BOTTOM_STRIPES}
 
   <g transform="translate(62, 38) scale(0.3)">${CONVEX_SYMBOL}</g>
-  <text x="132" y="78" font-family="Space Grotesk" font-weight="700" font-size="18"
+  <text x="132" y="78" font-family="Inter" font-weight="700" font-size="18"
     letter-spacing="3.2" fill="#FFFEFA">FRIENDS OF CONVEX</text>
-  <text x="1138" y="78" text-anchor="end" font-family="Space Grotesk" font-weight="500"
-    font-size="16" letter-spacing="3.2" fill="rgba(255,254,250,0.72)">COMMUNITY / 2026</text>
 
   ${avatarBlock}
-  <text x="600" y="276" text-anchor="middle" font-family="Space Grotesk" font-weight="700"
+  <text x="${FIELD_LEFT}" y="300" font-family="Inter" font-weight="700"
     font-size="22" fill="#FFFEFA">${escapeXml(displayName)}</text>
-  <text x="600" y="302" text-anchor="middle" font-family="Space Grotesk" font-weight="500"
+  <text x="${FIELD_LEFT}" y="328" font-family="Inter" font-weight="500"
     font-size="15" fill="rgba(255,254,250,0.62)">@${escapeXml(args.handle)}</text>
 
-  <text x="600" y="${388 + Math.floor(bigSize * 0.08)}" text-anchor="middle" font-family="Space Grotesk"
-    font-weight="700" font-size="${bigSize}" letter-spacing="${(-0.04 * bigSize).toFixed(1)}"
+  <text x="${FIELD_LEFT - 4}" y="${448 + Math.floor(bigSize * 0.08)}" font-family="Inter"
+    font-weight="700" font-size="${bigSize}" letter-spacing="${(-0.03 * bigSize).toFixed(1)}"
     fill="#FFFEFA">${escapeXml(bigText)}</text>
-  <text x="600" y="472" text-anchor="middle" font-family="Space Grotesk" font-weight="500"
-    font-size="14" letter-spacing="3.8" fill="rgba(255,254,250,0.62)">${statusText}</text>
-
-  <text x="62" y="584" font-family="Space Grotesk" font-weight="500" font-size="15"
-    letter-spacing="2.8" fill="rgba(255,254,250,0.78)">${escapeXml(campaign)}</text>
-  <text x="1138" y="584" text-anchor="end" font-family="Space Grotesk" font-weight="500"
-    font-size="15" letter-spacing="2.8" fill="rgba(255,254,250,0.78)">BUILT TOGETHER</text>
 </svg>`;
 }
 
@@ -171,8 +167,6 @@ export const renderShareImage = internalAction({
     const svg = buildShareSvg({
       handle: card.handle,
       displayName: card.displayName,
-      campaignTitle: card.campaignTitle,
-      redeemed: card.redeemed,
       avatar,
     });
 
@@ -180,7 +174,7 @@ export const renderShareImage = internalAction({
       fitTo: { mode: "width", value: OG_WIDTH },
       font: {
         fontBuffers: fonts,
-        defaultFontFamily: "Space Grotesk",
+        defaultFontFamily: "Inter",
         loadSystemFonts: false,
       },
     });

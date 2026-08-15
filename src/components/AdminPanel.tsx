@@ -4,6 +4,7 @@ import {
   PaperPlaneTiltIcon,
   PauseCircleIcon,
   PlusIcon,
+  TrashIcon,
   WarningCircleIcon,
 } from "@phosphor-icons/react";
 import { useAction, useMutation, useQuery } from "convex/react";
@@ -332,12 +333,16 @@ export function AdminPanel() {
   const setup = useQuery(api.profiles.getSetupStatus, {});
   const addProfile = useMutation(api.profiles.add);
   const setActive = useMutation(api.profiles.setActive);
+  const removeProfile = useMutation(api.profiles.remove);
   const reviewMembership = useMutation(api.profiles.reviewMembership);
   const refreshOne = useAction(api.xSync.refreshOne);
   const refreshAll = useAction(api.xSync.refreshAll);
   const [handle, setHandle] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<Feedback>(null);
+  // Remove is destructive, so the button arms on the first click and only
+  // deletes on the second. Any other row action disarms it.
+  const [confirmRemoveId, setConfirmRemoveId] = useState<Id<"profiles"> | null>(null);
 
   async function submitHandle(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -376,6 +381,7 @@ export function AdminPanel() {
   async function toggleProfile(profileId: Id<"profiles">, active: boolean) {
     setBusy(profileId);
     setFeedback(null);
+    setConfirmRemoveId(null);
     try {
       await setActive({ profileId, active });
       setFeedback({
@@ -389,9 +395,40 @@ export function AdminPanel() {
     }
   }
 
+  // First click arms the confirm state; second click deletes the profile and
+  // its snapshot history for good. Gift history keeps its own name copies.
+  async function removeHandle(profileId: Id<"profiles">, profileHandle: string) {
+    if (confirmRemoveId !== profileId) {
+      setConfirmRemoveId(profileId);
+      setFeedback({
+        tone: "info",
+        message: `Press Confirm to permanently remove @${profileHandle} and their board history. Archive instead if you may want them back.`,
+      });
+      return;
+    }
+    setBusy(profileId);
+    setFeedback(null);
+    try {
+      await removeProfile({ profileId });
+      setFeedback({
+        tone: "success",
+        message: `@${profileHandle} was removed from the board for good.`,
+      });
+    } catch (error) {
+      setFeedback({
+        tone: "error",
+        message: error instanceof Error ? error.message : "Remove failed.",
+      });
+    } finally {
+      setBusy(null);
+      setConfirmRemoveId(null);
+    }
+  }
+
   async function syncProfile(profileId: Id<"profiles">) {
     setBusy(profileId);
     setFeedback(null);
+    setConfirmRemoveId(null);
     try {
       const result = await refreshOne({ profileId });
       setFeedback({
@@ -429,6 +466,7 @@ export function AdminPanel() {
   async function review(profileId: Id<"profiles">, decision: "approved" | "rejected") {
     setBusy(profileId);
     setFeedback(null);
+    setConfirmRemoveId(null);
     try {
       await reviewMembership({ profileId, decision });
       setFeedback({
@@ -588,6 +626,20 @@ export function AdminPanel() {
                   >
                     {profile.active ? <PauseCircleIcon aria-hidden="true" /> : <CheckCircleIcon aria-hidden="true" />}
                     {profile.active ? "Archive" : "Restore"}
+                  </button>
+                  <button
+                    type="button"
+                    className={`icon-text-button${confirmRemoveId === profile._id ? " danger" : ""}`}
+                    disabled={busy === profile._id}
+                    title={
+                      confirmRemoveId === profile._id
+                        ? `Permanently delete @${profile.handle} and their board history. This cannot be undone.`
+                        : "Remove this person from the board for good, including their history"
+                    }
+                    onClick={() => void removeHandle(profile._id, profile.handle)}
+                  >
+                    <TrashIcon aria-hidden="true" />
+                    {confirmRemoveId === profile._id ? "Confirm" : "Remove"}
                   </button>
                 </div>
               </article>

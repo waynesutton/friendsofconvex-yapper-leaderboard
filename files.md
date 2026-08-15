@@ -22,6 +22,7 @@
 - `prds/agent-ready-seo-aeo-geo.md` — Requirements for Agent Ready plus live `llms.txt` / `sitemap.md` files that follow public handle changes.
 - `prds/daily-board-refresh-cron.md` — Move the daily X metrics cron to 8 AM Pacific and tell `/about` visitors how it runs.
 - `prds/rank-badges-both-modes.md` — Show top 3 badges in both board modes as big avatar-anchored chips with a first place sparkle popout.
+- `prds/admin-remove-handle.md` — Permanent admin remove for board profiles: two step confirm button, snapshot cleanup, and gift ledger safety.
 - `agent-ready.config.json` — Agent Ready app settings and static page list used by `npx agent-ready sync`.
 - `llms.txt` — GitHub pointer to the live discovery files on the site origin.
 - `design/convex-dev-home-design.md` — Supplied Convex.dev homepage design specification used for the default theme.
@@ -50,7 +51,7 @@
 - `src/pages/GiftPassPage.tsx` — Private personalized gift-pass route.
 - `src/pages/GiftSharePage.tsx` — Safe public thank-you card route without claim credentials.
 - `src/components/Leaderboard.tsx` — Search, sortable ranking, the compact board toolbar (kicker, freshness chip, Yappers / Convex mentions toggle, share), admin-controlled column visibility with a dynamic grid, expandable Convex post rows, streak chips, avatar-anchored top 3 rank badges in both modes with a first place sparkle, and pagination.
-- `src/components/AdminPanel.tsx` — Add, archive, restore, and rescan controls plus board settings for visible board columns, rank badges, and the Slack digest.
+- `src/components/AdminPanel.tsx` — Add, archive, restore, rescan, and two step confirm permanent remove controls plus board settings for visible board columns, rank badges, and the Slack digest.
 - `src/components/GiftAdminPanel.tsx` — Sender connection, repeat-recipient history, campaign creation with saved Fourthwall product presets, consent controls, DM delivery, and a searchable recipient ledger with CSV export.
 - `src/components/GiftPortal.tsx` — Private gift reveal and safe public Convex thank-you card experiences.
 - `src/components/AdminGate.tsx` — X sign-in and stable-ID allowlist gate for private admin pages; waits for the Convex Auth token exchange so admins sign in once.
@@ -75,7 +76,7 @@
 - `convex/siteFiles.ts` — Internal public-directory query and HTTP actions that serve the live discovery files from active profiles.
 - `convex/authz.ts` — X identity lookup and stable-ID admin allowlist checks.
 - `convex/imports.ts` — Bulk handle and public X List validation and import actions.
-- `convex/profiles.ts` — Leaderboard (default and Convex mentions modes), stored Convex posts, membership, import, and protected admin functions.
+- `convex/profiles.ts` — Leaderboard (default and Convex mentions modes), stored Convex posts, membership, import, and protected admin functions including permanent profile removal with snapshot cleanup.
 - `convex/xSync.ts` — X lookup, seven-day aggregation, the Convex mention scan, and sync actions.
 - `convex/badges.ts` — Top 3 rank badge query and admin mutations with file storage uploads.
 - `convex/slack.ts` — Admin action posting the Convex yappers digest to Slack.
@@ -84,7 +85,7 @@
 - `convex/giftCrypto.ts` — PKCE, token generation, AES-GCM encryption, and webhook HMAC helpers.
 - `convex/giftWebhooks.ts` — X sender callback and verified, deduplicated Fourthwall order webhook.
 - `convex/sharePages.ts` — HTTP actions serving crawler-friendly `/gift/share/:token` pages with rewritten meta tags and the `/og/gift/:token.png` share image route.
-- `convex/giftShareRender.ts` — Node action rendering the personalized 1200×630 share PNG on the dark radial wash from `public/background-image.svg`, with Space Grotesk fonts from `public/render/`.
+- `convex/giftShareRender.ts` — Node action rendering the personalized 1200×630 share PNG: solid `#2A1E1D` field with the bottom racing stripes from `public/background-image-sidebar.svg`, left aligned text, Inter fonts from `public/render/`.
 - `convex/xAccountActivityPayload.ts` — Privacy-minimized inbound X DM parsing and command detection.
 - `convex/xAccountActivityWebhooks.ts` — X CRC response, raw-body signature verification, and event dispatch.
 - `convex/xAccountActivity.ts` — Idempotent X event storage and global GIFT or STOP state.
@@ -108,8 +109,9 @@
 - `public/og-yapper-board.png` — Generated 1200×630 social preview card.
 - `public/og-yapper-board-convex.png` — Retired 1200×630 dark Convex-themed social preview card with people icons.
 - `public/og-friends-of-convex.png` — Default 1200×630 site social preview: Friends of Convex / Yapper / Leader board with racing stripes. Not the per-recipient share card.
-- `public/background-image.svg` and `public/background-image.png` — Dark radial wash used as the gift signal card background (SVG) and matched in the personalized share OpenGraph renderer.
-- `public/render/resvg.wasm` and `public/render/fonts/space-grotesk-500.ttf`, `space-grotesk-700.ttf` — Renderer assets the share-image Node action fetches from static hosting.
+- `public/background-image-sidebar.svg` — 16:9 (1200×675) card art: solid `#2A1E1D` field with racing stripe lines sweeping along the bottom edge, rising toward the right. Background of both gift cards and the geometry source for the share OG renderer.
+- `public/background-image.svg` and `public/background-image.png` — Dark radial wash from the earlier card design, kept as unused assets.
+- `public/render/resvg.wasm` and `public/render/fonts/inter-500.ttf`, `inter-700.ttf` — Renderer assets the share-image Node action fetches from static hosting.
 - `public/brand/convex-logo-black.svg`, `convex-logo-white.svg`, and `convex-logo-color.svg` — Supplied official Convex logo variants.
 - `public/brand/convex-racing-lines.png` — Browser-ready copy of the supplied racing-line artwork with its actual PNG format reflected in the extension.
 - `public/favicon.png` — Site favicon and apple touch icon: dark square, white Convex pinwheel, racing stripes in the bottom right.

@@ -4,7 +4,7 @@
    These variables keep the same names the theme system already uses. */
 :root {
   --font-body: "Geist";
-  --font-display: "Space Grotesk";
+  --font-display: "Inter";
   --font-mono: "Geist Mono";
 }
 
@@ -168,7 +168,10 @@ button:disabled {
   border-radius: 50%;
   color: var(--broadcast-ink);
   cursor: pointer;
-  transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease;
 }
 
 .theme-switcher:hover {
@@ -189,7 +192,10 @@ button:disabled {
   color: var(--caption-ink);
   font-size: 14px;
   text-decoration: none;
-  transition: background-color 160ms ease, color 160ms ease, transform 160ms ease;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
 }
 
 .site-nav a:hover {
@@ -343,8 +349,15 @@ button:disabled {
 }
 
 @keyframes signal-pulse {
-  0%, 100% { opacity: 0.45; transform: scale(0.8); }
-  50% { opacity: 1; transform: scale(1); }
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .board-shell {
@@ -439,7 +452,10 @@ html[data-theme="convex"] .board-sync-chip {
   font-size: 13px;
   font-weight: 600;
   text-decoration: none;
-  transition: background-color 150ms ease, border-color 150ms ease, transform 150ms ease;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    transform 150ms ease;
 }
 
 .share-toolbar button:hover,
@@ -462,6 +478,19 @@ html[data-theme="convex"] .board-sync-chip {
 .icon-text-button svg {
   width: 17px;
   height: 17px;
+}
+
+/* Armed state for destructive admin actions: the Remove button turns red
+   after the first click and only deletes on the second. */
+.icon-text-button.danger {
+  border-color: var(--signal-red);
+  color: var(--signal-red);
+}
+
+.icon-text-button.danger:hover:not(:disabled) {
+  background: var(--signal-red);
+  border-color: var(--signal-red);
+  color: #fff;
 }
 
 .search-field {
@@ -547,7 +576,10 @@ html[data-theme="convex"] .board-sync-chip {
   display: grid;
   /* --board-grid is set inline by the Leaderboard from the admin column
      settings; the fallback matches the all-columns default. */
-  grid-template-columns: var(--board-grid, 70px minmax(260px, 1.55fr) minmax(90px, 0.55fr) minmax(110px, 0.7fr) minmax(150px, 0.8fr) 96px);
+  grid-template-columns: var(
+    --board-grid,
+    70px minmax(260px, 1.55fr) minmax(90px, 0.55fr) minmax(110px, 0.7fr) minmax(150px, 0.8fr) 96px
+  );
   align-items: center;
 }
 
@@ -723,7 +755,10 @@ html[data-theme="convex"] .board-sync-chip {
   border-radius: 50%;
   color: var(--caption-ink);
   cursor: pointer;
-  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
 }
 
 /* Invisible hit-area extension so taps meet the 44px minimum target
@@ -750,7 +785,11 @@ html[data-theme="convex"] .board-sync-chip {
 /* Convex mentions mode: wider metric set, so its own grid template. */
 .leaderboard-table[data-mode="convex"] .table-header,
 .leaderboard-table[data-mode="convex"] .table-row {
-  grid-template-columns: var(--board-grid, 64px minmax(200px, 1.2fr) minmax(150px, 0.85fr) minmax(105px, 0.6fr) minmax(115px, 0.65fr) minmax(115px, 0.65fr) minmax(95px, 0.5fr) 132px);
+  grid-template-columns: var(
+    --board-grid,
+    64px minmax(200px, 1.2fr) minmax(150px, 0.85fr) minmax(105px, 0.6fr) minmax(115px, 0.65fr)
+      minmax(115px, 0.65fr) minmax(95px, 0.5fr) 132px
+  );
 }
 
 /* Row plus optional expanded posts panel; contents keeps the table styling. */
@@ -917,8 +956,13 @@ html[data-theme="convex"] .board-sync-chip {
 }
 
 @keyframes skeleton-fade {
-  0%, 100% { opacity: 0.45; }
-  50% { opacity: 0.9; }
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 0.9;
+  }
 }
 
 .empty-state {
@@ -1218,7 +1262,9 @@ html[data-theme="convex"] .board-sync-chip {
   cursor: pointer;
   font-size: 13px;
   font-weight: 680;
-  transition: background-color 150ms ease, transform 150ms ease;
+  transition:
+    background-color 150ms ease,
+    transform 150ms ease;
 }
 
 .handle-input-row button:hover:not(:disabled) {
@@ -1328,9 +1374,15 @@ html[data-theme="convex"] .board-sync-chip {
   background: var(--quiet-ink);
 }
 
-.status-synced { background: var(--signal-green); }
-.status-error { background: var(--signal-red); }
-.status-pending { background: var(--signal-coral); }
+.status-synced {
+  background: var(--signal-green);
+}
+.status-error {
+  background: var(--signal-red);
+}
+.status-pending {
+  background: var(--signal-coral);
+}
 
 .admin-identity > span:last-child,
 .admin-sync-meta {
@@ -1499,6 +1551,7 @@ html[data-theme="convex"] .board-sync-chip {
 
 .board-column-settings fieldset {
   margin: 0;
+  min-width: 0;
   padding: 18px;
   background: var(--control-inset);
   border: 0;
@@ -1523,6 +1576,9 @@ html[data-theme="convex"] .board-sync-chip {
   align-items: center;
   gap: 10px;
   min-height: 34px;
+  /* The legend floats; without this the first label lands beside it and
+     escapes the fieldset box. */
+  clear: both;
   font-size: 14px;
   cursor: pointer;
 }
@@ -1708,9 +1764,13 @@ html[data-theme="convex"] .board-sync-chip {
   text-transform: uppercase;
 }
 
-.import-status-valid { color: var(--signal-green); }
+.import-status-valid {
+  color: var(--signal-green);
+}
 .import-status-invalid,
-.import-status-not-found { color: var(--signal-red); }
+.import-status-not-found {
+  color: var(--signal-red);
+}
 
 .access-state {
   width: min(720px, calc(100% - 40px));
@@ -2057,11 +2117,17 @@ html[data-theme="convex"] .board-sync-chip {
   }
 
   .table-row {
-    grid-template-columns: var(--board-grid-compact, 56px minmax(220px, 1fr) repeat(3, minmax(90px, 0.45fr)) 76px);
+    grid-template-columns: var(
+      --board-grid-compact,
+      56px minmax(220px, 1fr) repeat(3, minmax(90px, 0.45fr)) 76px
+    );
   }
 
   .leaderboard-table[data-mode="convex"] .table-row {
-    grid-template-columns: var(--board-grid-compact, 56px minmax(170px, 1fr) repeat(5, minmax(82px, 0.45fr)) 128px);
+    grid-template-columns: var(
+      --board-grid-compact,
+      56px minmax(170px, 1fr) repeat(5, minmax(82px, 0.45fr)) 128px
+    );
   }
 
   .admin-grid {
@@ -2879,11 +2945,17 @@ html[data-theme="convex"] .board-sync-chip {
   text-transform: uppercase;
 }
 
-.gift-status-redeemed { color: var(--signal-green); }
+.gift-status-redeemed {
+  color: var(--signal-green);
+}
 .gift-status-error,
-.gift-status-cancelled { color: var(--signal-red); }
+.gift-status-cancelled {
+  color: var(--signal-red);
+}
 .gift-status-opened,
-.gift-status-revealed { color: var(--signal-coral-dark); }
+.gift-status-revealed {
+  color: var(--signal-coral-dark);
+}
 
 .gift-lifecycle p {
   margin: 6px 0 0;
@@ -2990,11 +3062,7 @@ html[data-theme="convex"] .board-sync-chip {
   color: var(--signal-coral-dark);
   overflow-wrap: anywhere;
   word-break: break-word;
-  font-size: clamp(
-    18px,
-    min(3vw, calc(12px + 168px / var(--gift-name-length, 12))),
-    28px
-  );
+  font-size: clamp(18px, min(3vw, calc(12px + 168px / var(--gift-name-length, 12))), 28px);
   line-height: 1.16;
   letter-spacing: -0.03em;
 }
@@ -3030,24 +3098,25 @@ html[data-theme="convex"] .board-sync-chip {
   position: relative;
   /* Container queries let the recipient name scale to the card width. */
   container-type: inline-size;
-  min-height: 500px;
-  padding: clamp(24px, 4vw, 44px);
+  /* Twitter card shape. The art is 1200x675, an exact 16:9 frame, with
+     stripe lines sweeping along the bottom edge and rising to the right. */
+  aspect-ratio: 16 / 9;
+  padding: clamp(20px, 3.4cqi, 40px);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   overflow: hidden;
   background-color: #2a1e1d;
-  background-image: url("/background-image.svg");
+  background-image: url("/background-image-sidebar.svg");
   background-repeat: no-repeat;
   background-position: center;
-  background-size: cover;
+  background-size: 100% 100%;
   border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 28px;
   color: #fffefa;
 }
 
-.gift-signal-card > header,
-.gift-signal-card > footer {
+.gift-signal-card > header {
   position: relative;
   z-index: 1;
   display: flex;
@@ -3092,29 +3161,31 @@ html[data-theme="convex"] .board-sync-chip {
 .gift-card-center {
   position: relative;
   z-index: 1;
-  padding: 52px 0;
-  text-align: center;
+  /* Auto block margins keep the block vertically centered now that the card
+     has no footer. The right margin keeps long names off the stripe lines
+     that rise up the right side of the art. */
+  margin-block: auto;
+  margin-right: 16cqi;
+  padding: clamp(8px, 3cqi, 32px) 0;
+  text-align: left;
 }
 
 .gift-card-center h2 {
-  margin: 28px 0 8px;
+  margin: clamp(12px, 2.4cqi, 24px) 0 8px;
   overflow-wrap: anywhere;
   word-break: break-word;
   font-family: var(--font-display), ui-sans-serif, sans-serif;
   /* Auto fit: shrink with the handle length (set inline as --gift-name-length)
-     so long names stay on one line inside the card. */
-  font-size: clamp(
-    28px,
-    min(14cqw, calc(140cqw / var(--gift-name-length, 10))),
-    72px
-  );
+     so long names stay on one line inside the solid field. */
+  font-size: clamp(24px, min(11cqi, calc(124cqi / var(--gift-name-length, 10))), 64px);
   font-weight: 600;
-  letter-spacing: -0.07em;
-  line-height: 0.9;
+  letter-spacing: -0.04em;
+  line-height: 0.95;
 }
 
 .gift-card-center > p {
-  margin: 0;
+  /* Sits a step below the big name per the pass design. */
+  margin: clamp(12px, 2.6cqi, 26px) 0 0;
   color: rgba(255, 254, 250, 0.62);
   font-family: var(--font-mono), ui-monospace, monospace;
   font-size: 10px;
@@ -3124,7 +3195,6 @@ html[data-theme="convex"] .board-sync-chip {
 .gift-portal-identity {
   width: fit-content;
   max-width: 100%;
-  margin: 0 auto;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -3185,7 +3255,10 @@ html[data-theme="convex"] .board-sync-chip {
   border-radius: 999px;
   cursor: pointer;
   font-weight: 680;
-  transition: background-color 180ms ease, color 180ms ease, opacity 180ms ease;
+  transition:
+    background-color 180ms ease,
+    color 180ms ease,
+    opacity 180ms ease;
 }
 
 .gift-primary-action {
@@ -3279,12 +3352,21 @@ html[data-theme="convex"] .board-sync-chip {
 }
 
 @keyframes gift-rotor-turn {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes gift-rotor-pulse {
-  0% { opacity: 0.5; transform: scale(0.88); }
-  70%, 100% { opacity: 0; transform: scale(1.18); }
+  0% {
+    opacity: 0.5;
+    transform: scale(0.88);
+  }
+  70%,
+  100% {
+    opacity: 0;
+    transform: scale(1.18);
+  }
 }
 
 @media (max-width: 1000px) {
@@ -3401,7 +3483,6 @@ html[data-theme="convex"] .board-sync-chip {
   }
 
   .gift-signal-card {
-    min-height: 430px;
     border-radius: 20px;
   }
 
@@ -3453,8 +3534,7 @@ html[data-theme="convex"] {
 html[data-theme="convex"] body {
   background:
     linear-gradient(rgba(33, 23, 24, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(33, 23, 24, 0.035) 1px, transparent 1px),
-    var(--studio-paper);
+    linear-gradient(90deg, rgba(33, 23, 24, 0.035) 1px, transparent 1px), var(--studio-paper);
   background-size: 48px 48px;
 }
 
@@ -3465,7 +3545,10 @@ html[data-theme="convex"] .site-header {
   width: 100%;
   max-width: none;
   min-height: 68px;
-  padding-inline: max(var(--page-gutter), calc((100vw - var(--page-width)) / 2 + var(--page-gutter)));
+  padding-inline: max(
+    var(--page-gutter),
+    calc((100vw - var(--page-width)) / 2 + var(--page-gutter))
+  );
   background: rgba(33, 23, 24, 0.96);
   border-color: rgba(255, 250, 240, 0.16);
   color: #fffaf0;
@@ -3522,7 +3605,8 @@ html[data-theme="convex"] .hero {
   position: relative;
   isolation: isolate;
   min-height: 280px;
-  padding: clamp(28px, 3.5vw, 40px) max(var(--page-gutter), calc((100vw - var(--page-width)) / 2 + var(--page-gutter))) 28px;
+  padding: clamp(28px, 3.5vw, 40px)
+    max(var(--page-gutter), calc((100vw - var(--page-width)) / 2 + var(--page-gutter))) 28px;
   overflow: hidden;
   background-color: #211718;
   background-image: url("/brand/convex-racing-lines.png");
@@ -3582,7 +3666,10 @@ html[data-theme="convex"] .signal-panel::before {
 }
 
 html[data-theme="convex"] .board-shell {
-  width: min(calc(100% - (var(--page-gutter) * 2)), calc(var(--page-width) - (var(--page-gutter) * 2)));
+  width: min(
+    calc(100% - (var(--page-gutter) * 2)),
+    calc(var(--page-width) - (var(--page-gutter) * 2))
+  );
   margin: 0 auto;
   padding: 20px 0 96px;
 }
@@ -3766,7 +3853,10 @@ html[data-theme="convex"] .gift-signal-card {
 html[data-theme="convex"] .site-footer {
   width: 100%;
   max-width: none;
-  padding-inline: max(var(--page-gutter), calc((100vw - var(--page-width)) / 2 + var(--page-gutter)));
+  padding-inline: max(
+    var(--page-gutter),
+    calc((100vw - var(--page-width)) / 2 + var(--page-gutter))
+  );
   background: #211718;
   border-color: rgba(255, 250, 240, 0.14);
   color: rgba(255, 250, 240, 0.64);
@@ -3867,7 +3957,10 @@ html[data-theme="convex"] .site-footer .cursor-logomark {
   font: inherit;
   font-size: 14px;
   cursor: pointer;
-  transition: background-color 160ms ease, color 160ms ease, transform 160ms ease;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
 }
 
 .site-nav .nav-signout:hover {
@@ -3981,7 +4074,7 @@ html[data-theme="convex"] .header-admin-chip {
    editorial pages (about, setup, gifts guide), admin intros, gift studio,
    gift pass, public share page, closed-pass card, and admin sign-in states.
    Kept last so it wins over the theme weight overrides. The gift signal
-   card itself stays in Space Grotesk to match the server rendered OG image. */
+   card itself stays in Inter to match the server rendered OG image. */
 .hero h1,
 #board-title,
 .join-copy h1,
@@ -4005,7 +4098,7 @@ html[data-theme="convex"] .access-state h1 {
   font-family: "neue-haas-grotesk-display", sans-serif;
   font-weight: 900;
   font-style: normal;
-  /* The old Space Grotesk tracking (-0.06em) collapses word gaps at weight 900. */
+  /* Tight display tracking (-0.06em) collapses word gaps at weight 900. */
   letter-spacing: -0.02em;
 }
 

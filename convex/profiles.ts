@@ -320,6 +320,30 @@ export const setActive = mutation({
   },
 });
 
+// Permanently deletes a profile and its snapshot history. Gift ledger rows
+// keep their own copies of the handle and display name, so gift history
+// survives the removal. Idempotent: removing an already deleted profile is
+// a no-op.
+export const remove = mutation({
+  args: { profileId: v.id("profiles") },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    const profile = await ctx.db.get("profiles", args.profileId);
+    if (!profile) return null;
+
+    const snapshots = await ctx.db
+      .query("snapshots")
+      .withIndex("by_profile_id", (q) => q.eq("profileId", args.profileId))
+      .collect();
+    for (const snapshot of snapshots) {
+      await ctx.db.delete("snapshots", snapshot._id);
+    }
+    await ctx.db.delete("profiles", args.profileId);
+    return null;
+  },
+});
+
 const membershipStatusValidator = v.union(
   v.literal("pending"),
   v.literal("approved"),
