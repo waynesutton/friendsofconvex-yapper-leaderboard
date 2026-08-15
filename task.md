@@ -1,5 +1,13 @@
 # Task log
 
+## Completed — 2026-08-15 21:41 UTC (mobile X login UX)
+
+- [x] Guided mobile visitors through X sign-in without touching the OAuth setup. New `src/lib/browserEnvironment.ts` detects the X app's in-app WebView from the user agent, checks for coarse-pointer (touch) devices, and tracks a sessionStorage sign-in attempt flag. PRD: `prds/mobile-x-login-ux.md`.
+- [x] `/join`: signed-out visitors inside the X app browser see an instruction card (open in Safari on iPhone, Chrome on Android) above a still-working Continue with X button; other phones get a one-line "stay in this browser" hint. The button now disables while redirecting ("Opening X sign-in").
+- [x] Failed OAuth round trips are no longer silent. Convex Auth redirects back with no query param on failure, so the attempt flag plus a signed-out return shows "Sign-in didn't finish. Stay in this browser and try once more." exactly once. Flags older than ten minutes are ignored; storage errors degrade to the old behavior.
+- [x] `AdminGate` got the same busy state, failure message, and mobile hint on its Continue with X screen. Backend, callbacks, scopes, and share intent links are untouched.
+- [x] Verified: `npm run check` (lint, tsc, build) passes. Browser checks on the dev server: desktop `/join` and `/admin` unchanged, simulated `Twitter for iPhone` UA shows the in-app card with the button still enabled, a seeded attempt flag shows the retry message once and clears on the next load.
+
 ## Completed — 2026-08-15 21:30 UTC (forgiving X handle input)
 
 - [x] The Add to the board handle box on `/admin` now accepts anything reasonable: typed or pasted values with a leading @, extra spaces, or a full x.com/twitter.com profile link all sanitize to a plain handle as you type. Before, the HTML pattern only allowed one optional @, so pastes like "@name " failed browser validation and never reached Convex.

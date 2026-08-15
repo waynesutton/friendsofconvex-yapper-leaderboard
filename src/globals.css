@@ -1882,6 +1882,45 @@ html[data-theme="convex"] .board-sync-chip {
   color: rgba(255, 254, 250, 0.72);
 }
 
+/* Mobile X login guidance: shown when the visitor is inside the X app's
+   in-app browser, where the OAuth round trip cannot complete. */
+.in-app-browser-note {
+  margin-bottom: 20px;
+  padding: 14px 16px;
+  border: 1px solid var(--line-standard);
+  border-radius: var(--radius-small);
+  background: var(--studio-sheet);
+  color: var(--caption-ink);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.in-app-browser-note > strong {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--broadcast-ink);
+}
+
+.in-app-browser-note p {
+  margin: 0;
+  color: inherit;
+}
+
+/* One-line reminder under Continue with X on touch devices. */
+.sign-in-hint {
+  margin: 12px 0 0;
+  max-width: 44ch;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--quiet-ink);
+}
+
+@media (pointer: fine) {
+  .sign-in-hint {
+    display: none;
+  }
+}
+
 .admin-empty {
   padding: 48px 4px;
   color: var(--caption-ink);

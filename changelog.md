@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
+- Mobile X login guidance. Opening `/join` inside the X app's in-app browser now shows an instruction card to reopen the page in Safari or Chrome, since X's own Universal Links break the web OAuth round trip there. Phones outside the X app get a one-line "stay in this browser" hint, both sign-in buttons show an "Opening X sign-in" busy state, and a failed sign-in round trip surfaces a retry message instead of silently showing the button again. No OAuth, callback, or scope changes (2026-08-15).
+
 - Dispatches log toolbar: Recent, Archived, and All view tabs with counts, a search box that matches campaign title, gift name, or recipient handle, a select all checkbox with per row checkboxes, and bulk Archive, Restore, two step Confirm delete, and Clear actions backed by new capped bulk mutations. Download CSV now exports exactly what the log shows (2026-08-15).
 - Approved recipients toolbar in the campaign form: search by name or handle, Select shown, Select GIFT ready (only profiles with an unused GIFT request), Clear, and a live selected count. Picking more than 50 recipients disables Create with an inline warning that matches the backend cap (2026-08-15).
 - Batch X DM send in the recipient ledger: checkboxes appear on passes that can still be sent, Select sendable grabs them all, and Send X DMs delivers one at a time with a 2 second gap between sends. Every send still runs the full server side compliance checks (STOP, admin opt out, consent, link ready) right before the X API call, and the loop stops after three failures in a row instead of hammering X. A summary reports sent, already sent, and failed handles (2026-08-15).

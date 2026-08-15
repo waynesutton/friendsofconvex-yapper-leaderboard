@@ -43,6 +43,7 @@
 - `src/App.tsx` — Route table and shared layout for every page.
 - `src/providers.tsx` — Convex Auth React provider reading `VITE_CONVEX_URL` with a `getConvexUrl()` static host fallback.
 - `src/lib/usePageTitle.ts` — Per-route document title hook replacing Next.js metadata.
+- `src/lib/browserEnvironment.ts` — X in-app browser and touch-device detection plus the sessionStorage sign-in attempt flag behind the mobile login guidance.
 - `src/pages/HomePage.tsx` — Public leaderboard route.
 - `src/pages/AdminPage.tsx` — Convex Auth protected admin route.
 - `src/pages/JoinPage.tsx` — Public X sign-in and join-request route.
@@ -57,10 +58,10 @@
 - `src/components/AdminPanel.tsx` — Add, archive, restore, rescan, and two step confirm permanent remove controls plus board settings for visible board columns, rank badges, and the Slack digest.
 - `src/components/GiftAdminPanel.tsx` — Sender connection, repeat-recipient history, the product shelf of Fourthwall-verified saved products with thumbnails, campaign creation with pick-to-fill preset chips, consent controls, DM delivery, a searchable recipient ledger with CSV export, and the Dispatches log with archive, restore, confirmed delete, and CSV export.
 - `src/components/GiftPortal.tsx` — Private gift reveal and safe public Convex thank-you card experiences.
-- `src/components/AdminGate.tsx` — X sign-in and stable-ID allowlist gate for private admin pages; waits for the Convex Auth token exchange so admins sign in once.
+- `src/components/AdminGate.tsx` — X sign-in and stable-ID allowlist gate for private admin pages; waits for the Convex Auth token exchange so admins sign in once, with a sign-in busy state, failed round-trip message, and mobile hint.
 - `src/components/AdminAccessNote.tsx` — Shared admin-only notice with the signed-in admin chip and steps for adding another admin to `ADMIN_X_USER_IDS`.
 - `src/components/ImportPanel.tsx` — Bulk handle and public X List preview and import controls.
-- `src/components/JoinBoard.tsx` — X sign-in, membership request, and review status.
+- `src/components/JoinBoard.tsx` — X sign-in, membership request, and review status, with X in-app browser instructions, a mobile stay-in-this-browser hint, and a failed sign-in retry message.
 - `src/components/SiteHeader.tsx` — Primary navigation, plus admin links, the Admin @handle chip, and Sign out on `/admin` routes for signed-in admins.
 - `src/components/ThemeSwitcher.tsx` — Icon-only round Convex/Studio theme toggle with persistence and an accessible name.
 - `src/components/BuiltWithFooter.tsx` — Cursor and Convex attribution, the open source board credit, `llms.txt` and `sitemap.md` links, and Convex social icons.

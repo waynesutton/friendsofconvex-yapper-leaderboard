@@ -4,6 +4,16 @@ import { useMutation, useQuery } from "convex/react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../../convex/_generated/api";
+import {
+  consumeFailedSignInAttempt,
+  isMobileDevice,
+  isXInAppBrowser,
+  markSignInAttempt,
+} from "../lib/browserEnvironment";
+
+// Environment reads are stable for the life of the page.
+const inXApp = isXInAppBrowser();
+const onMobile = isMobileDevice();
 
 export function JoinBoard() {
   const { isAuthenticated, isLoading } = useConvexAuth();
@@ -12,7 +22,20 @@ export function JoinBoard() {
   const membership = useQuery(api.profiles.getMyMembership, isAuthenticated ? {} : "skip");
   const requestToJoin = useMutation(api.profiles.requestToJoin);
   const [busy, setBusy] = useState(false);
+  const [signingIn, setSigningIn] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Consume the pre-redirect attempt flag once on mount. Convex Auth
+  // redirects back with no query param when OAuth fails, so a recent flag
+  // plus a signed-out visitor is the only signal the round trip broke,
+  // usually because the phone bounced into the X app.
+  const [hadRecentAttempt] = useState(() => consumeFailedSignInAttempt());
+  const signInFailed = hadRecentAttempt && !signingIn && !isLoading && !isAuthenticated;
+
+  function startSignIn() {
+    setSigningIn(true);
+    markSignInAttempt();
+    void signIn("twitter", { redirectTo: "/join" });
+  }
 
   async function requestMembership() {
     setBusy(true);
@@ -61,12 +84,33 @@ export function JoinBoard() {
             <XLogoIcon aria-hidden="true" />
             <h2>Start with your X account.</h2>
             <p>We use X only to identify the person asking to join.</p>
+            {inXApp ? (
+              <div className="in-app-browser-note" role="note">
+                <strong>You are inside the X app browser.</strong>
+                <p>
+                  Sign-in cannot finish here. Tap the menu in the corner and choose{" "}
+                  <strong>Open in Safari</strong> on iPhone or <strong>Open in Chrome</strong> on
+                  Android, then continue from there.
+                </p>
+              </div>
+            ) : null}
             <button
               className="primary-button"
               type="button"
-              onClick={() => void signIn("twitter", { redirectTo: "/join" })}>
-              Continue with X
+              disabled={signingIn}
+              onClick={startSignIn}>
+              {signingIn ? "Opening X sign-in" : "Continue with X"}
             </button>
+            {signInFailed ? (
+              <p className="feedback-message feedback-error" role="alert">
+                Sign-in didn’t finish. Stay in this browser and try once more.
+              </p>
+            ) : null}
+            {onMobile && !inXApp ? (
+              <p className="sign-in-hint">
+                Approve in this browser. If your phone offers to open the X app, stay here.
+              </p>
+            ) : null}
           </div>
         ) : membership?.status === "approved" ? (
           <div className="join-state join-state-approved">
