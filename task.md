@@ -1,5 +1,32 @@
 # Task log
 
+## Completed — 2026-08-15 19:25 UTC (mobile leaderboard cards)
+
+- [x] Fixed overlapping metric labels on the mobile leaderboard cards. In Convex mentions view the five metric cells auto-flowed into the card's 36px rank column, so "Convex posts (7d)" and "Convex engagement" overlapped the neighboring cells. Yappers view had "Posts" squeezed into the same 36px track.
+- [x] Metric cells now span the full card width as label and value rows (label left, value right, hairline divider per row). Works for any admin visible column mix in both toggle views; removed the per-column grid pins and the convex mode auto-flow override in `src/globals.css`.
+- [x] Mobile audit of other pages at 390px: join, about, and the gift studio breakpoints are fine; no other overlaps found.
+- [x] Verified in the browser at 390px emulated width on both toggle views; no linter errors.
+
+## Completed — 2026-08-15 19:20 UTC
+
+- [x] Diagnosed the production "X OAuth failed with status 400" on gift sends. Prod logs show `giftActions:sendGiftDm` failing at 12:07 and 12:08 PM; the stored sender connection was created about 11 hours earlier, its 2 hour access token had expired, and X rejected the refresh token grant. The opaque message came from `errorMessage` ignoring the OAuth `error` and `error_description` fields the X token endpoint returns.
+- [x] `errorMessage` in `convex/giftActions.ts` now surfaces `error: error_description` from OAuth payloads, and a rejected refresh throws an actionable message: reconnect the sender in the gift studio, then retry the send.
+- [x] Event history in the recipient ledger now shows a caret that rotates open, a hover state, and a tooltip. The `display: flex` on the summary had removed the native disclosure triangle, leaving plain text with no toggle affordance.
+- [x] Audited the rest of the app for the same problem: the only other `<details>` (admin access note) keeps its native triangle, and no click handlers sit on non-interactive elements.
+- [x] Verified: `npx tsc --noEmit` passes and no linter errors. Remediation on prod still needed: click Reconnect sender in the gift studio, then resend.
+
+## Completed — 2026-08-15 19:25 UTC
+
+- [x] Dispatches sidebar on `/admin/gifts` scrolls on its own: the campaign list caps at 420px with a thin inner scrollbar, so a long history never stretches the studio. Archived dispatches leave the sidebar. PRD: `prds/dispatch-log-archive-delete.md`.
+- [x] New Dispatches log section below the recipient ledger: every campaign (active and archived) with Archive, Restore, a two step Delete (arms red, second click confirms; anything else disarms), and a Download CSV export (title, status, archived time, product ID, created, last synced, sync error).
+- [x] Backend: optional `archivedAt` on `giftCampaigns`, admin `gifts.setCampaignArchived` toggle, and `gifts.deleteCampaignAdmin` which cascade deletes the campaign's events, recipients (their pass and share pages die with them), then the campaign. Both idempotent.
+- [x] Sidebar and log stay in sync automatically because both render from the same `listCampaignsAdmin` query; deleting the selected campaign falls back to the newest visible one.
+- [x] Verified: `npm run check` passes (lint, typecheck, build); Convex dev accepted the schema and mutations. Archive and delete clicks need a signed in manual pass since the IDE browser stops at the X sign in gate.
+
+## Completed — 2026-08-15 19:10 UTC
+
+- [x] Product shelf add inputs styled like the campaign form fields: inset background, visible border, small radius, 48px height, coral focus border. They previously rendered as bare text.
+
 ## Completed — 2026-08-15 19:05 UTC
 
 - [x] Product shelf in the Gift studio: a new section where admins save labeled Fourthwall product IDs before any dispatch. Each save calls the Fourthwall Get Product endpoint, rejects unknown IDs, and stores the product name plus thumbnail. Cards show the image (or a gift glyph), label, name, short ID, a Use button that fills the campaign form, and remove. PRD: `prds/gift-product-shelf-previews.md`.

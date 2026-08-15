@@ -48,6 +48,7 @@ const giftCampaignValidator = v.object({
   portalExpiresAt: v.union(v.number(), v.null()),
   lastSyncedAt: v.union(v.number(), v.null()),
   syncError: v.union(v.string(), v.null()),
+  archivedAt: v.optional(v.number()),
   createdAt: v.number(),
   updatedAt: v.number(),
 });
@@ -176,6 +177,57 @@ export const listCampaignsAdmin = query({
       .withIndex("by_created_at")
       .order("desc")
       .take(limit);
+  },
+});
+
+// Archive or restore a dispatch. Archived campaigns leave the sidebar but
+// stay in the Dispatches log with their data intact.
+export const setCampaignArchived = mutation({
+  args: { campaignId: v.id("giftCampaigns"), archived: v.boolean() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    const campaign = await ctx.db.get("giftCampaigns", args.campaignId);
+    // Idempotent: archiving a deleted campaign is a no-op.
+    if (!campaign) return null;
+    await ctx.db.patch("giftCampaigns", args.campaignId, {
+      archivedAt: args.archived ? Date.now() : undefined,
+      updatedAt: Date.now(),
+    });
+    return null;
+  },
+});
+
+// Permanently delete a dispatch: its gift events, recipients (which kills
+// their pass and share pages), then the campaign itself.
+export const deleteCampaignAdmin = mutation({
+  args: { campaignId: v.id("giftCampaigns") },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    const campaign = await ctx.db.get("giftCampaigns", args.campaignId);
+    // Idempotent: deleting an already removed campaign is fine.
+    if (!campaign) return null;
+    const events = await ctx.db
+      .query("giftEvents")
+      .withIndex("by_campaign_id_and_created_at", (q) =>
+        q.eq("campaignId", args.campaignId),
+      )
+      .collect();
+    for (const event of events) {
+      await ctx.db.delete("giftEvents", event._id);
+    }
+    const recipients = await ctx.db
+      .query("giftRecipients")
+      .withIndex("by_campaign_id_and_created_at", (q) =>
+        q.eq("campaignId", args.campaignId),
+      )
+      .collect();
+    for (const recipient of recipients) {
+      await ctx.db.delete("giftRecipients", recipient._id);
+    }
+    await ctx.db.delete("giftCampaigns", args.campaignId);
+    return null;
   },
 });
 

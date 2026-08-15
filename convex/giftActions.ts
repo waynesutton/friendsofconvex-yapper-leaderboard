@@ -70,6 +70,14 @@ function errorMessage(payload: unknown, fallback: string): string {
   if (typeof payload.detail === "string") return payload.detail;
   if (typeof payload.message === "string") return payload.message;
   if (typeof payload.title === "string") return payload.title;
+  // The X OAuth token endpoint reports failures as error and
+  // error_description, so surface those instead of a bare status code.
+  if (typeof payload.error_description === "string") {
+    return typeof payload.error === "string"
+      ? `${payload.error}: ${payload.error_description}`
+      : payload.error_description;
+  }
+  if (typeof payload.error === "string") return payload.error;
   if (Array.isArray(payload.errors) && isRecord(payload.errors[0])) {
     return errorMessage(payload.errors[0], fallback);
   }
@@ -539,13 +547,25 @@ async function validSenderAccessToken(ctx: ActionCtx): Promise<string> {
     connection.encryptedRefreshToken,
     encryptionKey,
   );
-  const refreshed = await exchangeXToken(
-    new URLSearchParams({
-      grant_type: "refresh_token",
-      refresh_token: currentRefreshToken,
-      client_id: requiredEnv("AUTH_TWITTER_ID"),
-    }),
-  );
+  // X access tokens expire after 2 hours, so every send after that window
+  // refreshes first. A rejected refresh means the stored token is stale or
+  // revoked, and only a fresh authorization fixes it.
+  let refreshed: XTokenSet;
+  try {
+    refreshed = await exchangeXToken(
+      new URLSearchParams({
+        grant_type: "refresh_token",
+        refresh_token: currentRefreshToken,
+        client_id: requiredEnv("AUTH_TWITTER_ID"),
+      }),
+    );
+  } catch (error) {
+    const reason =
+      error instanceof Error ? error.message : "X OAuth refresh failed.";
+    throw new Error(
+      `X rejected the stored sender token (${reason}) Click Reconnect sender in the gift studio, then retry this send.`,
+    );
+  }
   const refreshToken = refreshed.refreshToken ?? currentRefreshToken;
   await ctx.runMutation(internal.gifts.updateSenderTokens, {
     encryptedAccessToken: await encryptSecret(

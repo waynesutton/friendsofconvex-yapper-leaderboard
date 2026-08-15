@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
+- Dispatches log in the Gift studio, below the recipient ledger: every campaign, active and archived, with Archive and Restore, a two step Delete (the button arms in red, the second click removes the dispatch plus its passes and history), and a Download CSV export of the whole log. Archiving hides a dispatch from the sidebar without touching its passes; both the log and the sidebar read the same Convex query, so actions sync live (2026-08-15).
 - Product shelf in the Gift studio: save labeled Fourthwall product IDs ahead of any send. Saves are verified against Fourthwall's Get Product endpoint, so typo'd IDs are rejected and each saved product carries its real name and a thumbnail preview. Shelf cards offer Use (fills the campaign form) and remove; the pick-to-fill chips in the form now show a tiny product image (2026-08-15).
 - Remove button in the Friends on the board admin section: a two step confirm (Remove, then Confirm in red) permanently deletes a profile and its snapshot history. Gift ledger rows keep their own name copies, so gift history is unaffected (2026-08-15).
 - A full README: what the board does, the stack, required environment values, a one prompt setup block for coding agents with Convex agent mode, manual run steps, and Convex docs links (2026-08-15).
@@ -31,6 +32,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Changed
 
+- The Dispatches sidebar in the Gift studio scrolls inside its own 420px panel instead of stretching the page, and only shows non archived dispatches (2026-08-15).
 - Gift pass and public share cards are now 16:9 with the racing stripe art (`public/background-image-sidebar.svg`), which sweeps along the bottom edge and rises to the right. Card labels trimmed: "PERSONAL PASS / 2026", "ONE GIFT / ONE PERSON", "COMMUNITY / 2026", "FRIEND OF CONVEX", "FRIENDS OF CONVEX GIFT", and "BUILT TOGETHER" are gone. FRIENDS OF CONVEX stays top left; the identity block, name, and status line are left aligned and vertically centered above the stripes (2026-08-15).
 - The personalized share OG image matches the new card: solid `#2A1E1D` field, stripe lines along the bottom, text left aligned in the solid area (2026-08-15).
 - Space Grotesk is gone from the app. Inter is the display face in CSS, `index.html`, the OG renderer, and the preview script; the old TTFs were removed from `public/render/fonts/` (2026-08-15).
@@ -53,6 +55,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Fixed
 
+- Mobile leaderboard cards no longer overlap their metric labels. In Convex mentions view the five metrics auto-flowed into the card's narrow rank column, so "Convex posts (7d)" and "Convex engagement" collided with the cells beside them. Metrics now stack as full width label and value rows in both toggle views, so any admin visible column mix lays out cleanly (2026-08-15).
+- Gift DM sends that failed with a bare "X OAuth failed with status 400" now report X's real OAuth error (`error: error_description`) and tell the admin to reconnect the sender when a refresh token is rejected. X access tokens expire after 2 hours, so any send after that window refreshes first; a stale or revoked refresh token needs a fresh Reconnect sender authorization (2026-08-15).
+- Event history in the recipient ledger looked like plain text because `display: flex` on the summary removed the native disclosure triangle. It now shows a caret that rotates when open, a hover state, and a tooltip. The one other disclosure in the app (admin access note) still has its native triangle (2026-08-15).
+- Product shelf inputs rendered without borders or background because the input styles were scoped to the campaign form; they now use the shared inset control treatment with a visible border and coral focus state (2026-08-15).
 - Board settings column checkboxes no longer overflow their boxes on `/admin`. The floated legend was pushing the first label outside the fieldset; labels now clear the float (2026-08-15).
 - Admins no longer have to sign in twice to reach `/admin`. The gate now waits for the Convex Auth token exchange to finish instead of flashing a second sign in screen (2026-08-15).
 - Long gift pass usernames no longer clip against the pass card (2026-08-15).

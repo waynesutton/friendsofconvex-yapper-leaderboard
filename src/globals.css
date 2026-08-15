@@ -2254,37 +2254,36 @@ html[data-theme="convex"] .board-sync-chip {
     height: 26px;
   }
 
+  /* Metric cells span the full card as label and value rows. Auto-flowing
+     them into the 36px rank column made labels like "Convex engagement"
+     overlap the neighboring cell on small screens. */
   .metric-cell,
   .impression-cell {
-    grid-row: 2;
+    grid-row: auto;
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 4px 12px;
     padding-top: 12px;
     border-top: 1px solid var(--line-whisper);
-    font-size: 12px;
+    font-size: 13px;
+    text-align: right;
   }
 
   .metric-cell::before,
   .impression-cell::before {
     content: attr(data-label);
-    margin-bottom: 5px;
-    display: block;
+    flex: 1;
+    min-width: 130px;
     color: var(--quiet-ink);
     font-family: var(--font-body), ui-sans-serif, sans-serif;
     font-size: 10px;
     font-weight: 650;
     letter-spacing: 0.04em;
+    text-align: left;
     text-transform: uppercase;
-  }
-
-  .posts-cell {
-    grid-column: 1;
-  }
-
-  .engagement-cell {
-    grid-column: 2;
-  }
-
-  .impression-cell {
-    grid-column: 3;
   }
 
   .row-actions {
@@ -2292,19 +2291,9 @@ html[data-theme="convex"] .board-sync-chip {
     grid-row: 1;
   }
 
-  /* Convex mode cards: five metric cells auto-flow under the identity row and
-     the action cluster fits three buttons. */
+  /* Convex mode cards: the action cluster fits three buttons. */
   .leaderboard-table[data-mode="convex"] .table-row {
     grid-template-columns: 36px minmax(0, 1fr) minmax(0, 126px);
-  }
-
-  .leaderboard-table[data-mode="convex"] .metric-cell {
-    grid-row: auto;
-    grid-column: auto;
-  }
-
-  .leaderboard-table[data-mode="convex"] .convex-posts-cell::before {
-    width: 100%;
   }
 
   .convex-posts-panel {
@@ -2704,10 +2693,17 @@ html[data-theme="convex"] .board-sync-chip {
   line-height: 1.5;
 }
 
+/* The dispatch list scrolls on its own so a long history never stretches
+   the studio page. */
 .gift-campaign-rail > div {
   margin-top: 20px;
   display: flex;
   flex-direction: column;
+  max-height: 420px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  padding-right: 6px;
 }
 
 .gift-campaign-rail button {
@@ -2738,6 +2734,74 @@ html[data-theme="convex"] .board-sync-chip {
 
 .gift-ledger {
   margin-top: 72px;
+}
+
+/* Dispatches log: every campaign with archive, restore, delete, and export.
+   Mirrors the ledger heading so the two sections read as one system. */
+.gift-dispatch-log {
+  margin-top: 72px;
+}
+
+.gift-dispatch-log h2 {
+  margin: 0;
+  font-family: var(--font-display), ui-sans-serif, sans-serif;
+  font-size: clamp(28px, 3vw, 42px);
+  font-weight: 500;
+  letter-spacing: -0.04em;
+}
+
+.gift-dispatch-rows {
+  margin-top: 24px;
+  border-top: 1px solid var(--line-standard);
+}
+
+.gift-dispatch-row {
+  padding: 16px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border-bottom: 1px solid var(--line-standard);
+}
+
+.gift-dispatch-row.is-archived .gift-dispatch-main {
+  opacity: 0.55;
+}
+
+.gift-dispatch-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gift-dispatch-main strong {
+  font-size: 15px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gift-dispatch-main span {
+  color: var(--caption-ink);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.gift-dispatch-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 720px) {
+  .gift-dispatch-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 
 .gift-ledger-heading {
@@ -2879,6 +2943,18 @@ html[data-theme="convex"] .board-sync-chip {
 .gift-shelf-add input {
   flex: 1;
   min-width: 0;
+  min-height: 48px;
+  padding: 0 14px;
+  background: var(--control-inset);
+  border: 1px solid var(--line-standard);
+  border-radius: var(--radius-small);
+  color: var(--broadcast-ink);
+  font-size: 14px;
+}
+
+.gift-shelf-add input:focus {
+  border-color: var(--control-focus);
+  outline: 0;
 }
 
 .gift-shelf-add .secondary-button {
@@ -3094,13 +3170,33 @@ html[data-theme="convex"] .board-sync-chip {
   border-top: 1px solid var(--line-whisper);
 }
 
+/* display: flex removes the native disclosure triangle from summary, so the
+   caret icon below is the visible open and close affordance. */
 .gift-event-details summary {
   min-height: 44px;
   display: flex;
   align-items: center;
+  gap: 6px;
   color: var(--caption-ink);
   cursor: pointer;
   font-size: 12px;
+}
+
+.gift-event-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.gift-event-details summary:hover {
+  color: var(--broadcast-ink);
+}
+
+.gift-event-details .gift-event-caret {
+  flex-shrink: 0;
+  transition: transform 160ms ease-out;
+}
+
+.gift-event-details[open] .gift-event-caret {
+  transform: rotate(90deg);
 }
 
 .gift-event-log {
@@ -3824,7 +3920,8 @@ html[data-theme="convex"] .board-heading h2,
 html[data-theme="convex"] .admin-list-heading h2,
 html[data-theme="convex"] .gift-ledger h2,
 html[data-theme="convex"] .gift-campaign-form h2,
-html[data-theme="convex"] .gift-campaign-rail h2 {
+html[data-theme="convex"] .gift-campaign-rail h2,
+html[data-theme="convex"] .gift-dispatch-log h2 {
   font-weight: 680;
 }
 

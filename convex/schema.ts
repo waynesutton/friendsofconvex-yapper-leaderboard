@@ -197,6 +197,9 @@ export default defineSchema({
     portalExpiresAt: v.union(v.number(), v.null()),
     lastSyncedAt: v.union(v.number(), v.null()),
     syncError: v.union(v.string(), v.null()),
+    // Set when an admin archives the dispatch; archived campaigns leave the
+    // sidebar but stay in the Dispatches log until deleted.
+    archivedAt: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })

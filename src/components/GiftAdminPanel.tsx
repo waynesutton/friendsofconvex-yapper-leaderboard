@@ -1,5 +1,8 @@
 import {
+  ArchiveIcon,
   ArrowClockwiseIcon,
+  ArrowCounterClockwiseIcon,
+  CaretRightIcon,
   CheckCircleIcon,
   CopyIcon,
   DownloadSimpleIcon,
@@ -72,6 +75,33 @@ function buildRecipientCsv(recipients: Array<Doc<"giftRecipients">>): string {
       recipient.dmSuppressedAt === null ? "no" : "yes",
       recipient.deliveryError ?? "",
       localUrl(`/gift/${recipient.portalToken}`),
+    ]
+      .map(csvCell)
+      .join(","),
+  );
+  return [header.join(","), ...rows].join("\r\n");
+}
+
+// Dispatches log CSV: one row per campaign for records outside the app.
+function buildDispatchCsv(campaigns: Array<Doc<"giftCampaigns">>): string {
+  const header = [
+    "title",
+    "status",
+    "archived_at",
+    "fourthwall_product_id",
+    "created_at",
+    "last_synced_at",
+    "sync_error",
+  ];
+  const rows = campaigns.map((campaign) =>
+    [
+      campaign.title,
+      campaign.status,
+      csvTime(campaign.archivedAt ?? null),
+      campaign.fourthwallProductId,
+      csvTime(campaign.createdAt),
+      csvTime(campaign.lastSyncedAt),
+      campaign.syncError ?? "",
     ]
       .map(csvCell)
       .join(","),
@@ -244,7 +274,10 @@ function GiftRecipientRow({
         </button>
       </div>
       <details className="gift-event-details">
-        <summary>Event history</summary>
+        <summary title="Show or hide the full delivery timeline for this gift">
+          <CaretRightIcon aria-hidden="true" className="gift-event-caret" />
+          Event history
+        </summary>
         <GiftEventLog recipientId={recipient._id} />
       </details>
     </article>
@@ -270,8 +303,21 @@ export function GiftAdminPanel() {
   // product name plus thumbnail for previews.
   const saveProductPreset = useAction(api.giftActions.saveProductPreset);
   const deleteProductPreset = useMutation(api.gifts.deleteProductPreset);
+  const setCampaignArchived = useMutation(api.gifts.setCampaignArchived);
+  const deleteCampaign = useMutation(api.gifts.deleteCampaignAdmin);
   const [chosenCampaignId, setChosenCampaignId] = useState<Id<"giftCampaigns"> | null>(null);
-  const selectedCampaignId = chosenCampaignId ?? campaigns?.[0]?._id ?? null;
+  // Two step delete in the Dispatches log: first click arms, second confirms.
+  const [armedDeleteId, setArmedDeleteId] = useState<Id<"giftCampaigns"> | null>(null);
+  // The sidebar hides archived dispatches; the log below shows everything.
+  const visibleCampaigns = useMemo(
+    () => campaigns?.filter((campaign) => campaign.archivedAt === undefined),
+    [campaigns],
+  );
+  // Selection survives archiving but falls back after a delete.
+  const selectedCampaignId =
+    chosenCampaignId && campaigns?.some((campaign) => campaign._id === chosenCampaignId)
+      ? chosenCampaignId
+      : visibleCampaigns?.[0]?._id ?? null;
   const [ledgerSearch, setLedgerSearch] = useState("");
   const trimmedLedgerSearch = ledgerSearch.trim();
   const allRecipients = useQuery(
@@ -477,6 +523,54 @@ export function GiftAdminPanel() {
     setFeedback({
       tone: "success",
       message: `Downloaded ${allRecipients.length} recipient${allRecipients.length === 1 ? "" : "s"} as CSV.`,
+    });
+  }
+
+  async function toggleCampaignArchived(campaign: Doc<"giftCampaigns">) {
+    setArmedDeleteId(null);
+    setFeedback(null);
+    const archiving = campaign.archivedAt === undefined;
+    try {
+      await setCampaignArchived({ campaignId: campaign._id, archived: archiving });
+      setFeedback({
+        tone: "success",
+        message: archiving
+          ? `Archived “${campaign.title}”. It left the Dispatches sidebar; restore it anytime from this log.`
+          : `Restored “${campaign.title}” to the Dispatches sidebar.`,
+      });
+    } catch (error) {
+      setFeedback({ tone: "error", message: error instanceof Error ? error.message : "Could not update the dispatch." });
+    }
+  }
+
+  // First click arms the delete; the second click actually removes the
+  // dispatch, its passes, and its history. Any other action disarms it.
+  async function removeCampaign(campaign: Doc<"giftCampaigns">) {
+    if (armedDeleteId !== campaign._id) {
+      setArmedDeleteId(campaign._id);
+      setFeedback({
+        tone: "info",
+        message: `Deleting “${campaign.title}” permanently removes its passes, gift links, and history. Click Confirm delete to proceed.`,
+      });
+      return;
+    }
+    setArmedDeleteId(null);
+    setFeedback(null);
+    try {
+      await deleteCampaign({ campaignId: campaign._id });
+      setFeedback({ tone: "success", message: `Deleted “${campaign.title}” and all of its gift records.` });
+    } catch (error) {
+      setFeedback({ tone: "error", message: error instanceof Error ? error.message : "Could not delete the dispatch." });
+    }
+  }
+
+  function exportDispatchCsv() {
+    if (!campaigns || campaigns.length === 0) return;
+    const stamp = new Date().toISOString().slice(0, 10);
+    downloadCsv(`gift-dispatches-${stamp}.csv`, buildDispatchCsv(campaigns));
+    setFeedback({
+      tone: "success",
+      message: `Downloaded ${campaigns.length} dispatch${campaigns.length === 1 ? "" : "es"} as CSV.`,
     });
   }
 
@@ -725,9 +819,9 @@ export function GiftAdminPanel() {
 
         <aside className="gift-campaign-rail" aria-label="Gift campaigns">
           <p className="section-kicker">Dispatches</p>
-          <h2>{campaigns?.length ?? "—"} campaigns</h2>
-          <div>
-            {campaigns === undefined ? <span>Loading campaigns…</span> : campaigns.length === 0 ? <span>No campaigns yet.</span> : campaigns.map((campaign) => (
+          <h2>{visibleCampaigns?.length ?? "—"} campaigns</h2>
+          <div className="gift-campaign-rail-list">
+            {visibleCampaigns === undefined ? <span>Loading campaigns…</span> : visibleCampaigns.length === 0 ? <span>No campaigns yet.</span> : visibleCampaigns.map((campaign) => (
               <button key={campaign._id} type="button" className={campaign._id === selectedCampaignId ? "is-active" : ""} onClick={() => setChosenCampaignId(campaign._id)}>
                 <strong>{campaign.title}</strong>
                 <span>{campaign.status} · {readableTime(campaign.createdAt)}</span>
@@ -795,6 +889,83 @@ export function GiftAdminPanel() {
             </div>
           ) : (
             recipients.map((recipient) => <GiftRecipientRow key={recipient._id} recipient={recipient} onFeedback={setFeedback} />)
+          )}
+        </div>
+      </section>
+
+      <section className="gift-dispatch-log" aria-labelledby="gift-dispatch-log-title">
+        <div className="gift-ledger-heading">
+          <div>
+            <p className="eyebrow">Dispatches log</p>
+            <h2 id="gift-dispatch-log-title">Every dispatch, active and archived</h2>
+            <p className="gift-shelf-note">
+              Archiving hides a dispatch from the sidebar without touching its passes. Deleting removes the
+              dispatch, its passes, and its history for good.
+            </p>
+          </div>
+          <div className="gift-ledger-tools">
+            <button
+              type="button"
+              className="secondary-button"
+              disabled={!campaigns || campaigns.length === 0}
+              title="Download every dispatch with its status and product ID as a CSV file"
+              onClick={exportDispatchCsv}
+            >
+              <DownloadSimpleIcon aria-hidden="true" /> Download CSV
+            </button>
+          </div>
+        </div>
+        <div className="gift-dispatch-rows">
+          {campaigns === undefined ? (
+            <div className="gift-empty">Loading dispatches…</div>
+          ) : campaigns.length === 0 ? (
+            <div className="gift-empty">No dispatches yet. Create one above.</div>
+          ) : (
+            campaigns.map((campaign) => {
+              const archived = campaign.archivedAt !== undefined;
+              const armed = armedDeleteId === campaign._id;
+              return (
+                <div key={campaign._id} className={`gift-dispatch-row${archived ? " is-archived" : ""}`}>
+                  <div className="gift-dispatch-main">
+                    <strong>{campaign.title}</strong>
+                    <span>
+                      {campaign.status} · {readableTime(campaign.createdAt)}
+                      {archived ? " · archived" : ""}
+                    </span>
+                  </div>
+                  <div className="gift-dispatch-actions">
+                    <button
+                      type="button"
+                      className="icon-text-button"
+                      title={
+                        archived
+                          ? "Bring this dispatch back to the Dispatches sidebar"
+                          : "Hide this dispatch from the Dispatches sidebar; passes keep working"
+                      }
+                      onClick={() => void toggleCampaignArchived(campaign)}
+                    >
+                      {archived ? (
+                        <>
+                          <ArrowCounterClockwiseIcon aria-hidden="true" /> Restore
+                        </>
+                      ) : (
+                        <>
+                          <ArchiveIcon aria-hidden="true" /> Archive
+                        </>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      className={`icon-text-button${armed ? " danger" : ""}`}
+                      title="Permanently delete this dispatch, its passes, and its history"
+                      onClick={() => void removeCampaign(campaign)}
+                    >
+                      <TrashIcon aria-hidden="true" /> {armed ? "Confirm delete" : "Delete"}
+                    </button>
+                  </div>
+                </div>
+              );
+            })
           )}
         </div>
       </section>
