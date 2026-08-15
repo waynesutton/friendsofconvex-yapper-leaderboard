@@ -4,6 +4,13 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Security
+
+- The public leaderboard query now returns a trimmed projection instead of raw profile documents. Internal fields (`authUserId`, `syncError`, `xUserId`, membership status, source, and review timestamps) no longer leave the deployment through `profiles.listLeaderboard`. The board renders identically (2026-08-15).
+- The gift pass query no longer includes the private Fourthwall URL. The URL is only returned by the reveal and claim mutations, which check pass expiry with server time, closing a path where a pass holder could keep reading a revealed link after expiry (2026-08-15).
+- The unauthenticated X webhook CRC endpoint no longer clears the stored account activity error. It only records the validation time, so outside requests cannot hide real webhook failures from the admin configuration panel (2026-08-15).
+- Full sec-check audit passed otherwise: every admin function is auth gated (verified with live unauthenticated probes), Fourthwall and X webhooks verify HMAC signatures with timing safe comparison, X sender tokens are AES-GCM encrypted at rest, no secrets exist in git history, and `npm audit` reports zero vulnerabilities (2026-08-15).
+
 ### Added
 
 - Mobile X login guidance. Opening `/join` inside the X app's in-app browser now shows an instruction card to reopen the page in Safari or Chrome, since X's own Universal Links break the web OAuth round trip there. Phones outside the X app get a one-line "stay in this browser" hint, both sign-in buttons show an "Opening X sign-in" busy state, and a failed sign-in round trip surfaces a retry message instead of silently showing the button again. No OAuth, callback, or scope changes (2026-08-15).

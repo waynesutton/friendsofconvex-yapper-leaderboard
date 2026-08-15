@@ -80,7 +80,7 @@
 - `convex/siteFiles.ts` — Internal public-directory query and HTTP actions that serve the live discovery files from active profiles.
 - `convex/authz.ts` — X identity lookup and stable-ID admin allowlist checks.
 - `convex/imports.ts` — Bulk handle and public X List validation and import actions.
-- `convex/profiles.ts` — Leaderboard (default and Convex mentions modes), stored Convex posts, membership, import, and protected admin functions including permanent profile removal with snapshot cleanup.
+- `convex/profiles.ts` — Leaderboard (default and Convex mentions modes) returning a public projection that strips internal profile fields, stored Convex posts, membership, import, and protected admin functions including permanent profile removal with snapshot cleanup.
 - `convex/xSync.ts` — X lookup, seven-day aggregation, the Convex mention scan, and sync actions.
 - `convex/badges.ts` — Top 3 rank badge query and admin mutations with file storage uploads.
 - `convex/slack.ts` — Admin action posting the Convex yappers digest to Slack.
@@ -95,7 +95,7 @@
 - `convex/xAccountActivity.ts` — Idempotent X event storage and global GIFT or STOP state.
 - `convex/xAccountActivityActions.ts` — Admin webhook registration and OAuth 1.0a sender subscription.
 - `convex/crons.ts` — Daily X metrics refresh at 15:17 UTC (8:17 AM Pacific during PDT).
-- `convex/validators.ts` — Shared return validators.
+- `convex/validators.ts` — Shared return validators, including the public leaderboard projection that keeps internal profile fields server side.
 - `convex/convex.config.ts` — Convex app definition mounting Agent Ready and the static hosting component.
 - `scripts/generate-auth-keys.mjs` — Local utility for creating Convex Auth JWT key pairs.
 - `scripts/test-x-account-activity.mjs` — Parser, inbound filtering, consent availability, and HMAC regression checks.

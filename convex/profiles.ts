@@ -11,8 +11,8 @@ import { getXViewer, requireAdmin } from "./authz";
 import {
   convexPostValidator,
   importEntryValidator,
-  leaderboardRowValidator,
   profileValidator,
+  publicLeaderboardRowValidator,
   syncStatusValidator,
   syncTargetValidator,
 } from "./validators";
@@ -43,9 +43,9 @@ type ConvexLeaderboardRow = Doc<"profiles"> & {
   convexStreak: number;
 };
 
-// Default mode returns plain profile docs, so the shared row type keeps the
-// convex extras optional.
-export type LeaderboardRow = Doc<"profiles"> & {
+// Internal row shape used while building the board. The public query maps
+// these down to the projected shape before returning.
+type LeaderboardRow = Doc<"profiles"> & {
   convexPostCount?: number;
   convexImpressions?: number;
   convexEngagements?: number;
@@ -54,6 +54,59 @@ export type LeaderboardRow = Doc<"profiles"> & {
   convexWeeklyChange?: number | null;
   convexStreak?: number;
 };
+
+// The projected row the public board receives. Raw profile docs stay server
+// side; internal fields (authUserId, syncError, membership review metadata)
+// never leave the deployment through this query.
+export type PublicLeaderboardRow = {
+  _id: Id<"profiles">;
+  handle: string;
+  normalizedHandle: string;
+  displayName: string;
+  bio: string | null;
+  profileImageUrl: string | null;
+  syncStatus: Doc<"profiles">["syncStatus"];
+  currentImpressions: number;
+  currentPosts: number;
+  currentEngagements: number;
+  currentFollowers: number;
+  lastSyncedAt: number | null;
+  addedAt: number;
+  updatedAt: number;
+  convexPostCount?: number;
+  convexImpressions?: number;
+  convexEngagements?: number;
+  convexScanned?: boolean;
+  convexPostsStored?: number;
+  convexWeeklyChange?: number | null;
+  convexStreak?: number;
+};
+
+function toPublicLeaderboardRow(row: LeaderboardRow): PublicLeaderboardRow {
+  return {
+    _id: row._id,
+    handle: row.handle,
+    normalizedHandle: row.normalizedHandle,
+    displayName: row.displayName,
+    bio: row.bio,
+    profileImageUrl: row.profileImageUrl,
+    syncStatus: row.syncStatus,
+    currentImpressions: row.currentImpressions,
+    currentPosts: row.currentPosts,
+    currentEngagements: row.currentEngagements,
+    currentFollowers: row.currentFollowers,
+    lastSyncedAt: row.lastSyncedAt,
+    addedAt: row.addedAt,
+    updatedAt: row.updatedAt,
+    convexPostCount: row.convexPostCount,
+    convexImpressions: row.convexImpressions,
+    convexEngagements: row.convexEngagements,
+    convexScanned: row.convexScanned,
+    convexPostsStored: row.convexPostsStored,
+    convexWeeklyChange: row.convexWeeklyChange,
+    convexStreak: row.convexStreak,
+  };
+}
 
 // Builds the Convex mentions ranking from the same active profile index as the
 // default board plus each profile's snapshot history (per profile index, no
@@ -144,19 +197,21 @@ export const listLeaderboard = query({
     limit: v.optional(v.number()),
     mode: v.optional(v.union(v.literal("default"), v.literal("convex"))),
   },
-  returns: v.array(leaderboardRowValidator),
-  handler: async (ctx, args): Promise<Array<LeaderboardRow>> => {
+  returns: v.array(publicLeaderboardRowValidator),
+  handler: async (ctx, args): Promise<Array<PublicLeaderboardRow>> => {
     const limit = Math.min(Math.max(Math.floor(args.limit ?? 200), 1), 250);
     if (args.mode === "convex") {
-      return await buildConvexLeaderboard(ctx, limit);
+      const rows = await buildConvexLeaderboard(ctx, limit);
+      return rows.map(toPublicLeaderboardRow);
     }
-    return await ctx.db
+    const profiles = await ctx.db
       .query("profiles")
       .withIndex("by_active_and_current_impressions", (q) =>
         q.eq("active", true),
       )
       .order("desc")
       .take(limit);
+    return profiles.map(toPublicLeaderboardRow);
   },
 });
 

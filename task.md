@@ -1,5 +1,13 @@
 # Task log
 
+## Completed — 2026-08-15 22:36 UTC (security scan fixes)
+
+- [x] Ran the sec-check audit across every Convex function, webhook, OAuth flow, and secret path. All admin functions are gated (confirmed with live unauthenticated probes against the dev deployment), webhooks verify HMAC signatures, sender tokens are AES-GCM encrypted at rest, no secrets are in git history, and `npm audit` reports zero vulnerabilities. Three lower severity findings were fixed.
+- [x] Public `profiles.listLeaderboard` no longer returns raw profile docs. New `publicLeaderboardRowValidator` in `convex/validators.ts` projects only the fields the board renders; `authUserId`, `syncError`, `xUserId`, `membershipStatus`, `source`, `requestedAt`, and `reviewedAt` stay server side. The board UI already derived its type from the query, so no visible change.
+- [x] `gifts.getPortal` no longer ships the private Fourthwall URL. The query trusts a client supplied `now` for the expiry display, so the URL now only travels through the `reveal` and `recordFourthwallClick` mutations, which enforce expiry with server time. `GiftPortal.tsx` switches its revealed check to the existing `revealed` flag; the claim button behavior is unchanged.
+- [x] The unauthenticated X CRC endpoint can no longer clear `lastError` on the account activity config; it only records `lastValidatedAt` now, so an outsider hitting the URL cannot mask real webhook errors in the admin panel.
+- [x] Verified: `npm run typecheck` and `npm run lint` pass, `npx convex dev --once` deployed clean, and a live re-probe of `profiles:listLeaderboard` shows only the projected fields. Unauthenticated probes of `profiles:listAdmin` and `gifts:listCampaignsAdmin` still throw the sign-in error.
+
 ## Completed — 2026-08-15 21:41 UTC (mobile X login UX)
 
 - [x] Guided mobile visitors through X sign-in without touching the OAuth setup. New `src/lib/browserEnvironment.ts` detects the X app's in-app WebView from the user agent, checks for coarse-pointer (touch) devices, and tracks a sessionStorage sign-in attempt flag. PRD: `prds/mobile-x-login-ux.md`.

@@ -617,7 +617,6 @@ const activePortalValidator = v.object({
   portalExpiresAt: v.union(v.number(), v.null()),
   redeemedAt: v.union(v.number(), v.null()),
   revealed: v.boolean(),
-  fourthwallUrl: v.union(v.string(), v.null()),
   shareToken: v.string(),
 });
 
@@ -672,6 +671,10 @@ export const getPortal = query({
       };
     }
 
+    // The Fourthwall URL is intentionally not returned here. This query
+    // trusts the client-supplied `now` for the expiry display, so the URL
+    // only travels through the reveal and recordFourthwallClick mutations,
+    // which enforce expiry with server time.
     return {
       state: "active" as const,
       handle: recipient.handle,
@@ -682,8 +685,6 @@ export const getPortal = query({
       portalExpiresAt: campaign.portalExpiresAt,
       redeemedAt: recipient.redeemedAt,
       revealed: recipient.revealedAt !== null,
-      fourthwallUrl:
-        recipient.revealedAt !== null ? recipient.fourthwallUrl : null,
       shareToken: recipient.shareToken,
     };
   },

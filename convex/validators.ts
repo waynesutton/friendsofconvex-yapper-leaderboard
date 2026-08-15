@@ -95,10 +95,25 @@ export const convexPostValidator = v.object({
   engagements: v.number(),
 });
 
-// Leaderboard rows are profile docs; convex mode adds computed extras. All
-// extras are optional so the default mode can return docs untouched.
-export const leaderboardRowValidator = v.object({
-  ...profileValidator.fields,
+// Public board projection: only the fields the leaderboard renders. The
+// public query must never return raw profile docs, which carry internal
+// fields like authUserId, syncError, and membership review metadata.
+export const publicLeaderboardRowValidator = v.object({
+  _id: v.id("profiles"),
+  handle: v.string(),
+  normalizedHandle: v.string(),
+  displayName: v.string(),
+  bio: v.union(v.string(), v.null()),
+  profileImageUrl: v.union(v.string(), v.null()),
+  syncStatus: syncStatusValidator,
+  currentImpressions: v.number(),
+  currentPosts: v.number(),
+  currentEngagements: v.number(),
+  currentFollowers: v.number(),
+  lastSyncedAt: v.union(v.number(), v.null()),
+  addedAt: v.number(),
+  updatedAt: v.number(),
+  // Convex mode extras, optional so the default mode can omit them.
   convexPostCount: v.optional(v.number()),
   convexImpressions: v.optional(v.number()),
   convexEngagements: v.optional(v.number()),

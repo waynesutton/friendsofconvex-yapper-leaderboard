@@ -127,7 +127,10 @@ export function GiftPortal({ token }: { token: string }) {
     );
   }
 
-  const giftUrl = revealedUrl ?? portal.fourthwallUrl;
+  // The private Fourthwall URL never rides along with the portal query; the
+  // reveal and recordFourthwallClick mutations return it with server-side
+  // expiry checks, so the query only exposes the revealed flag.
+  const isRevealed = revealedUrl !== null || portal.revealed;
   const isRedeemed = portal.status === "redeemed";
 
   return (
@@ -170,7 +173,7 @@ export function GiftPortal({ token }: { token: string }) {
             profileImageUrl={portal.profileImageUrl}
           />
           <GiftCardName handle={portal.handle} />
-          <p>{isRedeemed ? "GIFT REDEEMED" : giftUrl ? "GIFT REVEALED" : "READY TO REVEAL"}</p>
+          <p>{isRedeemed ? "GIFT REDEEMED" : isRevealed ? "GIFT REVEALED" : "READY TO REVEAL"}</p>
         </div>
       </article>
 
@@ -183,7 +186,7 @@ export function GiftPortal({ token }: { token: string }) {
               <span>Thank you for being a Friend of Convex.</span>
             </div>
           </div>
-        ) : giftUrl ? (
+        ) : isRevealed ? (
           <button
             type="button"
             className="gift-primary-action"

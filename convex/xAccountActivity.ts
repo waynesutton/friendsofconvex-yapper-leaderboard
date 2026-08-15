@@ -143,9 +143,11 @@ export const recordCrcValidation = internalMutation({
       .unique();
     if (!existing) return null;
     const now = Date.now();
+    // The CRC endpoint is unauthenticated, so this only records the
+    // validation time. lastError stays put; only signature-verified event
+    // delivery and admin setup are allowed to clear it.
     await ctx.db.patch("xAccountActivityConfigs", existing._id, {
       lastValidatedAt: now,
-      lastError: null,
       updatedAt: now,
     });
     return null;
