@@ -49,6 +49,35 @@ function giftLabel(campaign: CampaignListItem): string {
   return id.length > 14 ? `${id.slice(0, 8)}…${id.slice(-4)}` : id;
 }
 
+// Dispatches log view tabs, mirroring the dashboard log toolbar pattern.
+type DispatchView = "recent" | "archived" | "all";
+
+type GiftIntent = FunctionReturnType<
+  typeof api.xAccountActivity.listIntentsAdmin
+>[number];
+
+// A GIFT request that has not been consumed by a previous dispatch yet.
+function hasAvailableGiftIntent(intent: GiftIntent | null | undefined): boolean {
+  return (
+    intent?.state === "active" &&
+    intent.latestEventId !== intent.consumedGiftEventId
+  );
+}
+
+// A recipient the batch DM sender may target. The send action re-checks all
+// of this server side right before the API call, so this is UX gating only.
+function isSendable(recipient: Doc<"giftRecipients">): boolean {
+  return (
+    recipient.sentAt === null &&
+    recipient.dmSuppressedAt === null &&
+    recipient.revokedAt === null &&
+    Boolean(recipient.fourthwallUrl) &&
+    recipient.status !== "provisioning" &&
+    recipient.status !== "cancelled" &&
+    recipient.status !== "error"
+  );
+}
+
 function localUrl(path: string): string {
   return new URL(path, window.location.origin).toString();
 }
@@ -177,9 +206,15 @@ function GiftEventLog({ recipientId }: { recipientId: Id<"giftRecipients"> }) {
 function GiftRecipientRow({
   recipient,
   onFeedback,
+  selected,
+  onToggleSelected,
+  batchBusy,
 }: {
   recipient: Doc<"giftRecipients">;
   onFeedback: (feedback: Feedback) => void;
+  selected: boolean;
+  onToggleSelected: () => void;
+  batchBusy: boolean;
 }) {
   const sendGiftDm = useAction(api.giftActions.sendGiftDm);
   const setDmSuppressed = useMutation(api.gifts.setDmSuppressed);
@@ -242,6 +277,18 @@ function GiftRecipientRow({
   return (
     <article className="gift-recipient-row">
       <div className="gift-recipient-person">
+        {/* Batch DM checkbox appears only while this pass can still be sent. */}
+        {isSendable(recipient) ? (
+          <input
+            type="checkbox"
+            className="gift-check"
+            checked={selected}
+            disabled={batchBusy}
+            aria-label={`Select @${recipient.handle} for batch X DM`}
+            title="Include this person in the batch X DM send"
+            onChange={onToggleSelected}
+          />
+        ) : null}
         {recipient.profileImageUrl ? (
           <img src={recipient.profileImageUrl} alt="" width={44} height={44} />
         ) : (
@@ -267,7 +314,7 @@ function GiftRecipientRow({
         <button
           type="button"
           className="icon-text-button"
-          disabled={busy !== null || recipient.sentAt !== null || recipient.dmSuppressedAt !== null || !recipient.fourthwallUrl}
+          disabled={busy !== null || batchBusy || recipient.sentAt !== null || recipient.dmSuppressedAt !== null || !recipient.fourthwallUrl}
           title="Send the gift pass by X DM from the connected sender account"
           onClick={() => void send()}
         >
@@ -373,6 +420,21 @@ export function GiftAdminPanel() {
   const [consentConfirmed, setConsentConfirmed] = useState(false);
   const [busy, setBusy] = useState<"create" | "connect" | "activity" | "sync" | "preset" | null>(null);
   const [feedback, setFeedback] = useState<Feedback>(null);
+  // Dispatches log toolbar: view tabs, search, and multi select for bulk
+  // archive, restore, and delete.
+  const setCampaignsArchivedBulk = useMutation(api.gifts.setCampaignsArchived);
+  const deleteCampaignsBulk = useMutation(api.gifts.deleteCampaignsAdmin);
+  const [dispatchView, setDispatchView] = useState<DispatchView>("recent");
+  const [dispatchSearch, setDispatchSearch] = useState("");
+  const [selectedDispatchIds, setSelectedDispatchIds] = useState<Set<Id<"giftCampaigns">>>(new Set());
+  const [armedBulkDelete, setArmedBulkDelete] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState<"archive" | "restore" | "delete" | null>(null);
+  // Approved recipients picker search.
+  const [profileSearch, setProfileSearch] = useState("");
+  // Batch X DM send: selected passes plus live progress while the loop runs.
+  const sendGiftDmBatch = useAction(api.giftActions.sendGiftDm);
+  const [selectedRecipientIds, setSelectedRecipientIds] = useState<Set<Id<"giftRecipients">>>(new Set());
+  const [batchSend, setBatchSend] = useState<{ done: number; total: number; handle: string } | null>(null);
 
   const eligibleProfiles = useMemo(
     () => profiles?.filter((profile) => profile.active && profile.membershipStatus !== "rejected" && profile.xUserId) ?? [],
@@ -421,6 +483,59 @@ export function GiftAdminPanel() {
       redeemed: values.filter((recipient) => recipient.redeemedAt !== null).length,
     };
   }, [allRecipients]);
+  // Dispatches log rows for the active view tab and search term.
+  const filteredDispatches = useMemo(() => {
+    const term = dispatchSearch.trim().toLowerCase().replace(/^@/, "");
+    return (campaigns ?? []).filter((campaign) => {
+      const archived = campaign.archivedAt !== undefined;
+      if (dispatchView === "recent" && archived) return false;
+      if (dispatchView === "archived" && !archived) return false;
+      if (!term) return true;
+      return (
+        campaign.title.toLowerCase().includes(term) ||
+        (campaign.productName ?? "").toLowerCase().includes(term) ||
+        campaign.recipientHandles.some((handle) => handle.toLowerCase().includes(term))
+      );
+    });
+  }, [campaigns, dispatchView, dispatchSearch]);
+  // Bulk actions only touch selected rows that are currently visible, so a
+  // search or tab change can never act on hidden dispatches.
+  const selectedVisibleDispatches = useMemo(
+    () => filteredDispatches.filter((campaign) => selectedDispatchIds.has(campaign._id)),
+    [filteredDispatches, selectedDispatchIds],
+  );
+  const dispatchCounts = useMemo(() => {
+    const all = campaigns ?? [];
+    const archived = all.filter((campaign) => campaign.archivedAt !== undefined).length;
+    return { recent: all.length - archived, archived, all: all.length };
+  }, [campaigns]);
+  // Recipient picker rows for the current search term.
+  const shownProfiles = useMemo(() => {
+    const term = profileSearch.trim().toLowerCase().replace(/^@/, "");
+    if (!term) return eligibleProfiles;
+    return eligibleProfiles.filter(
+      (profile) =>
+        profile.handle.toLowerCase().includes(term) ||
+        profile.displayName.toLowerCase().includes(term),
+    );
+  }, [eligibleProfiles, profileSearch]);
+  // Passes in the current ledger view that can still receive a batch DM.
+  const sendableRecipients = useMemo(
+    () => (recipients ?? []).filter(isSendable),
+    [recipients],
+  );
+  const selectedSendable = useMemo(
+    () => sendableRecipients.filter((recipient) => selectedRecipientIds.has(recipient._id)),
+    [sendableRecipients, selectedRecipientIds],
+  );
+  const selectedActiveDispatchCount = selectedVisibleDispatches.filter(
+    (campaign) => campaign.archivedAt === undefined,
+  ).length;
+  const selectedArchivedDispatchCount =
+    selectedVisibleDispatches.length - selectedActiveDispatchCount;
+  const allVisibleDispatchesSelected =
+    filteredDispatches.length > 0 &&
+    filteredDispatches.every((campaign) => selectedDispatchIds.has(campaign._id));
 
   function toggleProfile(profileId: Id<"profiles">) {
     setSelectedProfiles((current) => {
@@ -596,13 +711,187 @@ export function GiftAdminPanel() {
   }
 
   function exportDispatchCsv() {
-    if (!campaigns || campaigns.length === 0) return;
+    // Exports what the log currently shows: the active view tab plus search.
+    if (filteredDispatches.length === 0) return;
     const stamp = new Date().toISOString().slice(0, 10);
-    downloadCsv(`gift-dispatches-${stamp}.csv`, buildDispatchCsv(campaigns));
+    downloadCsv(`gift-dispatches-${stamp}.csv`, buildDispatchCsv(filteredDispatches));
     setFeedback({
       tone: "success",
-      message: `Downloaded ${campaigns.length} dispatch${campaigns.length === 1 ? "" : "es"} as CSV.`,
+      message: `Downloaded ${filteredDispatches.length} dispatch${filteredDispatches.length === 1 ? "" : "es"} as CSV.`,
     });
+  }
+
+  function changeDispatchView(view: DispatchView) {
+    setDispatchView(view);
+    setSelectedDispatchIds(new Set());
+    setArmedBulkDelete(false);
+    setArmedDeleteId(null);
+  }
+
+  function toggleDispatchSelected(campaignId: Id<"giftCampaigns">) {
+    setArmedBulkDelete(false);
+    setSelectedDispatchIds((current) => {
+      const next = new Set(current);
+      if (next.has(campaignId)) next.delete(campaignId);
+      else next.add(campaignId);
+      return next;
+    });
+  }
+
+  function toggleSelectAllDispatches() {
+    setArmedBulkDelete(false);
+    const allVisibleSelected =
+      filteredDispatches.length > 0 &&
+      filteredDispatches.every((campaign) => selectedDispatchIds.has(campaign._id));
+    setSelectedDispatchIds((current) => {
+      const next = new Set(current);
+      for (const campaign of filteredDispatches) {
+        if (allVisibleSelected) next.delete(campaign._id);
+        else next.add(campaign._id);
+      }
+      return next;
+    });
+  }
+
+  async function bulkSetArchived(archived: boolean) {
+    const ids = selectedVisibleDispatches
+      .filter((campaign) => (campaign.archivedAt !== undefined) !== archived)
+      .map((campaign) => campaign._id);
+    if (ids.length === 0) return;
+    setBulkBusy(archived ? "archive" : "restore");
+    setArmedBulkDelete(false);
+    setFeedback(null);
+    try {
+      const updated = await setCampaignsArchivedBulk({ campaignIds: ids, archived });
+      setSelectedDispatchIds(new Set());
+      setFeedback({
+        tone: "success",
+        message: archived
+          ? `Archived ${updated} dispatch${updated === 1 ? "" : "es"}. Restore them anytime from the Archived tab.`
+          : `Restored ${updated} dispatch${updated === 1 ? "" : "es"} to the Dispatches sidebar.`,
+      });
+    } catch (error) {
+      setFeedback({ tone: "error", message: error instanceof Error ? error.message : "Could not update the selected dispatches." });
+    } finally {
+      setBulkBusy(null);
+    }
+  }
+
+  // Same two step pattern as the per row delete: first click arms, second
+  // click removes every selected dispatch with its passes and history.
+  async function bulkDeleteDispatches() {
+    const ids = selectedVisibleDispatches.map((campaign) => campaign._id);
+    if (ids.length === 0) return;
+    if (!armedBulkDelete) {
+      setArmedBulkDelete(true);
+      setFeedback({
+        tone: "info",
+        message: `Deleting ${ids.length} dispatch${ids.length === 1 ? "" : "es"} permanently removes their passes, gift links, and history. Click Confirm delete to proceed.`,
+      });
+      return;
+    }
+    setArmedBulkDelete(false);
+    setBulkBusy("delete");
+    setFeedback(null);
+    try {
+      const deleted = await deleteCampaignsBulk({ campaignIds: ids });
+      setSelectedDispatchIds(new Set());
+      setFeedback({ tone: "success", message: `Deleted ${deleted} dispatch${deleted === 1 ? "" : "es"} and all of their gift records.` });
+    } catch (error) {
+      setFeedback({ tone: "error", message: error instanceof Error ? error.message : "Could not delete the selected dispatches." });
+    } finally {
+      setBulkBusy(null);
+    }
+  }
+
+  // Recipient picker bulk selection helpers.
+  function addProfilesToSelection(profileIds: Array<Id<"profiles">>) {
+    setSelectedProfiles((current) => {
+      const next = new Set(current);
+      for (const profileId of profileIds) next.add(profileId);
+      return next;
+    });
+  }
+
+  function selectShownProfiles() {
+    addProfilesToSelection(shownProfiles.map((profile) => profile._id));
+  }
+
+  function selectGiftReadyProfiles() {
+    addProfilesToSelection(
+      shownProfiles
+        .filter((profile) =>
+          profile.xUserId
+            ? hasAvailableGiftIntent(intentsByXUserId.get(profile.xUserId))
+            : false,
+        )
+        .map((profile) => profile._id),
+    );
+  }
+
+  // Batch X DM send. Sequential on purpose: one send at a time with a 2s gap
+  // keeps well inside X rate limits, and each send re-runs the STOP, opt out,
+  // consent, and link checks server side. Three failures in a row stop the
+  // loop, since a broken sender connection would fail every remaining send.
+  async function sendSelectedDms() {
+    const targets = selectedSendable;
+    if (targets.length === 0 || batchSend !== null) return;
+    setFeedback(null);
+    setBatchSend({ done: 0, total: targets.length, handle: targets[0].handle });
+    let sent = 0;
+    let alreadySent = 0;
+    let consecutiveFailures = 0;
+    const failures: Array<string> = [];
+    for (let index = 0; index < targets.length; index++) {
+      const target = targets[index];
+      setBatchSend({ done: index, total: targets.length, handle: target.handle });
+      try {
+        const result = await sendGiftDmBatch({ recipientId: target._id });
+        if (result.status === "sent") sent += 1;
+        else alreadySent += 1;
+        consecutiveFailures = 0;
+      } catch (error) {
+        failures.push(
+          `@${target.handle}: ${error instanceof Error ? error.message : "send failed"}`,
+        );
+        consecutiveFailures += 1;
+        if (consecutiveFailures >= 3 && index < targets.length - 1) {
+          failures.push(
+            `Stopped before the remaining ${targets.length - index - 1} after 3 failures in a row. Fix the sender connection, then select and retry.`,
+          );
+          break;
+        }
+      }
+      if (index < targets.length - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      }
+    }
+    setBatchSend(null);
+    setSelectedRecipientIds(new Set());
+    const summary = [
+      `${sent} sent`,
+      alreadySent > 0 ? `${alreadySent} already had a DM` : null,
+      failures.length > 0 ? `failed: ${failures.join(" · ")}` : null,
+    ]
+      .filter(Boolean)
+      .join(", ");
+    setFeedback({
+      tone: failures.length > 0 ? "error" : "success",
+      message: `Batch X DM finished: ${summary}.`,
+    });
+  }
+
+  function toggleRecipientSelected(recipientId: Id<"giftRecipients">) {
+    setSelectedRecipientIds((current) => {
+      const next = new Set(current);
+      if (next.has(recipientId)) next.delete(recipientId);
+      else next.add(recipientId);
+      return next;
+    });
+  }
+
+  function selectAllSendable() {
+    setSelectedRecipientIds(new Set(sendableRecipients.map((recipient) => recipient._id)));
   }
 
   async function copyIntentLink() {
@@ -813,11 +1102,60 @@ export function GiftAdminPanel() {
           <fieldset className="gift-profile-picker">
             <legend>Approved recipients</legend>
             <p>Automatic X consent appears here after the sender receives “GIFT.” Each detected request can authorize one new delivery; ask for a fresh GIFT before the next one. The manual confirmation remains available as a fallback.</p>
+            {/* Picker toolbar: search plus bulk selection shortcuts. */}
+            <div className="gift-picker-tools">
+              <div className="gift-ledger-search">
+                <MagnifyingGlassIcon aria-hidden="true" />
+                <input
+                  type="search"
+                  value={profileSearch}
+                  onChange={(event) => setProfileSearch(event.target.value)}
+                  placeholder="Search by name or handle"
+                  aria-label="Search approved recipients by name or X handle"
+                  title="Type a name or handle to filter the recipient list"
+                />
+              </div>
+              <button
+                type="button"
+                className="secondary-button"
+                disabled={shownProfiles.length === 0}
+                title="Select every recipient currently shown in the list"
+                onClick={selectShownProfiles}
+              >
+                Select shown
+              </button>
+              <button
+                type="button"
+                className="secondary-button"
+                disabled={shownProfiles.length === 0}
+                title="Select only the shown recipients with an unused GIFT request from X"
+                onClick={selectGiftReadyProfiles}
+              >
+                Select GIFT ready
+              </button>
+              <button
+                type="button"
+                className="secondary-button"
+                disabled={selectedProfiles.size === 0}
+                title="Clear the recipient selection"
+                onClick={() => setSelectedProfiles(new Set())}
+              >
+                Clear
+              </button>
+              <span className="gift-picker-count" aria-live="polite">
+                {selectedProfiles.size} selected
+              </span>
+            </div>
+            {selectedProfiles.size > 50 ? (
+              <p className="gift-consent-warning" role="alert">
+                A dispatch supports at most 50 recipients. Deselect {selectedProfiles.size - 50} to continue.
+              </p>
+            ) : null}
             <div>
-              {eligibleProfiles.length === 0 ? <span className="gift-empty">Sync an approved X profile before issuing a gift.</span> : eligibleProfiles.map((profile) => {
+              {eligibleProfiles.length === 0 ? <span className="gift-empty">Sync an approved X profile before issuing a gift.</span> : shownProfiles.length === 0 ? <span className="gift-empty">No recipients match “{profileSearch.trim()}”.</span> : shownProfiles.map((profile) => {
                 const intent = profile.xUserId ? intentsByXUserId.get(profile.xUserId) : null;
                 const latestGift = latestGiftByProfileId.get(profile._id);
-                const hasAvailableGift = intent?.state === "active" && intent.latestEventId !== intent.consumedGiftEventId;
+                const hasAvailableGift = hasAvailableGiftIntent(intent);
                 return (
                   <label key={profile._id} htmlFor={`gift-profile-${profile._id}`}>
                     <input id={`gift-profile-${profile._id}`} type="checkbox" checked={selectedProfiles.has(profile._id)} onChange={() => toggleProfile(profile._id)} />
@@ -843,7 +1181,7 @@ export function GiftAdminPanel() {
             <span>I manually confirm that selected people without “GIFT ready” made a new request for this specific gift by DM on X. This never overrides STOP.</span>
           </label>
           {selectedConsentState.stopped ? <p className="gift-consent-warning" role="alert">@{selectedConsentState.stopped.handle} has an active STOP. Ask them to send GIFT again before creating a pass.</p> : null}
-          <button type="submit" className="primary-button" title="Create a personal Fourthwall gift pass for every selected person" disabled={busy === "create" || !configuration?.fourthwallConfigured || selectedProfiles.size === 0 || Boolean(selectedConsentState.stopped) || (selectedConsentState.manualRequired && !consentConfirmed)}>
+          <button type="submit" className="primary-button" title="Create a personal Fourthwall gift pass for every selected person" disabled={busy === "create" || !configuration?.fourthwallConfigured || selectedProfiles.size === 0 || selectedProfiles.size > 50 || Boolean(selectedConsentState.stopped) || (selectedConsentState.manualRequired && !consentConfirmed)}>
             <GiftIcon aria-hidden="true" /> {busy === "create" ? "Creating passes" : `Create ${selectedProfiles.size || ""} pass${selectedProfiles.size === 1 ? "" : "es"}`}
           </button>
         </form>
@@ -910,6 +1248,47 @@ export function GiftAdminPanel() {
           <span><strong>{counts.opened}</strong> opened</span>
           <span><strong>{counts.redeemed}</strong> redeemed</span>
         </div>
+        {/* Batch DM bar: pick sendable passes below, then send them one at a
+            time with a 2 second gap. Each send re-checks STOP and opt out. */}
+        {sendableRecipients.length > 0 ? (
+          <div className="gift-batch-bar" role="toolbar" aria-label="Batch X DM send">
+            <button
+              type="button"
+              className="secondary-button"
+              disabled={batchSend !== null}
+              title="Select every pass in this view that can still receive its X DM"
+              onClick={selectAllSendable}
+            >
+              Select sendable ({sendableRecipients.length})
+            </button>
+            <button
+              type="button"
+              className="secondary-button"
+              disabled={batchSend !== null || selectedSendable.length === 0}
+              title="Clear the batch selection"
+              onClick={() => setSelectedRecipientIds(new Set())}
+            >
+              Clear
+            </button>
+            <button
+              type="button"
+              className="primary-button gift-batch-send"
+              disabled={batchSend !== null || selectedSendable.length === 0}
+              title="Send the gift pass DM to every selected person, one at a time with a 2 second gap"
+              onClick={() => void sendSelectedDms()}
+            >
+              <PaperPlaneTiltIcon aria-hidden="true" />
+              {batchSend
+                ? `Sending ${Math.min(batchSend.done + 1, batchSend.total)} of ${batchSend.total} · @${batchSend.handle}`
+                : `Send ${selectedSendable.length || ""} X DM${selectedSendable.length === 1 ? "" : "s"}`}
+            </button>
+            <span className="gift-picker-count" aria-live="polite">
+              {batchSend
+                ? "Sends are spaced 2 seconds apart and every send re-checks STOP and opt-out first."
+                : `${selectedSendable.length} of ${sendableRecipients.length} sendable selected`}
+            </span>
+          </div>
+        ) : null}
         <div className="gift-recipient-list">
           {selectedCampaignId === null ? (
             <div className="gift-empty">Create or choose a campaign.</div>
@@ -922,7 +1301,16 @@ export function GiftAdminPanel() {
                 : "No recipients in this campaign."}
             </div>
           ) : (
-            recipients.map((recipient) => <GiftRecipientRow key={recipient._id} recipient={recipient} onFeedback={setFeedback} />)
+            recipients.map((recipient) => (
+              <GiftRecipientRow
+                key={recipient._id}
+                recipient={recipient}
+                onFeedback={setFeedback}
+                selected={selectedRecipientIds.has(recipient._id)}
+                onToggleSelected={() => toggleRecipientSelected(recipient._id)}
+                batchBusy={batchSend !== null}
+              />
+            ))
           )}
         </div>
       </section>
@@ -941,25 +1329,127 @@ export function GiftAdminPanel() {
             <button
               type="button"
               className="secondary-button"
-              disabled={!campaigns || campaigns.length === 0}
-              title="Download every dispatch with its status and product ID as a CSV file"
+              disabled={filteredDispatches.length === 0}
+              title="Download the dispatches currently shown (view tab plus search) as a CSV file"
               onClick={exportDispatchCsv}
             >
               <DownloadSimpleIcon aria-hidden="true" /> Download CSV
             </button>
           </div>
         </div>
+        {/* Log toolbar: select all, view tabs, search, and bulk actions that
+            only ever touch the selected rows still visible. */}
+        <div className="gift-dispatch-toolbar" role="toolbar" aria-label="Dispatch views and bulk actions">
+          <input
+            type="checkbox"
+            className="gift-check"
+            checked={allVisibleDispatchesSelected}
+            disabled={filteredDispatches.length === 0 || bulkBusy !== null}
+            aria-label="Select or deselect every dispatch shown"
+            title="Select or deselect every dispatch shown"
+            onChange={toggleSelectAllDispatches}
+          />
+          <div className="gift-view-tabs" role="group" aria-label="Dispatch views">
+            <button type="button" className={dispatchView === "recent" ? "is-active" : ""} title="Dispatches still in the sidebar" onClick={() => changeDispatchView("recent")}>
+              Recent ({dispatchCounts.recent})
+            </button>
+            <button type="button" className={dispatchView === "archived" ? "is-active" : ""} title="Dispatches hidden from the sidebar" onClick={() => changeDispatchView("archived")}>
+              Archived ({dispatchCounts.archived})
+            </button>
+            <button type="button" className={dispatchView === "all" ? "is-active" : ""} title="Every dispatch" onClick={() => changeDispatchView("all")}>
+              All ({dispatchCounts.all})
+            </button>
+          </div>
+          <div className="gift-ledger-search">
+            <MagnifyingGlassIcon aria-hidden="true" />
+            <input
+              type="search"
+              value={dispatchSearch}
+              onChange={(event) => {
+                setDispatchSearch(event.target.value);
+                setArmedBulkDelete(false);
+              }}
+              placeholder="Filter by title, gift, or @handle"
+              aria-label="Filter dispatches by title, gift product, or recipient handle"
+              title="Type a campaign title, gift name, or recipient handle to filter the log"
+            />
+          </div>
+          {selectedVisibleDispatches.length > 0 ? (
+            <div className="gift-bulk-actions">
+              {selectedActiveDispatchCount > 0 ? (
+                <button
+                  type="button"
+                  className="icon-text-button"
+                  disabled={bulkBusy !== null}
+                  title="Hide the selected dispatches from the sidebar; their passes keep working"
+                  onClick={() => void bulkSetArchived(true)}
+                >
+                  <ArchiveIcon aria-hidden="true" /> {bulkBusy === "archive" ? "Archiving" : `Archive (${selectedActiveDispatchCount})`}
+                </button>
+              ) : null}
+              {selectedArchivedDispatchCount > 0 ? (
+                <button
+                  type="button"
+                  className="icon-text-button"
+                  disabled={bulkBusy !== null}
+                  title="Bring the selected dispatches back to the sidebar"
+                  onClick={() => void bulkSetArchived(false)}
+                >
+                  <ArrowCounterClockwiseIcon aria-hidden="true" /> {bulkBusy === "restore" ? "Restoring" : `Restore (${selectedArchivedDispatchCount})`}
+                </button>
+              ) : null}
+              <button
+                type="button"
+                className={`icon-text-button${armedBulkDelete ? " danger" : ""}`}
+                disabled={bulkBusy !== null}
+                title="Permanently delete the selected dispatches, their passes, and their history"
+                onClick={() => void bulkDeleteDispatches()}
+              >
+                <TrashIcon aria-hidden="true" /> {bulkBusy === "delete" ? "Deleting" : armedBulkDelete ? `Confirm delete (${selectedVisibleDispatches.length})` : `Delete (${selectedVisibleDispatches.length})`}
+              </button>
+              <button
+                type="button"
+                className="icon-text-button"
+                disabled={bulkBusy !== null}
+                title="Clear the dispatch selection"
+                onClick={() => {
+                  setSelectedDispatchIds(new Set());
+                  setArmedBulkDelete(false);
+                }}
+              >
+                Clear
+              </button>
+            </div>
+          ) : null}
+        </div>
         <div className="gift-dispatch-rows">
           {campaigns === undefined ? (
             <div className="gift-empty">Loading dispatches…</div>
           ) : campaigns.length === 0 ? (
             <div className="gift-empty">No dispatches yet. Create one above.</div>
+          ) : filteredDispatches.length === 0 ? (
+            <div className="gift-empty">
+              {dispatchSearch.trim()
+                ? `No dispatches match “${dispatchSearch.trim()}” in this view.`
+                : dispatchView === "archived"
+                  ? "No archived dispatches."
+                  : "No dispatches in this view."}
+            </div>
           ) : (
-            campaigns.map((campaign) => {
+            filteredDispatches.map((campaign) => {
               const archived = campaign.archivedAt !== undefined;
               const armed = armedDeleteId === campaign._id;
               return (
-                <div key={campaign._id} className={`gift-dispatch-row${archived ? " is-archived" : ""}`}>
+                <div key={campaign._id} className={`gift-dispatch-row${archived ? " is-archived" : ""}${selectedDispatchIds.has(campaign._id) ? " is-selected" : ""}`}>
+                  <input
+                    type="checkbox"
+                    className="gift-check"
+                    checked={selectedDispatchIds.has(campaign._id)}
+                    disabled={bulkBusy !== null}
+                    aria-label={`Select dispatch ${campaign.title}`}
+                    title="Select this dispatch for a bulk action"
+                    onChange={() => toggleDispatchSelected(campaign._id)}
+                  />
                   <div className="gift-dispatch-main">
                     <strong>{campaign.title}</strong>
                     <span>

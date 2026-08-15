@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
+- Dispatches log toolbar: Recent, Archived, and All view tabs with counts, a search box that matches campaign title, gift name, or recipient handle, a select all checkbox with per row checkboxes, and bulk Archive, Restore, two step Confirm delete, and Clear actions backed by new capped bulk mutations. Download CSV now exports exactly what the log shows (2026-08-15).
+- Approved recipients toolbar in the campaign form: search by name or handle, Select shown, Select GIFT ready (only profiles with an unused GIFT request), Clear, and a live selected count. Picking more than 50 recipients disables Create with an inline warning that matches the backend cap (2026-08-15).
+- Batch X DM send in the recipient ledger: checkboxes appear on passes that can still be sent, Select sendable grabs them all, and Send X DMs delivers one at a time with a 2 second gap between sends. Every send still runs the full server side compliance checks (STOP, admin opt out, consent, link ready) right before the X API call, and the loop stops after three failures in a row instead of hammering X. A summary reports sent, already sent, and failed handles (2026-08-15).
+
 - Dispatches log in the Gift studio, below the recipient ledger: every campaign, active and archived, with Archive and Restore, a two step Delete (the button arms in red, the second click removes the dispatch plus its passes and history), and a Download CSV export of the whole log. Archiving hides a dispatch from the sidebar without touching its passes; both the log and the sidebar read the same Convex query, so actions sync live (2026-08-15).
 - Product shelf in the Gift studio: save labeled Fourthwall product IDs ahead of any send. Saves are verified against Fourthwall's Get Product endpoint, so typo'd IDs are rejected and each saved product carries its real name and a thumbnail preview. Shelf cards offer Use (fills the campaign form) and remove; the pick-to-fill chips in the form now show a tiny product image (2026-08-15).
 - Remove button in the Friends on the board admin section: a two step confirm (Remove, then Confirm in red) permanently deletes a profile and its snapshot history. Gift ledger rows keep their own name copies, so gift history is unaffected (2026-08-15).
@@ -32,6 +36,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Changed
 
+- The Dispatches sidebar list now flexes to the full height of the studio section, matching the campaign form beside it and resizing with it; the 420px cap only applies on single column layouts (2026-08-15).
 - Dispatches sidebar and Dispatches log rows now list the person and the gift: up to two recipient @handles (extras collapse into a +N count, full list on hover) plus the gift's product name from the product shelf, falling back to a shortened Fourthwall product ID. The Dispatches log CSV gained gift_product, recipients, and recipient_count columns (2026-08-15).
 - The Dispatches sidebar in the Gift studio scrolls inside its own 420px panel instead of stretching the page, and only shows non archived dispatches (2026-08-15).
 - Gift pass and public share cards are now 16:9 with the racing stripe art (`public/background-image-sidebar.svg`), which sweeps along the bottom edge and rises to the right. Card labels trimmed: "PERSONAL PASS / 2026", "ONE GIFT / ONE PERSON", "COMMUNITY / 2026", "FRIEND OF CONVEX", "FRIENDS OF CONVEX GIFT", and "BUILT TOGETHER" are gone. FRIENDS OF CONVEX stays top left; the identity block, name, and status line are left aligned and vertically centered above the stripes (2026-08-15).

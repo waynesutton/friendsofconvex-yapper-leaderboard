@@ -2695,11 +2695,19 @@ html[data-theme="convex"] .board-sync-chip {
 
 /* The dispatch list scrolls on its own so a long history never stretches
    the studio page. */
+/* The rail is a flex column so the campaign list below can flex to the full
+   height of the studio section, which the form beside it defines. */
+.gift-campaign-rail {
+  display: flex;
+  flex-direction: column;
+}
+
 .gift-campaign-rail > div {
   margin-top: 20px;
   display: flex;
   flex-direction: column;
-  max-height: 420px;
+  flex: 1 1 auto;
+  min-height: 220px;
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
@@ -2809,10 +2817,127 @@ html[data-theme="convex"] .board-sync-chip {
   flex-shrink: 0;
 }
 
+/* Shared checkbox for dispatch rows, ledger rows, and select all. */
+.gift-check {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  accent-color: var(--signal-coral-dark);
+  cursor: pointer;
+}
+
+.gift-check:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+/* Dispatches log toolbar: select all, view tabs, search, bulk actions. */
+.gift-dispatch-toolbar {
+  margin-top: 20px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.gift-view-tabs {
+  display: inline-flex;
+  padding: 3px;
+  background: var(--control-inset);
+  border: 1px solid var(--line-standard);
+  border-radius: 999px;
+}
+
+.gift-view-tabs button {
+  min-height: 34px;
+  padding: 0 14px;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  color: var(--caption-ink);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.gift-view-tabs button.is-active {
+  background: var(--studio-sheet);
+  color: var(--broadcast-ink);
+  box-shadow: 0 1px 2px rgba(20, 12, 10, 0.12);
+}
+
+.gift-bulk-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.gift-dispatch-row.is-selected {
+  background: var(--control-inset);
+}
+
+.gift-dispatch-main {
+  flex: 1;
+}
+
+/* Recipient picker toolbar: search plus bulk selection shortcuts. */
+.gift-picker-tools {
+  margin: 0 0 14px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.gift-picker-tools .gift-ledger-search {
+  flex: 1;
+  min-width: 190px;
+}
+
+.gift-picker-tools .gift-ledger-search input {
+  width: 100%;
+}
+
+.gift-picker-count {
+  color: var(--caption-ink);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+/* Batch X DM bar above the recipient list. */
+.gift-batch-bar {
+  margin-top: 16px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  background: var(--control-inset);
+  border: 1px solid var(--line-standard);
+  border-radius: var(--radius-small);
+}
+
+.gift-batch-send {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 @media (max-width: 720px) {
   .gift-dispatch-row {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .gift-dispatch-toolbar .gift-ledger-search {
+    flex: 1;
+    min-width: 190px;
+  }
+
+  .gift-dispatch-toolbar .gift-ledger-search input {
+    width: 100%;
   }
 }
 
@@ -3610,6 +3735,14 @@ html[data-theme="convex"] .board-sync-chip {
 
   .gift-studio-grid {
     grid-template-columns: 1fr;
+  }
+
+  /* Single column layout: the rail sits below the form, so cap the list
+     again instead of letting it grow to its full content height. */
+  .gift-campaign-rail > div {
+    flex: 0 1 auto;
+    max-height: 420px;
+    min-height: 0;
   }
 
   .gift-recipient-row {

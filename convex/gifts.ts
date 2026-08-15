@@ -238,6 +238,85 @@ export const setCampaignArchived = mutation({
   },
 });
 
+// Bulk archive or restore from the Dispatches log selection toolbar.
+// Idempotent per campaign; missing campaigns are skipped.
+export const setCampaignsArchived = mutation({
+  args: {
+    campaignIds: v.array(v.id("giftCampaigns")),
+    archived: v.boolean(),
+  },
+  returns: v.number(),
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    if (args.campaignIds.length > 50) {
+      throw new Error("Select at most 50 dispatches at a time.");
+    }
+    const now = Date.now();
+    let updated = 0;
+    for (const campaignId of args.campaignIds) {
+      const campaign = await ctx.db.get("giftCampaigns", campaignId);
+      if (!campaign) continue;
+      const isArchived = campaign.archivedAt !== undefined;
+      if (isArchived === args.archived) continue;
+      await ctx.db.patch("giftCampaigns", campaignId, {
+        archivedAt: args.archived ? now : undefined,
+        updatedAt: now,
+      });
+      updated += 1;
+    }
+    return updated;
+  },
+});
+
+// Shared cascade: gift events, then recipients (their pass and share pages
+// die with them), then the campaign. Used by single and bulk delete.
+async function deleteCampaignCascade(
+  ctx: MutationCtx,
+  campaignId: Doc<"giftCampaigns">["_id"],
+): Promise<boolean> {
+  const campaign = await ctx.db.get("giftCampaigns", campaignId);
+  // Idempotent: deleting an already removed campaign is fine.
+  if (!campaign) return false;
+  const events = await ctx.db
+    .query("giftEvents")
+    .withIndex("by_campaign_id_and_created_at", (q) =>
+      q.eq("campaignId", campaignId),
+    )
+    .collect();
+  for (const event of events) {
+    await ctx.db.delete("giftEvents", event._id);
+  }
+  const recipients = await ctx.db
+    .query("giftRecipients")
+    .withIndex("by_campaign_id_and_created_at", (q) =>
+      q.eq("campaignId", campaignId),
+    )
+    .collect();
+  for (const recipient of recipients) {
+    await ctx.db.delete("giftRecipients", recipient._id);
+  }
+  await ctx.db.delete("giftCampaigns", campaignId);
+  return true;
+}
+
+// Bulk delete from the Dispatches log selection toolbar. Capped low because
+// each campaign cascade touches its events and recipients.
+export const deleteCampaignsAdmin = mutation({
+  args: { campaignIds: v.array(v.id("giftCampaigns")) },
+  returns: v.number(),
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    if (args.campaignIds.length > 25) {
+      throw new Error("Delete at most 25 dispatches at a time.");
+    }
+    let deleted = 0;
+    for (const campaignId of args.campaignIds) {
+      if (await deleteCampaignCascade(ctx, campaignId)) deleted += 1;
+    }
+    return deleted;
+  },
+});
+
 // Permanently delete a dispatch: its gift events, recipients (which kills
 // their pass and share pages), then the campaign itself.
 export const deleteCampaignAdmin = mutation({
@@ -245,28 +324,7 @@ export const deleteCampaignAdmin = mutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
-    const campaign = await ctx.db.get("giftCampaigns", args.campaignId);
-    // Idempotent: deleting an already removed campaign is fine.
-    if (!campaign) return null;
-    const events = await ctx.db
-      .query("giftEvents")
-      .withIndex("by_campaign_id_and_created_at", (q) =>
-        q.eq("campaignId", args.campaignId),
-      )
-      .collect();
-    for (const event of events) {
-      await ctx.db.delete("giftEvents", event._id);
-    }
-    const recipients = await ctx.db
-      .query("giftRecipients")
-      .withIndex("by_campaign_id_and_created_at", (q) =>
-        q.eq("campaignId", args.campaignId),
-      )
-      .collect();
-    for (const recipient of recipients) {
-      await ctx.db.delete("giftRecipients", recipient._id);
-    }
-    await ctx.db.delete("giftCampaigns", args.campaignId);
+    await deleteCampaignCascade(ctx, args.campaignId);
     return null;
   },
 });

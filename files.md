@@ -4,6 +4,7 @@
 
 - `docs/SETUP_GUIDE.md` — Completed and repeatable development/production setup for the live Convex origins: X OAuth, Convex Auth keys, first-admin allowlist, security model, exact callback maps, and static hosting deploy.
 - `docs/fourthwall-setup.md` — Step-by-step Fourthwall, X DM sender, exact production webhook routes on `friendsofconvex.dev`, and Convex development/production setup for the static hosting stack.
+- `prds/gift-studio-bulk-operations.md` — Dispatches log tabs, search, and bulk actions; sidebar height; recipient picker search; batch X DM send requirements.
 - `prds/2026-08-08-friends-of-convex-yapper-board.md` — Product requirements and rollout boundaries.
 - `prds/2026-08-08-x-join-and-imports.md` — Requirements for X login, join review, bulk imports, and admin access.
 - `prds/2026-08-08-fourthwall-gift-pass.md` — Consent-first gift delivery, data, security, interface, and verification requirements.

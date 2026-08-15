@@ -1,5 +1,14 @@
 # Task log
 
+## Completed — 2026-08-15 21:05 UTC (gift studio bulk operations)
+
+- [x] Dispatches log toolbar like the dashboard logs pattern: Recent, Archived, and All view tabs with counts, a search box matching title, gift name, or recipient @handle, a select all checkbox, per row checkboxes, and a bulk action cluster (Archive, Restore, two step Confirm delete, Clear). Bulk actions only touch selected rows still visible, so a search or tab change can never act on hidden dispatches. Download CSV now exports what the log shows. PRD: `prds/gift-studio-bulk-operations.md`.
+- [x] Backend: `gifts.setCampaignsArchived` (bulk, cap 50) and `gifts.deleteCampaignsAdmin` (bulk, cap 25) with a shared `deleteCampaignCascade` helper that the single delete reuses. Both admin only and idempotent.
+- [x] Dispatches sidebar list now flexes to the full height of the studio section (the campaign form defines it) and grows or shrinks as the form resizes; the 420px cap only returns on single column layouts so the page never stretches.
+- [x] Approved recipients picker: search by name or handle, Select shown, Select GIFT ready (only unused GIFT requests), Clear, and a live selected count. Selecting more than 50 disables Create with an inline warning matching the backend cap.
+- [x] Batch X DM send in the recipient ledger: checkboxes on sendable passes, Select sendable, and a Send X DMs button that sends one at a time with a 2 second gap. X rules stay intact because every send still runs `giftActions.sendGiftDm`, which re-checks STOP, admin opt out, consent, and link readiness server side right before each API call. Three failures in a row stop the loop; a summary reports sent, already sent, and failures.
+- [x] Verified: `npm run typecheck` and `npm run lint` pass; Convex dev accepted the mutations. Deployed to prod (backend `npx convex deploy --yes`, frontend `npm run deploy -- --skip-convex`, live at friendsofconvex.dev). Signed in bulk flows need a manual pass since the IDE browser stops at the X sign in gate.
+
 ## Completed — 2026-08-15 19:50 UTC (dispatch rows show person and gift)
 
 - [x] Dispatches sidebar and Dispatches log rows now show who received each dispatch and what the gift is. `gifts.listCampaignsAdmin` returns each campaign plus `recipientHandles`, `recipientCount`, and `productName` (looked up from the product shelf preset matching the campaign's Fourthwall product ID, falling back to the preset label, then a shortened product ID).
