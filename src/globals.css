@@ -2642,9 +2642,14 @@ html[data-theme="convex"] .board-sync-chip {
 }
 
 .gift-profile-picker > div {
-  max-height: 300px;
+  max-height: 420px;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 8px;
   border-top: 1px solid var(--line-standard);
+  border-bottom: 1px solid var(--line-standard);
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-emphasis) transparent;
 }
 
 .gift-profile-picker label {
@@ -2674,12 +2679,44 @@ html[data-theme="convex"] .board-sync-chip {
   color: var(--caption-ink);
 }
 
+/* Gift totals under each name: large, bold, and high contrast so "No gifts
+   yet" and the sent count read at a glance. */
 .gift-profile-picker .gift-history-note {
-  margin-top: 2px;
+  margin-top: 5px;
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  color: var(--broadcast-ink);
   font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 9px;
-  letter-spacing: 0.02em;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
+}
+
+.gift-profile-picker .gift-history-note.is-none {
+  width: fit-content;
+  padding: 3px 9px;
+  background: var(--studio-paper-deep);
+  border-radius: 999px;
+}
+
+.gift-history-part {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.gift-history-part svg {
+  width: 15px;
+  height: 15px;
+  color: var(--signal-coral-dark);
+}
+
+.gift-history-part.is-status {
+  color: var(--caption-ink);
+  font-weight: 600;
 }
 
 .gift-consent-state {
@@ -2823,7 +2860,7 @@ html[data-theme="convex"] .board-sync-chip {
 }
 
 .gift-dispatch-main strong {
-  font-size: 15px;
+  font-size: 17px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -4536,4 +4573,161 @@ html[data-theme="convex"] .access-state h1 {
 
 .admin-grid {
   margin-top: 40px;
+}
+
+/* Themed filter dropdown: the trigger inherits the secondary button pill, the
+   menu floats one surface above on palette tokens so it matches both themes.
+   Kept at the end of the file so these rules win over toolbar button styles. */
+.filter-dropdown {
+  position: relative;
+}
+
+.filter-dropdown-trigger {
+  white-space: nowrap;
+}
+
+.filter-dropdown-caret {
+  transition: transform 160ms ease-out;
+}
+
+.filter-dropdown-caret[data-open] {
+  transform: rotate(180deg);
+}
+
+.filter-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 40;
+  min-width: 186px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--studio-sheet);
+  border: 1px solid var(--line-emphasis);
+  border-radius: var(--radius-medium);
+  box-shadow: 0 16px 36px rgba(20, 12, 10, 0.18);
+}
+
+.filter-dropdown-menu button {
+  min-height: 40px;
+  width: 100%;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-small);
+  color: var(--broadcast-ink);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-align: left;
+  text-transform: none;
+}
+
+.filter-dropdown-menu button:hover {
+  background: var(--control-inset);
+}
+
+.filter-dropdown-menu button[aria-selected="true"] {
+  color: var(--signal-coral-dark);
+}
+
+.filter-dropdown-menu button svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
+/* Load more footer under the leaderboard, replacing page flipping. */
+.board-load-more {
+  min-height: 64px;
+  padding: 12px 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  border-bottom: 1px solid var(--line-emphasis);
+}
+
+.board-load-more span {
+  color: var(--caption-ink);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11px;
+}
+
+.board-load-more button {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: 0;
+  color: var(--broadcast-ink);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 650;
+  text-decoration: underline;
+  text-decoration-color: var(--signal-coral);
+  text-underline-offset: 5px;
+}
+
+/* Dispatch log batches: every account in the send listed as a chip with its
+   sent state, plus a sent counter for the whole batch. */
+.gift-dispatch-recipients {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.gift-sent-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--studio-paper-deep);
+  border-radius: 999px;
+  color: var(--broadcast-ink);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.gift-sent-count svg {
+  width: 14px;
+  height: 14px;
+  color: var(--signal-coral-dark);
+}
+
+.gift-recipient-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border: 1px solid var(--line-standard);
+  border-radius: 999px;
+  color: var(--broadcast-ink);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.gift-recipient-chip.is-sent {
+  background: var(--control-inset);
+  border-color: transparent;
+}
+
+.gift-recipient-chip svg {
+  width: 14px;
+  height: 14px;
+  color: var(--signal-coral-dark);
+  flex-shrink: 0;
 }

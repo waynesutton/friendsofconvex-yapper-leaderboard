@@ -7,6 +7,7 @@ import {
   CopyIcon,
   DownloadSimpleIcon,
   FloppyDiskIcon,
+  FunnelSimpleIcon,
   GiftIcon,
   LinkIcon,
   MagnifyingGlassIcon,
@@ -22,8 +23,21 @@ import { Link } from "react-router-dom";
 import { FormEvent, useMemo, useState } from "react";
 import { api } from "../../convex/_generated/api";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
+import { FilterDropdown, type FilterDropdownOption } from "./FilterDropdown";
 
 type Feedback = { tone: "success" | "error" | "info"; message: string } | null;
+
+// Approved recipients picker filter: how many gifts a person has received.
+type GiftCountFilter = "all" | "0" | "1" | "2" | "3" | "4" | "5";
+const GIFT_COUNT_OPTIONS: Array<FilterDropdownOption<GiftCountFilter>> = [
+  { value: "all", label: "All gift counts" },
+  { value: "0", label: "No gifts yet" },
+  { value: "1", label: "1 gift" },
+  { value: "2", label: "2 gifts" },
+  { value: "3", label: "3 gifts" },
+  { value: "4", label: "4 gifts" },
+  { value: "5", label: "5+ gifts" },
+];
 
 // Campaign shape from listCampaignsAdmin: base doc plus recipient handles,
 // recipient count, and the gift's product name.
@@ -144,6 +158,7 @@ function buildDispatchCsv(campaigns: Array<CampaignListItem>): string {
     "gift_product",
     "recipients",
     "recipient_count",
+    "sent_count",
     "archived_at",
     "fourthwall_product_id",
     "created_at",
@@ -157,6 +172,7 @@ function buildDispatchCsv(campaigns: Array<CampaignListItem>): string {
       campaign.productName ?? "",
       campaign.recipientHandles.map((handle) => `@${handle}`).join(" "),
       String(campaign.recipientCount),
+      String(campaign.sentCount),
       csvTime(campaign.archivedAt ?? null),
       campaign.fourthwallProductId,
       csvTime(campaign.createdAt),
@@ -429,8 +445,9 @@ export function GiftAdminPanel() {
   const [selectedDispatchIds, setSelectedDispatchIds] = useState<Set<Id<"giftCampaigns">>>(new Set());
   const [armedBulkDelete, setArmedBulkDelete] = useState(false);
   const [bulkBusy, setBulkBusy] = useState<"archive" | "restore" | "delete" | null>(null);
-  // Approved recipients picker search.
+  // Approved recipients picker search and gift count filter.
   const [profileSearch, setProfileSearch] = useState("");
+  const [giftCountFilter, setGiftCountFilter] = useState<GiftCountFilter>("all");
   // Batch X DM send: selected passes plus live progress while the loop runs.
   const sendGiftDmBatch = useAction(api.giftActions.sendGiftDm);
   const [selectedRecipientIds, setSelectedRecipientIds] = useState<Set<Id<"giftRecipients">>>(new Set());
@@ -444,15 +461,32 @@ export function GiftAdminPanel() {
     () => new Map((giftIntents ?? []).map((intent) => [intent.xUserId, intent])),
     [giftIntents],
   );
-  const latestGiftByProfileId = useMemo(
-    () =>
-      new Map(
-        [...(giftHistory ?? [])]
-          .reverse()
-          .map((gift) => [gift.profileId, gift] as const),
-      ),
-    [giftHistory],
-  );
+  // Per profile gift totals from history: total gifts, DMs actually sent, and
+  // the most recent status. History arrives newest first, so the first entry
+  // seen per profile is the latest one. giftNumber keeps totals accurate on
+  // prod even if older rows fall outside the 250 row history window.
+  const giftStatsByProfileId = useMemo(() => {
+    const stats = new Map<
+      Id<"profiles">,
+      { giftCount: number; sentCount: number; lastStatus: string; seen: number }
+    >();
+    for (const gift of giftHistory ?? []) {
+      const existing = stats.get(gift.profileId);
+      if (existing) {
+        existing.seen += 1;
+        existing.giftCount = Math.max(existing.giftCount, gift.giftNumber, existing.seen);
+        if (gift.sentAt !== null) existing.sentCount += 1;
+      } else {
+        stats.set(gift.profileId, {
+          seen: 1,
+          giftCount: Math.max(1, gift.giftNumber),
+          sentCount: gift.sentAt !== null ? 1 : 0,
+          lastStatus: gift.status,
+        });
+      }
+    }
+    return stats;
+  }, [giftHistory]);
   const selectedConsentState = useMemo(() => {
     const selected = eligibleProfiles.filter((profile) => selectedProfiles.has(profile._id));
     return {
@@ -509,16 +543,23 @@ export function GiftAdminPanel() {
     const archived = all.filter((campaign) => campaign.archivedAt !== undefined).length;
     return { recent: all.length - archived, archived, all: all.length };
   }, [campaigns]);
-  // Recipient picker rows for the current search term.
+  // Recipient picker rows for the current search term and gift count filter.
   const shownProfiles = useMemo(() => {
     const term = profileSearch.trim().toLowerCase().replace(/^@/, "");
-    if (!term) return eligibleProfiles;
-    return eligibleProfiles.filter(
-      (profile) =>
-        profile.handle.toLowerCase().includes(term) ||
-        profile.displayName.toLowerCase().includes(term),
-    );
-  }, [eligibleProfiles, profileSearch]);
+    return eligibleProfiles.filter((profile) => {
+      if (
+        term &&
+        !profile.handle.toLowerCase().includes(term) &&
+        !profile.displayName.toLowerCase().includes(term)
+      ) {
+        return false;
+      }
+      if (giftCountFilter === "all") return true;
+      const giftCount = giftStatsByProfileId.get(profile._id)?.giftCount ?? 0;
+      const wanted = Number(giftCountFilter);
+      return wanted === 5 ? giftCount >= 5 : giftCount === wanted;
+    });
+  }, [eligibleProfiles, giftCountFilter, giftStatsByProfileId, profileSearch]);
   // Passes in the current ledger view that can still receive a batch DM.
   const sendableRecipients = useMemo(
     () => (recipients ?? []).filter(isSendable),
@@ -1115,6 +1156,13 @@ export function GiftAdminPanel() {
                   title="Type a name or handle to filter the recipient list"
                 />
               </div>
+              <FilterDropdown
+                label="Filter by gifts received"
+                value={giftCountFilter}
+                options={GIFT_COUNT_OPTIONS}
+                onChange={setGiftCountFilter}
+                icon={<FunnelSimpleIcon aria-hidden="true" />}
+              />
               <button
                 type="button"
                 className="secondary-button"
@@ -1152,9 +1200,9 @@ export function GiftAdminPanel() {
               </p>
             ) : null}
             <div>
-              {eligibleProfiles.length === 0 ? <span className="gift-empty">Sync an approved X profile before issuing a gift.</span> : shownProfiles.length === 0 ? <span className="gift-empty">No recipients match “{profileSearch.trim()}”.</span> : shownProfiles.map((profile) => {
+              {eligibleProfiles.length === 0 ? <span className="gift-empty">Sync an approved X profile before issuing a gift.</span> : shownProfiles.length === 0 ? <span className="gift-empty">{profileSearch.trim() ? `No recipients match “${profileSearch.trim()}”${giftCountFilter !== "all" ? " with this gift filter" : ""}.` : "No recipients match this gift filter."}</span> : shownProfiles.map((profile) => {
                 const intent = profile.xUserId ? intentsByXUserId.get(profile.xUserId) : null;
-                const latestGift = latestGiftByProfileId.get(profile._id);
+                const stats = giftStatsByProfileId.get(profile._id);
                 const hasAvailableGift = hasAvailableGiftIntent(intent);
                 return (
                   <label key={profile._id} htmlFor={`gift-profile-${profile._id}`}>
@@ -1163,10 +1211,20 @@ export function GiftAdminPanel() {
                     <span>
                       <strong>{profile.displayName}</strong>
                       <small>@{profile.handle}</small>
-                      <small className="gift-history-note">
-                        {latestGift
-                          ? `${latestGift.giftNumber} gift${latestGift.giftNumber === 1 ? "" : "s"} · last ${latestGift.status}`
-                          : "No gifts yet"}
+                      <small className={`gift-history-note${stats ? "" : " is-none"}`}>
+                        {stats ? (
+                          <>
+                            <span className="gift-history-part">
+                              <GiftIcon aria-hidden="true" /> {stats.giftCount} gift{stats.giftCount === 1 ? "" : "s"}
+                            </span>
+                            <span className="gift-history-part" title={`${stats.sentCount} DM${stats.sentCount === 1 ? "" : "s"} sent`}>
+                              <PaperPlaneTiltIcon aria-hidden="true" /> {stats.sentCount} sent
+                            </span>
+                            <span className="gift-history-part is-status">last {stats.lastStatus}</span>
+                          </>
+                        ) : (
+                          "No gifts yet"
+                        )}
                       </small>
                     </span>
                     {intent?.state === "suppressed" ? <em className="gift-consent-state is-stopped">STOP active</em> : hasAvailableGift ? <em className="gift-consent-state is-active">GIFT ready</em> : intent?.state === "active" ? <em className="gift-consent-state is-used">GIFT used</em> : <em className="gift-consent-state">Manual check</em>}
@@ -1195,7 +1253,7 @@ export function GiftAdminPanel() {
                 <strong>{campaign.title}</strong>
                 <span>{campaign.status} · {readableTime(campaign.createdAt)}</span>
                 <span className="gift-dispatch-detail" title={campaign.recipientHandles.map((handle) => `@${handle}`).join(", ")}>
-                  {recipientSummary(campaign.recipientHandles, campaign.recipientCount)} · {giftLabel(campaign)}
+                  {recipientSummary(campaign.recipientHandles, campaign.recipientCount)} · {campaign.sentCount}/{campaign.recipientCount} sent · {giftLabel(campaign)}
                 </span>
               </button>
             ))}
@@ -1454,11 +1512,29 @@ export function GiftAdminPanel() {
                     <strong>{campaign.title}</strong>
                     <span>
                       {campaign.status} · {readableTime(campaign.createdAt)}
-                      {archived ? " · archived" : ""}
+                      {archived ? " · archived" : ""} · {giftLabel(campaign)}
                     </span>
-                    <span className="gift-dispatch-detail" title={campaign.recipientHandles.map((handle) => `@${handle}`).join(", ")}>
-                      {recipientSummary(campaign.recipientHandles, campaign.recipientCount)} · {giftLabel(campaign)}
-                    </span>
+                    {/* Every account in the batch, listed as chips with sent state. */}
+                    <div className="gift-dispatch-recipients">
+                      <span
+                        className="gift-sent-count"
+                        title={`${campaign.sentCount} of ${campaign.recipientCount} X DMs sent`}>
+                        <PaperPlaneTiltIcon aria-hidden="true" /> {campaign.sentCount} of {campaign.recipientCount} sent
+                      </span>
+                      {campaign.recipientDetails.map((recipient) => (
+                        <span
+                          key={recipient.handle}
+                          className={`gift-recipient-chip${recipient.sent ? " is-sent" : ""}`}
+                          title={
+                            recipient.sent
+                              ? `${recipient.displayName} · DM sent`
+                              : `${recipient.displayName} · not sent yet`
+                          }>
+                          {recipient.sent ? <CheckCircleIcon aria-hidden="true" /> : null}
+                          @{recipient.handle}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                   <div className="gift-dispatch-actions">
                     <button

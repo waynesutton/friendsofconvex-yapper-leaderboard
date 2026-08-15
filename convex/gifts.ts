@@ -63,6 +63,16 @@ const giftCampaignListItemValidator = v.object({
   ...giftCampaignFields,
   recipientHandles: v.array(v.string()),
   recipientCount: v.number(),
+  // Per recipient delivery state so the log can list every @handle with its
+  // sent status without a second query.
+  recipientDetails: v.array(
+    v.object({
+      handle: v.string(),
+      displayName: v.string(),
+      sent: v.boolean(),
+    }),
+  ),
+  sentCount: v.number(),
   productName: v.union(v.string(), v.null()),
 });
 
@@ -213,6 +223,13 @@ export const listCampaignsAdmin = query({
           ...campaign,
           recipientHandles: recipients.map((recipient) => recipient.handle),
           recipientCount: recipients.length,
+          recipientDetails: recipients.map((recipient) => ({
+            handle: recipient.handle,
+            displayName: recipient.displayName,
+            sent: recipient.sentAt !== null,
+          })),
+          sentCount: recipients.filter((recipient) => recipient.sentAt !== null)
+            .length,
           productName: preset?.productName ?? preset?.label ?? null,
         };
       }),

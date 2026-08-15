@@ -38,7 +38,7 @@
 
 ## Interface
 
-- `index.html` — SPA shell with metadata, discovery file links, WebSite JSON-LD, the no-flash theme boot script, Google Fonts links, and the site default OpenGraph image `og-friends-of-convex.png`.
+- `index.html` — SPA shell with metadata, discovery file links, WebSite JSON-LD, the no-flash theme boot script, the deferred Rybbit analytics script, Google Fonts links, and the site default OpenGraph image `og-friends-of-convex.png`.
 - `src/main.tsx` — React entry point with the browser router.
 - `src/App.tsx` — Route table and shared layout for every page.
 - `src/providers.tsx` — Convex Auth React provider reading `VITE_CONVEX_URL` with a `getConvexUrl()` static host fallback.
@@ -54,9 +54,10 @@
 - `src/pages/AdminDocsPage.tsx` — Admin-only reference page: who gets admin access, how to grant or revoke it, and what each admin surface does.
 - `src/pages/GiftPassPage.tsx` — Private personalized gift-pass route.
 - `src/pages/GiftSharePage.tsx` — Safe public thank-you card route without claim credentials.
-- `src/components/Leaderboard.tsx` — Search, sortable ranking, the compact board toolbar (kicker, freshness chip, Yappers / Convex mentions toggle, share), admin-controlled column visibility with a dynamic grid, expandable Convex post rows, streak chips, avatar-anchored top 3 rank badges in both modes with a first place sparkle, and pagination.
+- `src/components/Leaderboard.tsx` — Search, sortable ranking (defaults to Engagements), the compact board toolbar (kicker, freshness chip, Yappers / Convex mentions toggle, Top N filter dropdown, share), admin-controlled column visibility with a dynamic grid, expandable Convex post rows, streak chips, avatar-anchored top 3 rank badges in both modes with a first place sparkle, and a Load more footer.
+- `src/components/FilterDropdown.tsx` — Shared themed listbox dropdown (trigger button plus floating menu) used for the board Top N filter and the gift count filter; closes on outside click, Escape, or selection.
 - `src/components/AdminPanel.tsx` — Add, archive, restore, rescan, and two step confirm permanent remove controls plus board settings for visible board columns, rank badges, and the Slack digest.
-- `src/components/GiftAdminPanel.tsx` — Sender connection, repeat-recipient history, the product shelf of Fourthwall-verified saved products with thumbnails, campaign creation with pick-to-fill preset chips, consent controls, DM delivery, a searchable recipient ledger with CSV export, and the Dispatches log with archive, restore, confirmed delete, and CSV export.
+- `src/components/GiftAdminPanel.tsx` — Sender connection, repeat-recipient history with per-person gift and sent counts plus a gift count filter, the product shelf of Fourthwall-verified saved products with thumbnails, campaign creation with pick-to-fill preset chips, consent controls, DM delivery, a searchable recipient ledger with CSV export, and the Dispatches log showing every recipient chip with sent state, archive, restore, confirmed delete, and CSV export.
 - `src/components/GiftPortal.tsx` — Private gift reveal and safe public Convex thank-you card experiences.
 - `src/components/AdminGate.tsx` — X sign-in and stable-ID allowlist gate for private admin pages; waits for the Convex Auth token exchange so admins sign in once, with a sign-in busy state, failed round-trip message, and mobile hint.
 - `src/components/AdminAccessNote.tsx` — Shared admin-only notice with the signed-in admin chip and steps for adding another admin to `ADMIN_X_USER_IDS`.

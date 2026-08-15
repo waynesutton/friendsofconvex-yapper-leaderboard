@@ -1,12 +1,11 @@
 import {
   ArrowSquareOutIcon,
   CaretDownIcon,
-  CaretLeftIcon,
-  CaretRightIcon,
   CaretUpIcon,
   ChatCircleTextIcon,
   CheckIcon,
   CopyIcon,
+  FunnelSimpleIcon,
   MagnifyingGlassIcon,
   ShareNetworkIcon,
   TrophyIcon,
@@ -17,9 +16,20 @@ import type { FunctionReturnType } from "convex/server";
 import { useMemo, useState, type CSSProperties } from "react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
+import { FilterDropdown, type FilterDropdownOption } from "./FilterDropdown";
 import { compactNumber, formatSyncTime, initials, relativeSyncTime } from "./formatters";
 
 const PAGE_SIZE = 10;
+
+// Top N cap applied after search and sort; "all" shows everyone.
+type TopFilterValue = "30" | "60" | "100" | "150" | "all";
+const TOP_FILTER_OPTIONS: Array<FilterDropdownOption<TopFilterValue>> = [
+  { value: "30", label: "Top 30" },
+  { value: "60", label: "Top 60" },
+  { value: "100", label: "Top 100" },
+  { value: "150", label: "Top 150" },
+  { value: "all", label: "All yappers" },
+];
 
 type BoardMode = "impressions" | "convex";
 type LeaderboardRow = FunctionReturnType<typeof api.profiles.listLeaderboard>[number];
@@ -181,9 +191,13 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
   const display = useQuery(api.boardSettings.getBoardDisplay, {}) ?? ALL_VISIBLE;
   const [mode, setMode] = useState<BoardMode>("impressions");
   const [search, setSearch] = useState(initialSearch);
-  const [page, setPage] = useState(1);
+  // Load-more list: how many sorted rows are revealed right now.
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  // Board opens capped to the top 30; Load more walks through them ten at a time.
+  const [topFilter, setTopFilter] = useState<TopFilterValue>("30");
   const [copied, setCopied] = useState<string | null>(null);
-  const [sortKey, setSortKey] = useState<SortKey>("impressions");
+  // Engagement is the default story even when impressions are visible.
+  const [sortKey, setSortKey] = useState<SortKey>("engagements");
   const [sortDirection, setSortDirection] = useState<SortDirection>("descending");
   const [expandedId, setExpandedId] = useState<Id<"profiles"> | null>(null);
 
@@ -293,12 +307,11 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
     });
   }, [activeRows, activeSortKey, canonicalRanks, search, sortDirection]);
 
-  const pageCount = Math.max(1, Math.ceil(sortedProfiles.length / PAGE_SIZE));
-  const currentPage = Math.min(page, pageCount);
-  const visibleProfiles = sortedProfiles.slice(
-    (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE
-  );
+  // Top N cap applies after search and sort, then load-more reveals rows.
+  const topLimit = topFilter === "all" ? null : Number(topFilter);
+  const cappedProfiles = topLimit ? sortedProfiles.slice(0, topLimit) : sortedProfiles;
+  const visibleProfiles = cappedProfiles.slice(0, visibleCount);
+  const remainingCount = cappedProfiles.length - visibleProfiles.length;
   const syncedProfiles = profiles?.filter((profile) => profile.syncStatus === "synced") ?? [];
   const latestSync = syncedProfiles.reduce<number | null>(
     (latest, profile) =>
@@ -352,29 +365,34 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
 
   function changeSearch(value: string) {
     setSearch(value);
-    setPage(1);
+    setVisibleCount(PAGE_SIZE);
   }
 
   function changeMode(nextMode: BoardMode) {
     if (nextMode === mode) return;
     setMode(nextMode);
-    setPage(1);
+    setVisibleCount(PAGE_SIZE);
     setExpandedId(null);
-    const nextKey: SortKey = nextMode === "convex" ? "rank" : "impressions";
+    const nextKey: SortKey = nextMode === "convex" ? "rank" : "engagements";
     setSortKey(nextKey);
     setSortDirection(defaultSortDirection(nextKey));
+  }
+
+  function changeTopFilter(nextValue: TopFilterValue) {
+    setTopFilter(nextValue);
+    setVisibleCount(PAGE_SIZE);
   }
 
   function chooseSort(nextSortKey: SortKey) {
     setSortKey(nextSortKey);
     setSortDirection(defaultSortDirection(nextSortKey));
-    setPage(1);
+    setVisibleCount(PAGE_SIZE);
   }
 
   function changeSort(nextSortKey: SortKey) {
     if (sortKey === nextSortKey) {
       setSortDirection((direction) => (direction === "ascending" ? "descending" : "ascending"));
-      setPage(1);
+      setVisibleCount(PAGE_SIZE);
       return;
     }
 
@@ -454,6 +472,13 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
             </button>
           </div>
           <div className="share-toolbar" aria-label="Share leaderboard">
+            <FilterDropdown
+              label="How many yappers to show"
+              value={topFilter}
+              options={TOP_FILTER_OPTIONS}
+              onChange={changeTopFilter}
+              icon={<FunnelSimpleIcon aria-hidden="true" />}
+            />
             <button type="button" onClick={() => handleCopy("board", window.location.href)}>
               {copied === "board" ? (
                 <CheckIcon aria-hidden="true" />
@@ -480,7 +505,7 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
             onChange={(event) => changeSearch(event.target.value)}
             placeholder="Search a person or @handle"
           />
-          {activeRows ? <span>{sortedProfiles.length} people</span> : null}
+          {activeRows ? <span>{cappedProfiles.length} people</span> : null}
         </label>
 
         {profiles && profiles.length > 0 && syncedProfiles.length === 0 ? (
@@ -786,23 +811,18 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
           )}
         </div>
 
-        <nav className="pagination" aria-label="Leaderboard pages">
-          <button
-            type="button"
-            disabled={currentPage === 1}
-            onClick={() => setPage((value) => Math.max(1, value - 1))}>
-            <CaretLeftIcon aria-hidden="true" /> Previous
-          </button>
+        <div className="board-load-more" aria-live="polite">
           <span>
-            Page {currentPage} / {pageCount}
+            Showing {visibleProfiles.length} of {cappedProfiles.length}
           </span>
-          <button
-            type="button"
-            disabled={currentPage === pageCount}
-            onClick={() => setPage((value) => Math.min(pageCount, value + 1))}>
-            Next <CaretRightIcon aria-hidden="true" />
-          </button>
-        </nav>
+          {remainingCount > 0 ? (
+            <button
+              type="button"
+              onClick={() => setVisibleCount((current) => current + PAGE_SIZE)}>
+              Load more <CaretDownIcon aria-hidden="true" />
+            </button>
+          ) : null}
+        </div>
       </section>
     </div>
   );

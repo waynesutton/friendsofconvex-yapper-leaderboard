@@ -1,5 +1,21 @@
 # Task log
 
+## Completed — 2026-08-15 22:55 UTC (Rybbit analytics)
+
+- [x] Added the Rybbit analytics script (`data-site-id="1706f8ad75ab"`, deferred) to the head of `index.html`. The app is a Vite SPA, so this single shell covers every route.
+
+## Completed — 2026-08-15 22:50 UTC (board load more and gift studio visibility)
+
+- [x] Leaderboard defaults to the Engagements sort in Yappers view whether or not the impressions column is visible; every column header still sorts on click and Convex mentions keeps its rank default. `src/components/Leaderboard.tsx`.
+- [x] Replaced Previous/Next pagination with a centered Load more button plus a "Showing X of Y" counter on both board tabs. Search, sort, tab, and filter changes reset the list back to the first ten rows.
+- [x] New themed dropdown component `src/components/FilterDropdown.tsx` (no native select): secondary button trigger, floating menu on palette tokens, outside click and Escape to close, listbox roles. Used twice.
+- [x] Top filter dropdown next to Copy link on the board: Top 30, 60, 100, 150, or All, applied after search and sort; the people counter follows the cap. Defaults to Top 30 so the board opens focused, with Load more revealing rows ten at a time.
+- [x] Dispatches log rows read as batches: every account in a dispatch renders as its own bold @handle chip (no comma line, no +N collapse), sent chips get a check mark, and a "N of M sent" counter pill leads the row. Titles bumped to 17px. The sidebar rail line and the CSV (`sent_count` column) show the same count. Backend: `gifts.listCampaignsAdmin` now returns `recipientDetails` (handle, name, sent) and `sentCount` — additive fields, safe on prod.
+- [x] Create personal passes picker: the gift line under each name is now 12px bold high contrast with a gift icon count, a paper plane sent count, and the last status; "No gifts yet" renders as a pill. Counts come from `giftNumber` in gift history so prod data stays accurate even past the 250 row window.
+- [x] Approved recipients scrolling: taller 420px pane, thin scrollbar, contained overscroll, and a bottom border so the cut off point is visible.
+- [x] Gift count filter dropdown in the picker toolbar: All, No gifts yet, 1 through 4, and 5+ gifts. Works with search, and Select shown targets the filtered list, so "select everyone with no gifts" is two clicks.
+- [x] Verified: `npx tsc --noEmit` and `npx eslint` on all touched files pass.
+
 ## Completed — 2026-08-15 22:36 UTC (security scan fixes)
 
 - [x] Ran the sec-check audit across every Convex function, webhook, OAuth flow, and secret path. All admin functions are gated (confirmed with live unauthenticated probes against the dev deployment), webhooks verify HMAC signatures, sender tokens are AES-GCM encrypted at rest, no secrets are in git history, and `npm audit` reports zero vulnerabilities. Three lower severity findings were fixed.

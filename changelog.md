@@ -13,6 +13,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
+- Rybbit analytics: the deferred tracking script now loads from the SPA shell `index.html`, covering every route (2026-08-15).
+- Load more on the leaderboard: both board tabs replace Previous/Next paging with a Load more button and a "Showing X of Y" counter. A themed Top filter dropdown (Top 30, 60, 100, 150, All) sits next to Copy link and caps the list after search and sort; the board opens on Top 30 by default (2026-08-15).
+- Gift count filter in the Approved recipients picker: All, No gifts yet, 1 through 4, and 5+ gifts. Combined with Select shown, selecting everyone who has never received a gift takes two clicks. Counts come from the gift history's gift numbers, so production data stays accurate (2026-08-15).
+- Shared `FilterDropdown` component: a custom listbox dropdown styled on the app's palette tokens so it matches both themes, replacing native selects for the new filters (2026-08-15).
 - Mobile X login guidance. Opening `/join` inside the X app's in-app browser now shows an instruction card to reopen the page in Safari or Chrome, since X's own Universal Links break the web OAuth round trip there. Phones outside the X app get a one-line "stay in this browser" hint, both sign-in buttons show an "Opening X sign-in" busy state, and a failed sign-in round trip surfaces a retry message instead of silently showing the button again. No OAuth, callback, or scope changes (2026-08-15).
 
 - Dispatches log toolbar: Recent, Archived, and All view tabs with counts, a search box that matches campaign title, gift name, or recipient handle, a select all checkbox with per row checkboxes, and bulk Archive, Restore, two step Confirm delete, and Clear actions backed by new capped bulk mutations. Download CSV now exports exactly what the log shows (2026-08-15).
@@ -49,6 +53,9 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Changed
 
+- The Yappers board now defaults to the Engagements sort whether the impressions column is shown or hidden; column headers still sort on click and Convex mentions keeps its rank default (2026-08-15).
+- Dispatches log rows now read as batches: every recipient in a dispatch shows as its own bold @handle chip with a check on sent ones, led by a "N of M sent" counter, replacing the comma separated +N summary. Row titles are larger, the sidebar rail shows the same sent count, and the log CSV gained a sent_count column. `gifts.listCampaignsAdmin` returns per recipient sent state to power this (2026-08-15).
+- The gift status under each name in Create personal passes is now large, bold, and high contrast: gift count with an icon, DMs sent count, and last status; "No gifts yet" renders as a pill. The recipient list scrolls in a taller pane with a thin scrollbar and contained overscroll (2026-08-15).
 - The Dispatches sidebar list now flexes to the full height of the studio section, matching the campaign form beside it and resizing with it; the 420px cap only applies on single column layouts (2026-08-15).
 - Dispatches sidebar and Dispatches log rows now list the person and the gift: up to two recipient @handles (extras collapse into a +N count, full list on hover) plus the gift's product name from the product shelf, falling back to a shortened Fourthwall product ID. The Dispatches log CSV gained gift_product, recipients, and recipient_count columns (2026-08-15).
 - The Dispatches sidebar in the Gift studio scrolls inside its own 420px panel instead of stretching the page, and only shows non archived dispatches (2026-08-15).
