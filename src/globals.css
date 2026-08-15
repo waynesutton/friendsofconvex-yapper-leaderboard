@@ -2790,6 +2790,18 @@ html[data-theme="convex"] .board-sync-chip {
   text-transform: uppercase;
 }
 
+/* Person and gift line under a dispatch: @handles and product names keep
+   their real casing instead of the uppercase status treatment. */
+.gift-campaign-rail button .gift-dispatch-detail,
+.gift-dispatch-main .gift-dispatch-detail {
+  letter-spacing: 0.02em;
+  text-transform: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
 .gift-dispatch-actions {
   display: flex;
   align-items: center;

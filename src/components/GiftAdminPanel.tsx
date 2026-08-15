@@ -17,12 +17,37 @@ import {
   WarningCircleIcon,
 } from "@phosphor-icons/react";
 import { useAction, useMutation, useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import { Link } from "react-router-dom";
 import { FormEvent, useMemo, useState } from "react";
 import { api } from "../../convex/_generated/api";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
 
 type Feedback = { tone: "success" | "error" | "info"; message: string } | null;
+
+// Campaign shape from listCampaignsAdmin: base doc plus recipient handles,
+// recipient count, and the gift's product name.
+type CampaignListItem = FunctionReturnType<
+  typeof api.gifts.listCampaignsAdmin
+>[number];
+
+// Short list of @handles for a dispatch row; extras collapse into a count.
+function recipientSummary(handles: Array<string>, count: number): string {
+  if (count === 0) return "No recipients";
+  const shown = handles
+    .slice(0, 2)
+    .map((handle) => `@${handle}`)
+    .join(", ");
+  const extra = count - Math.min(handles.length, 2);
+  return extra > 0 ? `${shown} +${extra} more` : shown;
+}
+
+// Product name from the shelf when known, otherwise a shortened product ID.
+function giftLabel(campaign: CampaignListItem): string {
+  if (campaign.productName) return campaign.productName;
+  const id = campaign.fourthwallProductId;
+  return id.length > 14 ? `${id.slice(0, 8)}…${id.slice(-4)}` : id;
+}
 
 function localUrl(path: string): string {
   return new URL(path, window.location.origin).toString();
@@ -83,10 +108,13 @@ function buildRecipientCsv(recipients: Array<Doc<"giftRecipients">>): string {
 }
 
 // Dispatches log CSV: one row per campaign for records outside the app.
-function buildDispatchCsv(campaigns: Array<Doc<"giftCampaigns">>): string {
+function buildDispatchCsv(campaigns: Array<CampaignListItem>): string {
   const header = [
     "title",
     "status",
+    "gift_product",
+    "recipients",
+    "recipient_count",
     "archived_at",
     "fourthwall_product_id",
     "created_at",
@@ -97,6 +125,9 @@ function buildDispatchCsv(campaigns: Array<Doc<"giftCampaigns">>): string {
     [
       campaign.title,
       campaign.status,
+      campaign.productName ?? "",
+      campaign.recipientHandles.map((handle) => `@${handle}`).join(" "),
+      String(campaign.recipientCount),
       csvTime(campaign.archivedAt ?? null),
       campaign.fourthwallProductId,
       csvTime(campaign.createdAt),
@@ -526,7 +557,7 @@ export function GiftAdminPanel() {
     });
   }
 
-  async function toggleCampaignArchived(campaign: Doc<"giftCampaigns">) {
+  async function toggleCampaignArchived(campaign: CampaignListItem) {
     setArmedDeleteId(null);
     setFeedback(null);
     const archiving = campaign.archivedAt === undefined;
@@ -545,7 +576,7 @@ export function GiftAdminPanel() {
 
   // First click arms the delete; the second click actually removes the
   // dispatch, its passes, and its history. Any other action disarms it.
-  async function removeCampaign(campaign: Doc<"giftCampaigns">) {
+  async function removeCampaign(campaign: CampaignListItem) {
     if (armedDeleteId !== campaign._id) {
       setArmedDeleteId(campaign._id);
       setFeedback({
@@ -825,6 +856,9 @@ export function GiftAdminPanel() {
               <button key={campaign._id} type="button" className={campaign._id === selectedCampaignId ? "is-active" : ""} onClick={() => setChosenCampaignId(campaign._id)}>
                 <strong>{campaign.title}</strong>
                 <span>{campaign.status} · {readableTime(campaign.createdAt)}</span>
+                <span className="gift-dispatch-detail" title={campaign.recipientHandles.map((handle) => `@${handle}`).join(", ")}>
+                  {recipientSummary(campaign.recipientHandles, campaign.recipientCount)} · {giftLabel(campaign)}
+                </span>
               </button>
             ))}
           </div>
@@ -931,6 +965,9 @@ export function GiftAdminPanel() {
                     <span>
                       {campaign.status} · {readableTime(campaign.createdAt)}
                       {archived ? " · archived" : ""}
+                    </span>
+                    <span className="gift-dispatch-detail" title={campaign.recipientHandles.map((handle) => `@${handle}`).join(", ")}>
+                      {recipientSummary(campaign.recipientHandles, campaign.recipientCount)} · {giftLabel(campaign)}
                     </span>
                   </div>
                   <div className="gift-dispatch-actions">

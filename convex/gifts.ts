@@ -37,7 +37,9 @@ export const fourthwallGiftStatusValidator = v.union(
   v.literal("error"),
 );
 
-const giftCampaignValidator = v.object({
+// Shared field set so the admin list can extend the campaign shape with
+// recipient and product info without duplicating the base validator.
+const giftCampaignFields = {
   _id: v.id("giftCampaigns"),
   _creationTime: v.number(),
   title: v.string(),
@@ -51,6 +53,17 @@ const giftCampaignValidator = v.object({
   archivedAt: v.optional(v.number()),
   createdAt: v.number(),
   updatedAt: v.number(),
+};
+
+const giftCampaignValidator = v.object(giftCampaignFields);
+
+// Campaign plus who received it and what the gift is, for the Dispatches
+// sidebar and the Dispatches log.
+const giftCampaignListItemValidator = v.object({
+  ...giftCampaignFields,
+  recipientHandles: v.array(v.string()),
+  recipientCount: v.number(),
+  productName: v.union(v.string(), v.null()),
 });
 
 const giftRecipientValidator = v.object({
@@ -168,15 +181,42 @@ const giftHistoryItemValidator = v.object({
 
 export const listCampaignsAdmin = query({
   args: { limit: v.optional(v.number()) },
-  returns: v.array(giftCampaignValidator),
+  returns: v.array(giftCampaignListItemValidator),
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
     const limit = Math.min(Math.max(Math.floor(args.limit ?? 30), 1), 100);
-    return await ctx.db
+    const campaigns = await ctx.db
       .query("giftCampaigns")
       .withIndex("by_created_at")
       .order("desc")
       .take(limit);
+    // Attach recipient handles and the gift's product name. Campaigns cap at
+    // 50 recipients, and the shelf preset carries the Fourthwall product name.
+    return await Promise.all(
+      campaigns.map(async (campaign) => {
+        const [recipients, preset] = await Promise.all([
+          ctx.db
+            .query("giftRecipients")
+            .withIndex("by_campaign_id_and_created_at", (q) =>
+              q.eq("campaignId", campaign._id),
+            )
+            .order("asc")
+            .take(50),
+          ctx.db
+            .query("giftProductPresets")
+            .withIndex("by_fourthwall_product_id", (q) =>
+              q.eq("fourthwallProductId", campaign.fourthwallProductId),
+            )
+            .unique(),
+        ]);
+        return {
+          ...campaign,
+          recipientHandles: recipients.map((recipient) => recipient.handle),
+          recipientCount: recipients.length,
+          productName: preset?.productName ?? preset?.label ?? null,
+        };
+      }),
+    );
   },
 });
 

@@ -1,5 +1,12 @@
 # Task log
 
+## Completed — 2026-08-15 19:50 UTC (dispatch rows show person and gift)
+
+- [x] Dispatches sidebar and Dispatches log rows now show who received each dispatch and what the gift is. `gifts.listCampaignsAdmin` returns each campaign plus `recipientHandles`, `recipientCount`, and `productName` (looked up from the product shelf preset matching the campaign's Fourthwall product ID, falling back to the preset label, then a shortened product ID).
+- [x] Rows render a second line: up to two @handles (extras collapse into "+N more", full list on hover) and the gift name. New `.gift-dispatch-detail` style keeps handles and product names in their real casing under the uppercase status line.
+- [x] The Dispatches log CSV export gained `gift_product`, `recipients`, and `recipient_count` columns.
+- [x] Verified: `npx tsc --noEmit` passes, no linter errors, Convex dev accepted the new validators. Deployed to prod: `npx convex deploy --yes` then `npm run deploy -- --skip-convex` (live at friendsofconvex.dev). The signed in rows need a manual look since the IDE browser stops at the X sign in gate.
+
 ## Completed — 2026-08-15 19:25 UTC (mobile leaderboard cards)
 
 - [x] Fixed overlapping metric labels on the mobile leaderboard cards. In Convex mentions view the five metric cells auto-flowed into the card's 36px rank column, so "Convex posts (7d)" and "Convex engagement" overlapped the neighboring cells. Yappers view had "Posts" squeezed into the same 36px track.

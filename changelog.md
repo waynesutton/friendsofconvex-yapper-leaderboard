@@ -32,6 +32,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Changed
 
+- Dispatches sidebar and Dispatches log rows now list the person and the gift: up to two recipient @handles (extras collapse into a +N count, full list on hover) plus the gift's product name from the product shelf, falling back to a shortened Fourthwall product ID. The Dispatches log CSV gained gift_product, recipients, and recipient_count columns (2026-08-15).
 - The Dispatches sidebar in the Gift studio scrolls inside its own 420px panel instead of stretching the page, and only shows non archived dispatches (2026-08-15).
 - Gift pass and public share cards are now 16:9 with the racing stripe art (`public/background-image-sidebar.svg`), which sweeps along the bottom edge and rises to the right. Card labels trimmed: "PERSONAL PASS / 2026", "ONE GIFT / ONE PERSON", "COMMUNITY / 2026", "FRIEND OF CONVEX", "FRIENDS OF CONVEX GIFT", and "BUILT TOGETHER" are gone. FRIENDS OF CONVEX stays top left; the identity block, name, and status line are left aligned and vertically centered above the stripes (2026-08-15).
 - The personalized share OG image matches the new card: solid `#2A1E1D` field, stripe lines along the bottom, text left aligned in the solid area (2026-08-15).
