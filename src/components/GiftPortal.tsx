@@ -96,7 +96,7 @@ export function GiftPortal({ token }: { token: string }) {
     if (portal?.state !== "active") return;
     const shareUrl = new URL(`/gift/share/${portal.shareToken}`, window.location.origin).toString();
     const intent = new URL("https://x.com/intent/post");
-    intent.searchParams.set("text", `Proud to be a Friend of Convex. @${portal.handle}`);
+    intent.searchParams.set("text", `Proud to be a Friend of @convex. @${portal.handle}`);
     intent.searchParams.set("url", shareUrl);
     window.open(intent.toString(), "_blank", "noopener,noreferrer");
   }
