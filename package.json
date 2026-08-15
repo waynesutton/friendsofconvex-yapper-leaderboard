@@ -1,0 +1,57 @@
+{
+  "name": "friends-of-convex-yappers",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "predev": "node scripts/check-node-version.mjs",
+    "dev": "vite",
+    "dev:backend": "convex dev",
+    "prebuild": "node scripts/check-node-version.mjs",
+    "build": "vite build",
+    "preview": "vite preview",
+    "deploy": "npx @convex-dev/static-hosting deploy",
+    "auth:keys": "node scripts/generate-auth-keys.mjs",
+    "test:x-account-activity": "node --experimental-strip-types scripts/test-x-account-activity.mjs",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run lint && npm run typecheck && npm run build"
+  },
+  "dependencies": {
+    "@auth/core": "^0.41.3",
+    "@convex-dev/auth": "^0.0.94",
+    "@convex-dev/crons": "^0.2.2",
+    "@convex-dev/static-hosting": "^0.2.0",
+    "@convex-dev/workpool": "^0.3.2",
+    "@phosphor-icons/react": "^2.1.10",
+    "@resvg/resvg-wasm": "^2.6.2",
+    "@waynesutton/agent-ready": "^0.2.6",
+    "convex": "^1.43.0",
+    "convex-helpers": "^0.1.122",
+    "jose": "^5.10.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "react-router-dom": "^7.13.0"
+  },
+  "devDependencies": {
+    "@convex-dev/eslint-plugin": "^3.0.0",
+    "@eslint/js": "9.39.4",
+    "@tailwindcss/postcss": "4.2.1",
+    "@types/node": "22.19.19",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.0.2",
+    "eslint": "9.39.4",
+    "eslint-plugin-jsx-a11y": "6.10.2",
+    "eslint-plugin-react": "7.37.5",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "globals": "16.4.0",
+    "tailwindcss": "4.2.1",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.59.3",
+    "vite": "^8.2.1"
+  },
+  "type": "module"
+}

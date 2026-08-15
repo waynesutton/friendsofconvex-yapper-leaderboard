@@ -1,0 +1,20 @@
+# Dependencies
+/node_modules
+
+# Build output
+/dist/
+/out/
+
+# Convex local deployment state
+/.convex/
+
+# Local environment and secrets
+.env*
+
+# Tooling
+*.tsbuildinfo
+coverage/
+npm-debug.log*
+.DS_Store
+/outputs/
+/work/

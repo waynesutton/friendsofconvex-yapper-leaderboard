@@ -1,0 +1,70 @@
+{
+  "settings": {
+    "appName": "Friends of Convex Yapper Board",
+    "appUrl": "https://friendsofconvex.dev",
+    "description": "A people-only, seven-day X leaderboard for the Friends of Convex community.",
+    "analyticsEnabled": false,
+    "aiDescriptionsEnabled": false,
+    "testMode": false,
+    "cronEnabled": true,
+    "cronIntervalHours": 24,
+    "widgetVisible": false,
+    "widgetStatusVisible": false,
+    "widgetShowFiles": true,
+    "widgetShowAppName": true,
+    "widgetShowDescription": true,
+    "widgetShowMeta": true,
+    "widgetShowScoreTab": false,
+    "widgetDesktopCollapse": true,
+    "widgetCleanMode": false,
+    "widgetShowHumanTab": true,
+    "widgetShowMachineTab": true,
+    "widgetShowChatLinks": true,
+    "widgetShowChatGPT": true,
+    "widgetShowClaude": true,
+    "widgetShowPerplexity": true,
+    "widgetColors": {},
+    "theme": "system",
+    "fullTxtEnabled": true,
+    "permissiveMode": false,
+    "versioningEnabled": false,
+    "sitemapEnabled": true,
+    "rssEnabled": true,
+    "robotsTxtEnabled": true,
+    "robotsTxtAllowAiBots": true,
+    "robotsTxtDisallowPaths": ["/admin", "/gift/"],
+    "agentSkillsEnabled": true,
+    "readinessEndpointEnabled": true,
+    "discoveryHeaders": true,
+    "markdownNegotiation": true,
+    "contentSignals": {
+      "search": true,
+      "aiTrain": true,
+      "aiInput": true
+    }
+  },
+  "pages": [
+    {
+      "title": "Home",
+      "path": "/",
+      "description": "People-only seven-day X leaderboard for Friends of Convex, ranked by public impressions.",
+      "status": "published",
+      "order": 1
+    },
+    {
+      "title": "About",
+      "path": "/about",
+      "description": "How the board scores a week of yaps and who it is for.",
+      "status": "published",
+      "order": 2
+    },
+    {
+      "title": "Join the board",
+      "path": "/join",
+      "description": "Sign in with X and ask to join the Friends of Convex board.",
+      "status": "published",
+      "order": 3
+    }
+  ],
+  "endpoints": []
+}

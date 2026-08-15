@@ -1,0 +1,352 @@
+# Task log
+
+## Completed — 2026-08-15 17:30 UTC
+
+- [x] Repo link updated everywhere from `https://github.com/waynesutton/convexyappers` to `https://github.com/waynesutton/friendsofconvex-yapper-leaderboard`: `src/components/BuiltWithFooter.tsx`, `index.html` JSON-LD, `task.md`, `changelog.md`, and `prds/footer-convex-socials.md`.
+- [x] New README with the board description, feature list, stack table, required environment values, a one prompt agent setup block (Convex agent mode for cloud agents), manual run commands, and Convex docs links. No private Fourthwall or credential details included.
+- [x] Verified: repo wide search shows zero remaining `convexyappers` references.
+
+## Completed — 2026-08-15 17:14 UTC
+
+- [x] Top 3 rank badges now show in both ranking modes (Yappers and Convex mentions), not just Convex. PRD: `prds/rank-badges-both-modes.md`.
+- [x] Badges moved from the rank cell to plain bigger medals floating left of the avatar, no background or border: 28px (34px for first place) on desktop, 22px/26px on mobile so they clear the rank number. Sparkle popout on first place was tried and removed on request.
+- [x] Verified: `npx tsc --noEmit` passes; browser check confirmed both modes and the 375px mobile card.
+
+## Completed — 2026-08-15 16:55 UTC
+
+- [x] Daily X metrics cron now runs at 15:17 UTC (8:17 AM Pacific during daylight time), still calling `internal.xSync.refreshAllScheduled`. Minute 17 stays off the top of the hour. PRD: `prds/daily-board-refresh-cron.md`.
+- [x] `/about` section 04 states the once a day 8 AM Pacific refresh and links to https://docs.convex.dev/scheduling/cron-jobs.
+- [x] Join page dropped Copy this join link. Continue with X is the only join action. Copy now says admins review on a rolling basis and joining is not automatic.
+
+## Completed — 2026-08-15 11:00 UTC
+
+- [x] Download CSV button in the Recipient ledger tools on `/admin/gifts`. Client side only: exports every recipient in the selected campaign (gift number, name, @handle, status, sent/opened/redeemed ISO times, consent source, DM opt out, delivery error, pass URL) with RFC 4180 escaping and a formula-injection guard. Filename is the campaign slug plus date. PRD: `prds/ledger-csv-and-board-freshness.md`.
+- [x] Board freshness chip next to This week's board: relative label (Updated 2h ago) from the existing `lastSyncedAt` data, absolute time in the tooltip, Awaiting first sync when nothing has synced. Styled for both themes.
+- [x] Verified: `npm run check` passes; browser check confirms the chip text, tooltip, and both themes. CSV export verified through types and code review (admin page sits behind X sign in).
+
+## Completed — 2026-08-15 10:50 UTC
+
+- [x] Agent Ready plus live discovery files so search engines and AI agents can read the board. `llms.txt` and `sitemap.md` rebuild from active public handles on each request. Footer links sit next to the open source credit. PRD: `prds/agent-ready-seo-aeo-geo.md`.
+- [x] Also serving live `robots.txt` and `sitemap.xml`, plus Agent Ready `agents.md`, `llms-full.txt`, RSS, status, and readiness. Widget stays hidden.
+- [x] Verified: `npm run check` passed. Development `GET /llms.txt` lists 3 public people. Archive/restore is live because the files read the same `active` index as the board.
+
+## Completed — 2026-08-15 10:45 UTC
+
+- [x] Admin board column controls: `boardDisplaySettings` singleton, `convex/boardSettings.ts` (public `getBoardDisplay`, admin `setBoardDisplay`), and checkbox lists on `/admin` for the Yappers and Convex mentions views. The public board hides unchecked columns, rebuilds its grid per visible set, and falls back to rank order when the active sort column is hidden. Toggle labels renamed to Yappers / Convex mentions. PRD: `prds/admin-controls-docs-theme-search.md`.
+- [x] New `/admin/docs` page hosting the Admin only area note plus pointers to Board operations, Gift studio, and access revoking. The note is gone from `/admin` and `/admin/gifts`; the header admin nav links to Admin docs.
+- [x] `/admin` and `/admin/gifts` intros are now one compact h1 line in the guide typeface instead of a multi line hero.
+- [x] Theme switch is an icon only round button (Phosphor CircleHalf), no label or color wheel; accessible name kept.
+- [x] Fixed the double login on `/admin`: `AdminGate` now also gates on `useConvexAuth()`, so the OAuth exchange window shows "Checking admin access" instead of a second sign in button.
+- [x] Saved Fourthwall products: `giftProductPresets` table with admin list/save/delete, pick-to-fill chips under the product ID input, and a label + Save product row.
+- [x] Recipient ledger search: `search_handle` text index on `giftRecipients`, `searchRecipientsAdmin` prefix query, and a round search box in the ledger heading with a no-match empty state. Campaign totals still count the whole campaign during a search.
+- [x] Tooltips (`title`) on gift and admin actions: send/copy/open/opt-out per recipient, sender connection buttons, campaign submit, Check Fourthwall, badge save/reset, approve/decline, archive/restore, add person, and every column checkbox.
+- [x] Verified: `npm run check` (lint, tsc, build) passes; dev deploy added the new indexes; browser check confirms the renamed toggles and the working icon theme switch. Admin pages verified through code plus the auth gate (the IDE browser is signed out).
+
+## Completed — 2026-08-15 10:24 UTC
+
+- [x] Replaced the tab favicon with `public/favicon.png` (dark Convex pinwheel mark with racing stripes). Left `public/convex/symbol-color.svg` in place for gift passes and the footer.
+- [x] Verified: `index.html` points `rel="icon"` and `rel="apple-touch-icon"` at `/favicon.png`; file is 1024×1024 PNG.
+
+## Completed — 2026-08-15 10:22 UTC
+
+- [x] Gift pass and share cards now use the new dark radial wash in `public/background-image.svg` (PNG is the raster twin). Share OG renderer matches that gradient. Racing stripe paths and the extra card overlay are gone. PRD: `prds/gift-pass-type-and-card-background.md`.
+- [x] Verified: card `background-image` is `/background-image.svg` at center, fill `#2a1e1d`, no `::before` overlay; `node scripts/preview-share-og.mjs`; lint, TypeScript, and production build pass.
+
+## Completed — 2026-08-15 10:10 UTC
+
+- [x] Gift pass left copy is smaller and the `@handle` sits on its own wrapping line sized from character length, so long names no longer clip into the card. PRD: `prds/gift-pass-type-and-card-background.md`.
+- [x] Gift signal card and public share card use `public/background-image.svg` (racing stripes). Personalized share OG (`/og/gift/:token.png`) uses the same artwork. Site default OG stays `public/og-friends-of-convex.png`.
+- [x] Verified: `@testyapper` handle font 27px in a 492px copy column with no clip; card background `url(/background-image.svg)` 200; `node scripts/preview-share-og.mjs`; lint, TypeScript, and production build pass.
+
+## Completed — 2026-08-15 09:40 UTC
+
+- [x] Removed the visible "People, ranked by public impressions" heading on the home board. Kept a screen reader heading so the section still has a name. PRD: `prds/compact-home-board-chrome.md`.
+- [x] Put This week's board, the Impressions / Convex yappers toggle, and Copy / Share / Post on X on one toolbar row above search. Tightened hero and board-shell padding so the table starts higher.
+- [x] Verified: toolbar is one 46px row on desktop, hidden heading still names the section, lint, TypeScript, and production build pass.
+
+## Completed — 2026-08-15 09:35 UTC
+
+- [x] Footer right side now has Convex, X, LinkedIn, YouTube, Discord, and GitHub icons. GitHub points at `https://github.com/get-convex`. Phosphor brand icons for the socials; official Convex mark for Convex.dev. PRD: `prds/footer-convex-socials.md`.
+- [x] Footer left side keeps Built with Cursor + Convex and adds a small gray "open source yapper board" link to `https://github.com/waynesutton/friendsofconvex-yapper-leaderboard`.
+- [x] Verified: desktop split layout, stacked mobile layout with icons staying in a row, both themes, lint, TypeScript, and production build.
+
+## Completed — 2026-08-15 09:30 UTC
+
+- [x] Extended the Neue Haas Grotesk Display 900 headline rule in `src/globals.css` to every big page headline: admin intro, gift studio intro, gift pass, public share page, closed pass card, and the admin sign in states, in both themes. The gift signal card `@handle` stays in Space Grotesk to match the server rendered OG image. Verified live on `/admin`, `/gift/:token`, and `/gift/share/:token` with computed styles and `document.fonts` confirming the Typekit face loads at weight 900.
+
+## Completed — 2026-08-15 09:25 UTC
+
+- [x] Moved admin navigation into the site header on `/admin` routes: Board ops, Gift studio, How to send gifts, an Admin @handle chip, and Sign out top right. Setup guide links commented out. PRD: `prds/admin-header-gifts-guide-og-share.md`.
+- [x] Added the shared `AdminAccessNote` to `/admin` and `/admin/gifts` marking the signed in admin and explaining how to add another admin via `ADMIN_X_USER_IDS`.
+- [x] Built `/admin/gifts/guide`, the non technical Gift studio walkthrough (status lights, campaigns, recipients, sending, tracking, revoking, safe sharing).
+- [x] Auto sized the recipient name on the gift pass and share cards with container queries so long handles fit.
+- [x] Shipped personalized share OpenGraph: `convex/sharePages.ts` HTTP actions rewrite `/gift/share/:token` meta tags and serve `/og/gift/:token.png`, rendered by `convex/giftShareRender.ts` with `@resvg/resvg-wasm` plus Space Grotesk fonts from `public/render/`. Unknown tokens redirect to the default image.
+- [x] Regenerated the default OG image (`public/og-friends-of-convex.png`) without the people icons and bars, white text, and pointed `index.html` at absolute URLs.
+- [x] Verified: lint, TypeScript, and production build pass; local render preview via `scripts/preview-share-og.mjs`; live dev checks on `ceaseless-bobcat-587.convex.site` with a seeded test pass (`/gift/share/test-share-token-og` serves personalized meta, the PNG route returns the rendered card, unknown tokens 302 to the default image).
+
+## In progress — 2026-08-15 07:23 UTC
+
+- [ ] Complete the Fourthwall API user, product, signed webhook, X gift-sender, and recipient-specific free-gift setup for development and production. Keep the exact public origins at `https://ceaseless-bobcat-587.convex.site` and `https://friendsofconvex.dev`. PRD: `prds/2026-08-15-fourthwall-dev-production-gift-setup.md`.
+- [ ] Verify whether the Friends of Convex Shirt and Vintage Convex Hat are available to the same Fourthwall shop or must be issued as separate campaigns; do not send a DM or trigger paid fulfillment without action-time confirmation.
+
+## Completed — 2026-08-15 07:15 UTC
+
+- [x] Configured confidential OAuth 2.0 and fresh app-only Bearer Tokens for X apps `yappers-dev` and `yappers-app-prod`, with exact development and custom-domain production callbacks.
+- [x] Generated separate Convex Auth signing pairs and set all seven required environment-variable names on development `ceaseless-bobcat-587` and production `agile-spaniel-476`; no secret was committed.
+- [x] Signed in as `@waynesutton`, derived its stable numeric X ID, and set it as the first admin on both deployments. The operator account was not submitted as a production board member.
+- [x] Verified X sign-in, `/admin` authorization, and X profile lookup on both deployments. Production `/about` loads directly; the repaired development static site returns `200` for `/`, `/join`, and `/about`.
+- [x] Deployed the validated backend to production and uploaded the correctly targeted static build to development. `npm run check` and `npm run test:x-account-activity` pass under Node 24. PRD: `prds/2026-08-15-dev-production-auth-x-setup.md`.
+
+## Completed — 2026-08-11 20:15 UTC
+
+- [x] Added a Convex mentions ranking mode to the leaderboard. PRD: `prds/2026-08-11-convex-mentions-leaderboard.md`. The sync now requests post text (zero extra X API calls), scans every post with a word boundary `/\bconvex\b/i` match, and stores per-snapshot Convex post counts, impressions, engagement, and the matched posts (capped at 100, text trimmed to 200 characters). All new schema fields are optional so old snapshots need no migration.
+- [x] `listLeaderboard` gained an optional `mode` argument. Default mode is unchanged; `convex` mode sorts by Convex posts, then Convex impressions, Convex engagement, and overall impressions, and computes weekly change plus a consecutive-week streak anchored to snapshot timestamps, never the wall clock.
+- [x] Board UI: a segmented Impressions / Convex yappers toggle (existing pill tab pattern), swapped metric columns in Convex mode (Convex posts pill, share of posts, Convex impressions, Convex engagement, weekly change), dimmed zero rows that stay visible, expand carets revealing the stored posts with dates and per-post metrics, streak chips at 2 or more weeks, and help notices for unscanned rows and the zero-impressions engagement fallback.
+- [x] Admin board settings section (the app has no settings page): top 3 rank badge editors accepting an emoji, short text, or an uploaded PNG or SVG stored in Convex file storage, with reset to the default medals; badges render next to ranks 1 to 3 in Convex mode.
+- [x] Slack digest: new `convex/slack.ts` admin action posting the top Convex yappers (rank, handle, posts with share, impressions, streak) via `SLACK_BOT_TOKEN` and `SLACK_DIGEST_CHANNEL`, with a channel override input on the admin page.
+- [x] Renamed the admin per-row sync button to Rescan with a tooltip explaining it re-pulls posts and rescans for mentions; Sync everyone got the same tooltip.
+- [x] Verified lint, TypeScript, and the production build pass; smoke-tested `listLeaderboard` (both modes), `getConvexPosts`, and `listRankBadges` against the dev deployment. Pre-feature rows correctly report the not-scanned state.
+
+## Completed — 2026-08-11 08:20 UTC
+
+- [x] Verified the live production state with the Convex CLI and live requests: `friendsofconvex.dev` serves the deployed site, production `CONVEX_SITE_URL` is overridden to `https://friendsofconvex.dev`, production `SITE_URL` is set, and `CONVEX_CLOUD_URL` still points at `agile-spaniel-476.convex.cloud`.
+- [x] Corrected every production callback and webhook URL in `docs/SETUP_GUIDE.md` and `docs/fourthwall-setup.md` to the `friendsofconvex.dev` origin, since the app builds those URLs from the overridden `CONVEX_SITE_URL`. The old `.convex.site` callbacks would fail X's exact-match check.
+- [x] Rewrote the current-state and what's-left sections with the verified 2026-08-11 environment audit: production is missing `JWT_PRIVATE_KEY`, `JWKS`, `AUTH_TWITTER_ID`, `AUTH_TWITTER_SECRET`, `ADMIN_X_USER_IDS`, and `X_BEARER_TOKEN`; the dev deployment has zero environment variables.
+- [x] Added a "How sign-in and admin access work" section (X login only through Convex Auth, numeric X ID allowlist, multi-admin steps) and a "Security model" section (server-side `requireAdmin`, secret placement, webhook signatures, encrypted sender tokens, pending-member privacy) to `docs/SETUP_GUIDE.md`.
+- [x] Replaced the planned-domain instructions with the live-domain record and updated both troubleshooting tables for the custom domain callback rules.
+
+## Production handoff completed — 2026-08-15 07:15 UTC
+
+- [x] Development deployment has all seven normal auth/X values and serves its uploaded static frontend at `https://ceaseless-bobcat-587.convex.site`.
+- [x] Production deployment has all seven normal auth/X values and serves `https://friendsofconvex.dev` through its custom HTTP Actions domain.
+- [x] Production X OAuth app uses `https://friendsofconvex.dev` and registers the login and gift-sender callbacks exactly.
+- [x] `/join` sign-in, `/admin` allowlist enforcement, X lookup, and direct SPA routes passed on the applicable live origins.
+- [ ] Optional gift flow: follow `docs/fourthwall-setup.md` when Fourthwall and X Activity setup is requested.
+
+## Completed — 2026-08-10 06:40 UTC
+
+- [x] Replaced the Codex footer icon with the Cursor logo mark (saved to `public/built-with/cursor.svg`, links to cursor.com) and removed the retired `codex-color.svg` asset. The mark inverts to white on the dark Convex-theme footer.
+- [x] Removed the Codex Sites + Convex Backend Skill footer link; the GitHub icon remains and now points to `https://github.com/waynesutton/friendsofconvex-yapper-leaderboard`.
+- [x] Enlarged the footer Convex wordmark from 62 to 92 pixels.
+- [x] Pinned the Vite dev server to port 5174 in `vite.config.ts` and swapped every `localhost:5173` URL in `SETUP_GUIDE.md` and `fourthwall-setup.md` to `localhost:5174`.
+- [x] Verified footer in both themes and both layouts, lint, TypeScript, and production build all pass.
+
+Historical note: admin setup was still pending at this checkpoint and was completed on 2026-08-15.
+
+## Completed — 2026-08-10 06:30 UTC
+
+- [x] Audited every route in a mobile browser viewport (320, 375, and 390 pixel widths, both themes): home, about, join, admin, admin setup, gift studio, gift pass, and gift share card. No page produces horizontal overflow and no element exceeds the viewport.
+- [x] Fixed the mobile leaderboard card grid so the third column caps at the action-button width; long metric labels such as "Impressions (7D)" now wrap instead of truncating display names like "Wayne Sutton" to a single letter.
+- [x] Added an invisible hit-area extension to the board row action buttons so taps meet the 44 pixel minimum touch target while the visual 38 pixel circle stays the same.
+- [x] Repointed development `VITE_CONVEX_URL` in `.env.local` at the linked cloud development deployment, fixing a board stuck on loading skeletons, and documented the symptom in the setup guide troubleshooting table.
+- [x] Seeded three test profiles with seven-day metrics on the development deployment so the populated board renders during local work.
+- [x] Confirmed all other touch targets (theme toggle, share toolbar, sort controls, pagination, search) already meet 44 pixels, and confirmed the desktop table layout is unchanged.
+- [x] Verified lint, TypeScript, and the production build all pass.
+
+## Completed — 2026-08-10 06:15 UTC
+
+- [x] Installed `convex-helpers` so its server and client utilities are available to the app.
+- [x] Installed `@convex-dev/eslint-plugin` and added its recommended rules to `eslint.config.mjs` with type-aware linting.
+- [x] Auto-fixed all 33 flagged database calls in `convex/gifts.ts`, `convex/profiles.ts`, and `convex/xAccountActivity.ts` to the explicit `db.patch("table", id, ...)` format.
+- [x] Moved the daily X metrics cron from 08:00 to 08:17 UTC to avoid the top-of-the-hour traffic spike.
+- [x] Verified lint, TypeScript, and the production build all pass with zero problems.
+
+## Completed — 2026-08-10 06:10 UTC
+
+- [x] Applied Neue Haas Grotesk Display at weight 900 to the hero title, board title, join headline, and about headline in both themes via a cascade-final rule in `src/globals.css`.
+- [x] Added the Typekit stylesheet `https://use.typekit.net/xmd6bow.css` to `index.html`.
+
+## Completed — 2026-08-10 05:45 UTC
+
+- [x] Rebuilt the entire frontend as a Vite React single page app in `src/`, replacing the Next.js App Router and Vinext. PRD: `prds/2026-08-10-react-vite-static-hosting-rebuild.md`.
+- [x] Ported every page, admin feature, gift flow, and both themes to react-router-dom routes with identical interfaces and behavior.
+- [x] Added the `@convex-dev/static-hosting` component with app-owned root routing so auth callbacks and webhooks keep their exact paths.
+- [x] Fixed the production browser bundle bug by moving from `NEXT_PUBLIC_CONVEX_URL` to Vite's `VITE_CONVEX_URL` with a `getConvexUrl()` fallback.
+- [x] Removed Next.js, Vinext, Cloudflare worker, and Codex Sites files from the root; kept every markdown file plus `prds/` and `docs/`.
+- [x] Rewrote `SETUP_GUIDE.md` and `fourthwall-setup.md` for the new stack, the single `npm run deploy` publish, and the planned `friendsofconvex.dev` domain.
+- [x] Verified npm install, Convex codegen, lint, TypeScript, the production build, a bundle scan for stale env names, and a live browser smoke test.
+
+## Superseded production handoff (historical)
+
+Replaced by the updated pending list at the top of this file. The domain
+purchase, custom domain attachment, first deploy, and production `SITE_URL`
+were completed by 2026-08-11.
+
+## Completed — 2026-08-10 02:22 UTC
+
+- [x] Added the supplied Convex design brief, homepage reference, official logos, and racing-line artwork to the project.
+- [x] Made a Convex.dev-inspired theme the default across the leaderboard, About, Join, Admin, Setup, Gift Studio, and gift pass routes.
+- [x] Preserved the original warm studio design as the `Studio` alternate and added a persistent, accessible header switcher.
+- [x] Updated the favicon and generated a matching 1200×630 social preview card without removing the prior card.
+- [x] Kept the desktop hero compact enough to reach leaderboard content above the fold while preserving the Rolling Signal card size.
+- [x] Verified both themes at 1280×720, verified homepage and Join at 390×844, confirmed no horizontal overflow, and found no fresh browser warnings or errors.
+- [x] Passed lint, TypeScript, and the production Vinext build.
+
+## Completed — 2026-08-09 11:52 UTC
+
+- [x] Added sortable Rank, Yapper, Posts, Engagements, and Impressions columns to the public leaderboard.
+- [x] Made sorting apply after search and before pagination, with stable canonical ranks and synced metric rows ahead of awaiting-X rows.
+- [x] Added accessible sort state, clear direction indicators, and compact sort controls for card layouts.
+- [x] Passed lint, TypeScript, the production build, and the production browser-bundle safety scan.
+
+## Completed — 2026-08-09 11:45 UTC
+
+- [x] Removed the standalone Top Signal podium strip from the homepage.
+- [x] Moved “Top signal / 7 days” beside the Friends of Convex people-edition label.
+- [x] Raised the leaderboard while preserving the Rolling Signal card and existing board controls.
+- [x] Passed lint, TypeScript, the production build, and the production browser-bundle safety scan.
+
+## Superseded ChatGPT Sites handoff (historical)
+
+The React rebuild replaced this hosting path. The remaining production work now lives in the new pending section above.
+
+- [x] Registered this folder in ChatGPT Sites and persisted the confirmed `project_id` (removed in the React rebuild).
+- [x] Confirmed and deployed `cvx-devx / convex-yappers / agile-spaniel-476`.
+- [x] Set `NEXT_PUBLIC_CONVEX_URL`, saved a Sites version, deployed it privately, and confirmed the `.chatgpt.site` origin (both retired).
+- [x] Set production `SITE_URL` to the Sites origin (now needs the static hosting origin instead).
+
+## Completed — 2026-08-09 10:38 UTC
+
+- [x] Registered the existing project once in ChatGPT Sites and confirmed it appears in the Sites list.
+- [x] Deployed the approved Convex production functions, schema, indexes, HTTP routes, and crons.
+- [x] Configured Sites with the production Convex client URL and production Convex with the confirmed `SITE_URL`.
+- [x] Published Sites version 3 with owner-only access and confirmed its canonical live URL.
+- [x] Replaced pending production URL placeholders throughout the operator guides and protected setup page.
+- [x] Passed lint, TypeScript, production build, browser-bundle safety scan, X Account Activity tests, and a read-only production Convex query.
+
+## Completed — 2026-08-09 10:11 UTC
+
+- [x] Completed `prds/2026-08-09-production-urls-and-sites-registration.md`.
+- [x] Added the verified Sites lifecycle and exact Convex production URL map to every setup guide.
+- [x] Explained why the app is absent from ChatGPT Sites and the one registration step that fixes it.
+- [x] Verified every production callback and webhook path against `convex/http.ts` and Convex Auth routing.
+- [x] Passed lint, TypeScript, the Vinext production build, and X Account Activity parser and signature tests.
+
+## Completed — 2026-08-09 05:58 UTC
+
+- [x] Hardened the reusable `$codex-sites-convex` skill with runtime-first preflight, Node 24 project pins, localhost health/process rules, and Node 20/24 regression coverage.
+- [x] Clarified in this app's pre-command failure that `npm install` cannot switch the terminal's Node.js runtime.
+- [x] Verified the skill, the app's fresh-shell runtime, frontend HTTP response, and both local frontend and Convex listeners.
+
+## Completed — 2026-08-09 05:48 UTC
+
+- [x] Diagnosed the persistent `predev` failure as a forced Homebrew Node 20 entry in `~/.zshrc`, not a missing npm package.
+- [x] Installed Homebrew Node 24.19.0 and made it the persistent login-shell runtime.
+- [x] Hardened the Vinext Space Grotesk and tsconfig-path compatibility paths across the supported Node runtime.
+- [x] Verified Node/npm selection, fresh-shell development startup, homepage HTTP 200 rendering, and the full project check.
+
+## Completed — 2026-08-09 05:34 UTC
+
+- [x] Fixed the Vinext development startup failures in `prds/2026-08-09-vinext-dev-startup.md`.
+- [x] Replaced unsupported config and font-loader paths without changing the interface.
+- [x] Moved tsconfig path resolution to Vite 8's native option.
+- [x] Added compatibility handling for the installed Vinext, Vite, font, and custom image worker APIs.
+- [x] Added Node 24 project pins, a clear unsupported-runtime preflight, and novice setup instructions.
+- [x] Verified dependency install, the dev server, homepage response, lint, TypeScript, production build, and production dependency audit.
+
+## Completed — 2026-08-08 20:49 UTC
+
+- [x] Made repeat gifts explicit and safe without allowing the same automatic consent event to authorize unlimited DMs.
+- [x] Added per-person gift numbering and bounded delivery history.
+- [x] Atomically consumed automatic `GIFT` consent when a recipient pass is created.
+- [x] Show prior gifts and consent availability in `/admin/gifts`.
+- [x] Updated setup documentation and verified repeat delivery behavior.
+
+## Completed — 2026-08-08 20:38 UTC
+
+- [x] Built automatic X Account Activity `GIFT` consent and `STOP` suppression from `prds/2026-08-08-x-account-activity-gift-consent.md`.
+- [x] Added signed CRC/event handling, idempotent command storage, and global per-X-user intent state.
+- [x] Added admin webhook registration/subscription status and automatic consent indicators without removing the manual fallback.
+- [x] Updated campaign creation, send-time suppression, and novice setup instructions for the required OAuth 1.0a credentials.
+- [x] Verified webhook parsing and crypto helpers, lint, TypeScript, the production build, and existing route compilation.
+
+## Deferred Account Activity activation
+
+- [ ] Add the four OAuth 1.0a values to a public Convex Cloud development deployment.
+- [ ] Connect the dedicated X sender, select **Enable automatic detection**, and run one real `GIFT` → `STOP` → `GIFT` test.
+
+## Completed — 2026-08-08 20:14 UTC
+
+- [x] Built the auditable Fourthwall gift-pass flow described in `prds/2026-08-08-fourthwall-gift-pass.md`.
+- [x] Added the protected gift studio, separate X sender OAuth grant, encrypted token storage, Fourthwall link generation, recipient lifecycle ledger, and signed redemption webhook.
+- [x] Added the personalized `/gift/[token]` page with official Convex assets, reveal tracking, Fourthwall CTA, and safe public X sharing.
+- [x] Wrote `fourthwall-setup.md` with novice-friendly development and production setup steps.
+- [x] Verified lint, TypeScript, the production build, admin gating, invalid-token handling, and the 375px layout.
+
+## Deferred gift activation
+
+- [ ] Add the Fourthwall, X DM sender, and encryption values to the selected Convex development deployment.
+- [ ] Connect the dedicated X sender account and run the first test campaign with one consenting recipient.
+- [ ] Add production-only gift values and register the Fourthwall webhook after the production Convex target is approved and deployed.
+
+## Completed — 2026-08-08T08:00:32Z
+
+- [x] Created the product requirements document.
+- [x] Initialized the Codex Sites/Vinext application structure.
+- [x] Started an accountless local Convex backend in Agent Mode.
+- [x] Added type-safe profiles and snapshots schemas with indexed access.
+- [x] Built X profile lookup and rolling seven-day public metric aggregation.
+- [x] Added manual per-person and full-list refresh plus a daily Convex cron.
+- [x] Built the people-only leaderboard with search, rank movement, sharing, and pagination.
+- [x] Built the intentionally open local `/admin` management route.
+- [x] Added About and Setup routes and a standalone setup guide.
+- [x] Added required Codex and Convex footer attribution.
+- [x] Generated and wired a project-specific social preview card.
+- [x] Verified real Convex persistence and the missing-X-key path with a real public handle.
+
+## Deferred by design
+
+- [ ] Add `X_BEARER_TOKEN` to each selected cloud Convex deployment.
+- [ ] Add X OAuth credentials, Convex Auth signing keys, and `ADMIN_X_USER_IDS` separately to development and production.
+- [ ] Complete the ordered production handoff checklist at the top of this file.
+
+## Validation — 2026-08-08T08:13:43Z
+
+- [x] `npm run check` — lint, TypeScript, and production Vinext build passed.
+- [x] Convex code generation and function upload passed in local Agent Mode.
+- [x] Codex Sites + Convex structural verifier passed.
+- [x] `/`, `/admin`, `/about`, and `/setup` returned HTTP 200.
+- [x] Production dependency audit reported zero vulnerabilities.
+- [x] Real local Convex data remained readable after regeneration.
+- [x] Archive/restore and duplicate-handle idempotency passed against local Convex.
+
+## Toolchain note
+
+The full development tree currently reports 5 high-severity advisories inherited from the Vinext and Cloudflare build toolchain. The production dependency audit reports zero vulnerabilities. The available automatic development-tool fix requires forced or breaking dependency changes, so it was not applied. Recheck these pins when the Sites starter updates.
+
+## Completed — 2026-08-08T08:19:56Z
+
+- [x] Compressed homepage and About hero typography and top spacing.
+- [x] Preserved the Rolling Signal card dimensions.
+- [x] Renamed the homepage headline.
+- [x] Moved Setup to `/admin/setup` without adding auth.
+- [x] Removed Admin and Setup links from public navigation and footer attribution.
+- [x] Re-ran lint, TypeScript, and the production build successfully.
+- [x] Verified public routes and `/admin/setup`; confirmed the old `/setup` route returns 404.
+
+## Completed — 2026-08-08T09:53:32Z
+
+- [x] Added Convex Auth with X OAuth 2.0 profile identity.
+- [x] Protected `/admin`, `/admin/setup`, every admin function, imports, and manual sync actions with a stable X user ID allowlist.
+- [x] Added `/join` with X sign-in, a shareable join link, pending membership requests, and status views.
+- [x] Added admin approve and decline actions; pending people remain inactive and off the public board.
+- [x] Added preview-first imports for up to 100 pasted handles and the first 100 members of a public X List.
+- [x] Replaced the setup guide with ordered local and production instructions for X, Convex, Codex Sites, auth keys, environment values, costs, testing, and troubleshooting.
+- [x] Added a repeatable Convex Auth signing-key generator.
+- [x] Preserved the public leaderboard, search, share, pagination, About route, and existing local Convex data.
+- [x] Verified unauthenticated admin reads are rejected while the public leaderboard remains readable.
+- [x] Ran the Convex authorization scan and Convex code review checklist with no unresolved high-severity finding.
+- [x] Ran lint, TypeScript, production build, Convex function upload, and local route checks successfully.
+
+## Completed — 2026-08-08T19:24:55Z
+
+- [x] Reworked the standalone and protected in-app setup guides into one ordered development-to-production workflow.
+- [x] Documented the exact separation between Convex Auth, X OAuth 2.0 credentials, and the X API Bearer Token.
+- [x] Added a development/production/Codex Sites environment-variable placement matrix.
+- [x] Replaced the legacy anonymous-mode command with the current accountless Agent Mode sequence.
+- [x] Added explicit commands and stop checks for linking this folder to a different Convex team and project.
+- [x] Added production-only environment commands, production URL handling, and the Codex Sites rebuild step.
+- [x] Added a repeatable multi-admin procedure that preserves every existing numeric X ID.
+- [x] Checked the current Convex CLI, official documentation index, and official components catalog; no new component was needed.
+- [x] Verified the documented target-team and production environment command syntax against the installed Convex CLI 1.43.0.
+- [x] Re-ran lint, TypeScript, and the production build successfully.

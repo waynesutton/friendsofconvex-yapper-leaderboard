@@ -1,0 +1,117 @@
+# File map
+
+## Product and setup
+
+- `docs/SETUP_GUIDE.md` — Completed and repeatable development/production setup for the live Convex origins: X OAuth, Convex Auth keys, first-admin allowlist, security model, exact callback maps, and static hosting deploy.
+- `docs/fourthwall-setup.md` — Step-by-step Fourthwall, X DM sender, exact production webhook routes on `friendsofconvex.dev`, and Convex development/production setup for the static hosting stack.
+- `prds/2026-08-08-friends-of-convex-yapper-board.md` — Product requirements and rollout boundaries.
+- `prds/2026-08-08-x-join-and-imports.md` — Requirements for X login, join review, bulk imports, and admin access.
+- `prds/2026-08-08-fourthwall-gift-pass.md` — Consent-first gift delivery, data, security, interface, and verification requirements.
+- `prds/2026-08-08-x-account-activity-gift-consent.md` — Automatic X DM consent, suppression, webhook security, and rollout requirements.
+- `prds/2026-08-08-repeat-gift-deliveries.md` — Repeat-recipient numbering, consent consumption, history, and STOP behavior.
+- `prds/2026-08-09-vinext-dev-startup.md` — Vinext/Vite compatibility, font, config, worker, and Node runtime startup fix.
+- `prds/2026-08-09-production-urls-and-sites-registration.md` — Verified production origins, Sites lifecycle, callback map, and publication order.
+- `prds/2026-08-10-convex-theme-system.md` — Requirements, theme behavior, responsive constraints, and verification plan for the two-theme redesign.
+- `prds/2026-08-10-cursor-migration-handoff.md` — Current architecture, completed features, domains, environment boundaries, known issues, and ordered Cursor migration plan.
+- `prds/2026-08-10-react-vite-static-hosting-rebuild.md` — Requirements, file plan, and verification log for the Vite React SPA rebuild on Convex static hosting.
+- `prds/2026-08-11-convex-mentions-leaderboard.md` — Convex mentions ranking mode: sync scan, snapshot storage, mode query, streaks, rank badges, and Slack digest.
+- `prds/2026-08-15-dev-production-auth-x-setup.md` — Verified X OAuth, Convex Auth, environment, first-admin, deployment, and live-route completion record for both deployments.
+- `prds/2026-08-15-fourthwall-dev-production-gift-setup.md` — Live Fourthwall API-user, product-ownership, webhook, X sender, and safe test-delivery rollout for both Convex deployments.
+- `prds/fourthwall-status.md` — Credential-safe live status and incident log for Fourthwall setup, failed campaigns, the ready shirt pass, and remaining delivery work.
+- `prds/gift-pass-type-and-card-background.md` — Gift pass type size, dark radial card wash, and default vs share OpenGraph split.
+- `prds/agent-ready-seo-aeo-geo.md` — Requirements for Agent Ready plus live `llms.txt` / `sitemap.md` files that follow public handle changes.
+- `prds/daily-board-refresh-cron.md` — Move the daily X metrics cron to 8 AM Pacific and tell `/about` visitors how it runs.
+- `prds/rank-badges-both-modes.md` — Show top 3 badges in both board modes as big avatar-anchored chips with a first place sparkle popout.
+- `agent-ready.config.json` — Agent Ready app settings and static page list used by `npx agent-ready sync`.
+- `llms.txt` — GitHub pointer to the live discovery files on the site origin.
+- `design/convex-dev-home-design.md` — Supplied Convex.dev homepage design specification used for the default theme.
+- `design/references/convex-homepage-reference.png` — Supplied full-page visual reference retained with the project.
+- `design/references/lines-source.svg` — Original supplied racing-line source file retained exactly as provided; its contents are PNG data despite the source extension.
+- `prds/lessons.md` — Durable project lessons from corrected implementation and environment assumptions.
+- `README.md` — Public repo introduction: what the board does, the stack, setup requirements, a one prompt agent setup block, and Convex docs links.
+- `task.md` — Completed work and deferred production tasks.
+- `changelog.md` — User-visible changes in Keep a Changelog format.
+
+## Interface
+
+- `index.html` — SPA shell with metadata, discovery file links, WebSite JSON-LD, the no-flash theme boot script, Google Fonts links, and the site default OpenGraph image `og-friends-of-convex.png`.
+- `src/main.tsx` — React entry point with the browser router.
+- `src/App.tsx` — Route table and shared layout for every page.
+- `src/providers.tsx` — Convex Auth React provider reading `VITE_CONVEX_URL` with a `getConvexUrl()` static host fallback.
+- `src/lib/usePageTitle.ts` — Per-route document title hook replacing Next.js metadata.
+- `src/pages/HomePage.tsx` — Public leaderboard route.
+- `src/pages/AdminPage.tsx` — Convex Auth protected admin route.
+- `src/pages/JoinPage.tsx` — Public X sign-in and join-request route.
+- `src/pages/AboutPage.tsx` — Methodology, scoring, daily 8 AM Pacific refresh, and a link to Convex cron jobs.
+- `src/pages/AdminSetupPage.tsx` — Admin-only in-product guide with the verified current state and production routes.
+- `src/pages/AdminGiftsPage.tsx` — Admin-only Fourthwall gift studio route.
+- `src/pages/AdminGiftsGuidePage.tsx` — Admin-only plain-language walkthrough of the Gift studio for non technical admins.
+- `src/pages/AdminDocsPage.tsx` — Admin-only reference page: who gets admin access, how to grant or revoke it, and what each admin surface does.
+- `src/pages/GiftPassPage.tsx` — Private personalized gift-pass route.
+- `src/pages/GiftSharePage.tsx` — Safe public thank-you card route without claim credentials.
+- `src/components/Leaderboard.tsx` — Search, sortable ranking, the compact board toolbar (kicker, freshness chip, Yappers / Convex mentions toggle, share), admin-controlled column visibility with a dynamic grid, expandable Convex post rows, streak chips, avatar-anchored top 3 rank badges in both modes with a first place sparkle, and pagination.
+- `src/components/AdminPanel.tsx` — Add, archive, restore, and rescan controls plus board settings for visible board columns, rank badges, and the Slack digest.
+- `src/components/GiftAdminPanel.tsx` — Sender connection, repeat-recipient history, campaign creation with saved Fourthwall product presets, consent controls, DM delivery, and a searchable recipient ledger with CSV export.
+- `src/components/GiftPortal.tsx` — Private gift reveal and safe public Convex thank-you card experiences.
+- `src/components/AdminGate.tsx` — X sign-in and stable-ID allowlist gate for private admin pages; waits for the Convex Auth token exchange so admins sign in once.
+- `src/components/AdminAccessNote.tsx` — Shared admin-only notice with the signed-in admin chip and steps for adding another admin to `ADMIN_X_USER_IDS`.
+- `src/components/ImportPanel.tsx` — Bulk handle and public X List preview and import controls.
+- `src/components/JoinBoard.tsx` — X sign-in, membership request, and review status.
+- `src/components/SiteHeader.tsx` — Primary navigation, plus admin links, the Admin @handle chip, and Sign out on `/admin` routes for signed-in admins.
+- `src/components/ThemeSwitcher.tsx` — Icon-only round Convex/Studio theme toggle with persistence and an accessible name.
+- `src/components/BuiltWithFooter.tsx` — Cursor and Convex attribution, the open source board credit, `llms.txt` and `sitemap.md` links, and Convex social icons.
+- `src/components/formatters.ts` — Metric, date, and relative sync time formatting helpers.
+- `src/globals.css` — Responsive two-theme Friends of Convex visual system with Studio preserved as the base and Convex as the default override.
+- `src/vite-env.d.ts` — Vite client type references for `import.meta.env`.
+
+## Convex backend
+
+- `convex/schema.ts` — Auth, leaderboard, Convex mention snapshot fields, rank badges, board display settings, gift product presets, numbered gift-delivery, and X Account Activity tables with indexes plus the recipient handle search index.
+- `convex/boardSettings.ts` — Public query and admin mutation for which metric columns each leaderboard view shows.
+- `convex/auth.config.ts` — Convex Auth issuer configuration.
+- `convex/auth.ts` — X OAuth 2.0 provider and profile mapping.
+- `convex/http.ts` — Convex Auth, X DM sender, Fourthwall, and X Account Activity HTTP routes, Agent Ready routes, live discovery files, plus the static hosting catch-all registered last.
+- `convex/siteDirectory.ts` — Pure builders for live `llms.txt`, `sitemap.md`, `sitemap.xml`, and `robots.txt`.
+- `convex/siteFiles.ts` — Internal public-directory query and HTTP actions that serve the live discovery files from active profiles.
+- `convex/authz.ts` — X identity lookup and stable-ID admin allowlist checks.
+- `convex/imports.ts` — Bulk handle and public X List validation and import actions.
+- `convex/profiles.ts` — Leaderboard (default and Convex mentions modes), stored Convex posts, membership, import, and protected admin functions.
+- `convex/xSync.ts` — X lookup, seven-day aggregation, the Convex mention scan, and sync actions.
+- `convex/badges.ts` — Top 3 rank badge query and admin mutations with file storage uploads.
+- `convex/slack.ts` — Admin action posting the Convex yappers digest to Slack.
+- `convex/gifts.ts` — Gift campaigns, numbered repeat recipients, consent consumption, history, portal state, events, redemption, saved Fourthwall product presets, and recipient handle search.
+- `convex/giftActions.ts` — Fourthwall provisioning/reconciliation and encrypted X sender OAuth/DM actions.
+- `convex/giftCrypto.ts` — PKCE, token generation, AES-GCM encryption, and webhook HMAC helpers.
+- `convex/giftWebhooks.ts` — X sender callback and verified, deduplicated Fourthwall order webhook.
+- `convex/sharePages.ts` — HTTP actions serving crawler-friendly `/gift/share/:token` pages with rewritten meta tags and the `/og/gift/:token.png` share image route.
+- `convex/giftShareRender.ts` — Node action rendering the personalized 1200×630 share PNG on the dark radial wash from `public/background-image.svg`, with Space Grotesk fonts from `public/render/`.
+- `convex/xAccountActivityPayload.ts` — Privacy-minimized inbound X DM parsing and command detection.
+- `convex/xAccountActivityWebhooks.ts` — X CRC response, raw-body signature verification, and event dispatch.
+- `convex/xAccountActivity.ts` — Idempotent X event storage and global GIFT or STOP state.
+- `convex/xAccountActivityActions.ts` — Admin webhook registration and OAuth 1.0a sender subscription.
+- `convex/crons.ts` — Daily X metrics refresh at 15:17 UTC (8:17 AM Pacific during PDT).
+- `convex/validators.ts` — Shared return validators.
+- `convex/convex.config.ts` — Convex app definition mounting Agent Ready and the static hosting component.
+- `scripts/generate-auth-keys.mjs` — Local utility for creating Convex Auth JWT key pairs.
+- `scripts/test-x-account-activity.mjs` — Parser, inbound filtering, consent availability, and HMAC regression checks.
+- `scripts/check-node-version.mjs` — Clear Node 22.13 minimum preflight that explains npm cannot switch runtimes before development, builds, and production startup.
+- `scripts/preview-share-og.mjs` — Local preview of the personalized share OG card using the shipped wasm and fonts.
+
+## Build and hosting
+
+- `.nvmrc` and `.node-version` — Portable Node 24 project pins for common version managers.
+- `package.json` — Vite, React, Convex, convex-helpers, static hosting deploy, runtime preflights, and validation scripts.
+- `vite.config.ts` — Vite React configuration honoring the static hosting base path, dev server pinned to port 5174, local proxy for discovery files.
+- `tsconfig.json` — Strict TypeScript configuration for the Vite SPA, Convex functions, and scripts.
+- `eslint.config.mjs` — Flat ESLint configuration for React, hooks, accessibility, TypeScript, and the Convex recommended rules with type-aware linting.
+- `postcss.config.mjs` — Tailwind CSS 4 PostCSS integration.
+- `public/og-yapper-board.png` — Generated 1200×630 social preview card.
+- `public/og-yapper-board-convex.png` — Retired 1200×630 dark Convex-themed social preview card with people icons.
+- `public/og-friends-of-convex.png` — Default 1200×630 site social preview: Friends of Convex / Yapper / Leader board with racing stripes. Not the per-recipient share card.
+- `public/background-image.svg` and `public/background-image.png` — Dark radial wash used as the gift signal card background (SVG) and matched in the personalized share OpenGraph renderer.
+- `public/render/resvg.wasm` and `public/render/fonts/space-grotesk-500.ttf`, `space-grotesk-700.ttf` — Renderer assets the share-image Node action fetches from static hosting.
+- `public/brand/convex-logo-black.svg`, `convex-logo-white.svg`, and `convex-logo-color.svg` — Supplied official Convex logo variants.
+- `public/brand/convex-racing-lines.png` — Browser-ready copy of the supplied racing-line artwork with its actual PNG format reflected in the extension.
+- `public/favicon.png` — Site favicon and apple touch icon: dark square, white Convex pinwheel, racing stripes in the bottom right.
+- `public/convex/symbol-color.svg` — Supplied official Convex symbol used on gift passes and the footer social cluster.
+- `public/built-with/*` — Cursor and Convex footer logo assets.

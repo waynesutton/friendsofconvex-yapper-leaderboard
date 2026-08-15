@@ -1,0 +1,15 @@
+# Friends of Convex Yapper Board
+
+> A people-only, seven-day X leaderboard for the Friends of Convex community.
+
+This GitHub copy is a pointer. The live files rebuild from the public board whenever a handle is added, archived, restored, or approved:
+
+- [llms.txt](https://friendsofconvex.dev/llms.txt)
+- [sitemap.md](https://friendsofconvex.dev/sitemap.md)
+- [sitemap.xml](https://friendsofconvex.dev/sitemap.xml)
+
+## Site
+
+- [Home](https://friendsofconvex.dev/): People-only seven-day X leaderboard for Friends of Convex, ranked by public impressions.
+- [About](https://friendsofconvex.dev/about): How the board scores a week of yaps and who it is for.
+- [Join the board](https://friendsofconvex.dev/join): Sign in with X and ask to join the Friends of Convex board.

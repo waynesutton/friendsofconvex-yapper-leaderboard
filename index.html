@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en" data-theme="convex">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Friends of Convex Yapper Board</title>
+    <meta
+      name="description"
+      content="A people-only, seven-day X leaderboard for the Friends of Convex community."
+    />
+    <link rel="icon" href="/favicon.png" type="image/png" />
+    <link rel="apple-touch-icon" href="/favicon.png" />
+    <link
+      rel="describedby"
+      href="https://friendsofconvex.dev/llms.txt"
+      type="text/plain"
+    />
+    <link
+      rel="alternate"
+      type="text/markdown"
+      title="Markdown sitemap"
+      href="https://friendsofconvex.dev/sitemap.md"
+    />
+    <link
+      rel="sitemap"
+      type="application/xml"
+      href="https://friendsofconvex.dev/sitemap.xml"
+    />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Friends of Convex Yapper Board",
+        "url": "https://friendsofconvex.dev/",
+        "description": "A people-only, seven-day X leaderboard for the Friends of Convex community.",
+        "sameAs": ["https://github.com/waynesutton/friendsofconvex-yapper-leaderboard"]
+      }
+    </script>
+    <meta property="og:title" content="Friends of Convex Yapper Board" />
+    <meta
+      property="og:description"
+      content="A seven-day X leaderboard for the Friends of Convex community."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://friendsofconvex.dev/" />
+    <!-- Site default social preview. Personalized gift share cards use
+         /og/gift/:token.png and must not replace this file. -->
+    <meta
+      property="og:image"
+      content="https://friendsofconvex.dev/og-friends-of-convex.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Friends of Convex Yapper Board" />
+    <meta
+      name="twitter:description"
+      content="A seven-day X leaderboard for the Friends of Convex community."
+    />
+    <meta
+      name="twitter:image"
+      content="https://friendsofconvex.dev/og-friends-of-convex.png"
+    />
+    <script>
+      // Apply the saved theme before first paint to avoid a flash.
+      (function () {
+        try {
+          var savedTheme = window.localStorage.getItem("friends-of-convex-theme");
+          document.documentElement.dataset.theme =
+            savedTheme === "studio" ? "studio" : "convex";
+        } catch (error) {
+          document.documentElement.dataset.theme = "convex";
+        }
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://use.typekit.net/xmd6bow.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@300..800&family=Geist+Mono:wght@400..700&family=Space+Grotesk:wght@400..700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
