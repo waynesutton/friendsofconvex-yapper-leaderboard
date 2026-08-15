@@ -431,7 +431,7 @@ export function GiftAdminPanel() {
   // Product shelf add form: stock labeled products before any dispatch.
   const [shelfLabel, setShelfLabel] = useState("");
   const [shelfProductId, setShelfProductId] = useState("");
-  const [portalDays, setPortalDays] = useState("30");
+  const [portalDays, setPortalDays] = useState("7");
   const [selectedProfiles, setSelectedProfiles] = useState<Set<Id<"profiles">>>(new Set());
   const [consentConfirmed, setConsentConfirmed] = useState(false);
   const [busy, setBusy] = useState<"create" | "connect" | "activity" | "sync" | "preset" | null>(null);
@@ -1138,7 +1138,8 @@ export function GiftAdminPanel() {
           ) : null}
 
           <label htmlFor="gift-days">Portal access days</label>
-          <input id="gift-days" type="number" min={1} max={365} value={portalDays} onChange={(event) => setPortalDays(event.target.value)} required />
+          <input id="gift-days" type="number" min={1} max={7} value={portalDays} onChange={(event) => setPortalDays(event.target.value)} required />
+          <p className="gift-field-hint">Gift links auto expire after at most 7 days. An hourly job closes expired dispatches.</p>
 
           <fieldset className="gift-profile-picker">
             <legend>Approved recipients</legend>

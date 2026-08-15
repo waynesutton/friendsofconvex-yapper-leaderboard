@@ -14,4 +14,15 @@ crons.cron(
   {},
 );
 
+// Close gift dispatches whose links passed the seven day cap so DM gift
+// links stop working without waiting for someone to open them. The reveal
+// mutations also enforce expiry with server time; this keeps the admin
+// Dispatches log honest.
+crons.interval(
+  "expire gift links",
+  { hours: 1 },
+  internal.gifts.expireGiftLinks,
+  {},
+);
+
 export default crons;

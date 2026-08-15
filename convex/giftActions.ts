@@ -382,9 +382,11 @@ export const createCampaign = action({
     recipientCount: number;
   }> => {
     const userId = await requireAdminAction(ctx);
+    // Gift links live at most seven days; giftLinkExpiresAt caps older
+    // campaigns the same way at read time.
     const portalDays = Math.floor(args.portalDays);
-    if (portalDays < 1 || portalDays > 365) {
-      throw new Error("Gift portal access must be between 1 and 365 days.");
+    if (portalDays < 1 || portalDays > 7) {
+      throw new Error("Gift links expire after at most 7 days.");
     }
     const profiles: CampaignProfile[] = await ctx.runQuery(
       internal.gifts.profilesForCampaign,
@@ -640,6 +642,7 @@ export const sendGiftDm = action({
       const portalUrl = `${frontendUrl()}/gift/${recipient.portalToken}`;
       const text =
         `Your Friends of Convex gift #${recipient.giftNumber ?? 1} is ready. Your personal gift pass is ${portalUrl}\n\n` +
+        "The pass expires 7 days after it was issued, so grab it soon. " +
         "The page clearly links to Fourthwall for redemption. Reply STOP if you do not want another message.";
       const response = await fetch(
         `${X_API}/2/dm_conversations/with/${encodeURIComponent(recipient.xUserId)}/messages`,

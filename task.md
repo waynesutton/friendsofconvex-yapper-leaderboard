@@ -1,5 +1,14 @@
 # Task log
 
+## Completed — 2026-08-15 23:46 UTC (engagement rank badges and 7 day gift links)
+
+- [x] Rank badges now follow the engagement order after every sync or import. `profiles.listLeaderboard` sorts synced profiles first, then engagements, impressions, posts, and added date as tie breakers, so the canonical rank the frontend uses for badges matches the board's default Engagements sort. Verified against the dev deployment: rows come back synced-first in engagement order. `convex/profiles.ts`.
+- [x] Gift links now expire 7 days after the dispatch is created, including links generated before this rule. `giftLinkExpiresAt` in `convex/gifts.ts` caps the portal window at creation plus 7 days with no migration, `getPortal` and the reveal mutations enforce it with server time, and redeemed passes stay viewable.
+- [x] Hourly cron `expire gift links` (`convex/crons.ts` → `gifts.expireGiftLinks`) closes active dispatches past the cap so the admin Dispatches log stays honest. Dry run on dev returned `{ expired: 0 }` with no active expired campaigns.
+- [x] Claim page countdown: `GiftCountdown` in `src/components/GiftPortal.tsx` ticks every second under the trust line ("The claim button goes directly to fourthwall.com..."), shows days, hours, minutes, seconds plus the exact expiry date, turns red inside the last day, and swaps to the closed card the moment it hits zero on an unredeemed pass. Styles in `src/globals.css` on existing tokens.
+- [x] Admin side: campaign form caps Days active at 7 (default 7) with a hint about the hourly job, the DM text tells recipients the pass expires 7 days after issue, and `/admin/gifts-guide` documents the cap. `src/components/GiftAdminPanel.tsx`, `convex/giftActions.ts`, `src/pages/AdminGiftsGuidePage.tsx`.
+- [x] Verified: `npm run typecheck` and `npm run build` pass; `npx convex run profiles:listLeaderboard` and `npx convex run gifts:expireGiftLinks` behave as expected on dev.
+
 ## Completed — 2026-08-15 22:55 UTC (Rybbit analytics)
 
 - [x] Added the Rybbit analytics script (`data-site-id="1706f8ad75ab"`, deferred) to the head of `index.html`. The app is a Vite SPA, so this single shell covers every route.

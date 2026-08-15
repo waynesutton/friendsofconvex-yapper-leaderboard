@@ -11,6 +11,23 @@ import {
 import { requireAdmin } from "./authz";
 import { hasAvailableGiftRequest } from "./xAccountActivityPayload";
 
+// Hard ceiling on gift link life: seven days after the campaign was created.
+// Applied through giftLinkExpiresAt so links generated before this rule
+// existed pick up the cap with no migration.
+export const GIFT_LINK_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+// The moment a campaign's gift links stop working: the admin-chosen portal
+// window or creation plus seven days, whichever comes first.
+export function giftLinkExpiresAt(campaign: {
+  createdAt: number;
+  portalExpiresAt: number | null;
+}): number {
+  const cap = campaign.createdAt + GIFT_LINK_TTL_MS;
+  return campaign.portalExpiresAt === null
+    ? cap
+    : Math.min(campaign.portalExpiresAt, cap);
+}
+
 export const giftCampaignStatusValidator = v.union(
   v.literal("provisioning"),
   v.literal("active"),
@@ -671,7 +688,14 @@ export const getPortal = query({
         campaignTitle: campaign.title,
       };
     }
-    if (campaign.portalExpiresAt !== null && campaign.portalExpiresAt <= args.now) {
+    // Links die at the seven day cap (or sooner if the admin picked less).
+    // A campaign the expiry cron already closed counts as expired too.
+    // Recipients who already redeemed keep their thank-you view after expiry;
+    // no private link travels through that state and the reveal mutations
+    // still enforce expiry with server time.
+    const linkExpiresAt = giftLinkExpiresAt(campaign);
+    const expired = campaign.status === "closed" || linkExpiresAt <= args.now;
+    if (expired && recipient.status !== "redeemed") {
       return {
         state: "closed" as const,
         reason: "expired" as const,
@@ -699,7 +723,8 @@ export const getPortal = query({
       profileImageUrl: recipient.profileImageUrl,
       campaignTitle: campaign.title,
       status: recipient.status,
-      portalExpiresAt: campaign.portalExpiresAt,
+      // The countdown on the portal renders from this capped value.
+      portalExpiresAt: linkExpiresAt,
       redeemedAt: recipient.redeemedAt,
       revealed: recipient.revealedAt !== null,
       shareToken: recipient.shareToken,
@@ -750,7 +775,9 @@ async function activeRecipientForToken(
   if (!campaign) throw new Error("This gift campaign is no longer available.");
   const now = Date.now();
   if (recipient.revokedAt !== null) throw new Error("This gift pass was revoked.");
-  if (campaign.portalExpiresAt !== null && campaign.portalExpiresAt <= now) {
+  // Server-time enforcement of the seven day cap; also honors campaigns the
+  // expiry cron already closed.
+  if (campaign.status === "closed" || giftLinkExpiresAt(campaign) <= now) {
     throw new Error("This gift pass has expired.");
   }
   if (recipient.status === "cancelled") {
@@ -1170,6 +1197,35 @@ export const finalizeCampaign = internalMutation({
       ]),
     ]);
     return null;
+  },
+});
+
+// Hourly cron target: close every active campaign whose gift links passed
+// the seven day cap. Closing flips the campaign to "closed" and pins
+// portalExpiresAt to the capped value so already-generated links (including
+// ones created before the cap existed) stop working everywhere. Idempotent:
+// campaigns already closed are skipped by the index scan.
+export const expireGiftLinks = internalMutation({
+  args: {},
+  returns: v.object({ expired: v.number() }),
+  handler: async (ctx) => {
+    const now = Date.now();
+    const activeCampaigns = await ctx.db
+      .query("giftCampaigns")
+      .withIndex("by_status_and_created_at", (q) => q.eq("status", "active"))
+      .take(200);
+    let expired = 0;
+    for (const campaign of activeCampaigns) {
+      const linkExpiresAt = giftLinkExpiresAt(campaign);
+      if (linkExpiresAt > now) continue;
+      await ctx.db.patch("giftCampaigns", campaign._id, {
+        status: "closed",
+        portalExpiresAt: linkExpiresAt,
+        updatedAt: now,
+      });
+      expired += 1;
+    }
+    return { expired };
   },
 });
 

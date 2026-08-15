@@ -3521,6 +3521,50 @@ html[data-theme="convex"] .board-sync-chip {
   color: var(--signal-green);
 }
 
+/* Live pass expiry countdown under the trust line. The clock digits use the
+   mono face with tabular numbers so the ticking never shifts layout. */
+.gift-expiry-line {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--caption-ink);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.gift-expiry-line svg {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  color: var(--signal-coral-dark);
+}
+
+.gift-expiry-line strong {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--broadcast-ink);
+}
+
+/* Under one day left: the whole line leans on the alert color. */
+.gift-expiry-line[data-urgent] svg,
+.gift-expiry-line[data-urgent] strong {
+  color: var(--signal-red);
+}
+
+.gift-expiry-date {
+  color: var(--caption-ink);
+}
+
+/* Helper copy under the portal access days input on the gift admin form. */
+.gift-field-hint {
+  margin: 8px 0 0;
+  color: var(--caption-ink);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .gift-signal-card {
   position: relative;
   /* Container queries let the recipient name scale to the card width. */

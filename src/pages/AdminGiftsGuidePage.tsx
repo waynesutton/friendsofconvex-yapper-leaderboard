@@ -68,6 +68,8 @@ export function AdminGiftsGuidePage() {
                 A campaign is a batch of gifts with one name, for example
                 Friends of Convex 2026. It sets the gift promotion used on
                 Fourthwall and the expiration window for the gift links.
+                Links live at most 7 days after the dispatch is created; an
+                hourly job closes expired dispatches automatically.
               </p>
               <p>
                 If a campaign already exists, use it. Create a new one only

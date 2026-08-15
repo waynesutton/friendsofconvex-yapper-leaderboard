@@ -11,8 +11,18 @@ All notable changes to this project are documented here. The format follows [Kee
 - The unauthenticated X webhook CRC endpoint no longer clears the stored account activity error. It only records the validation time, so outside requests cannot hide real webhook failures from the admin configuration panel (2026-08-15).
 - Full sec-check audit passed otherwise: every admin function is auth gated (verified with live unauthenticated probes), Fourthwall and X webhooks verify HMAC signatures with timing safe comparison, X sender tokens are AES-GCM encrypted at rest, no secrets exist in git history, and `npm audit` reports zero vulnerabilities (2026-08-15).
 
+### Fixed
+
+- Rank badges no longer drift after a sync or import. The leaderboard query now returns rows in the board's canonical order: synced profiles first, then engagements, impressions, posts, and added date as tie breakers, so the top 3 badges always sit on the top 3 engagement rows (2026-08-15).
+
+### Changed
+
+- Gift links now hard expire 7 days after the dispatch is created, and the cap applies to links generated before this rule with no migration. The portal query and both reveal mutations enforce the cap with server time; redeemed passes stay viewable. The campaign form caps Days active at 7, the DM text tells recipients about the window, and the gifts guide documents it (2026-08-15).
+
 ### Added
 
+- Gift pass expiry countdown on the claim page: a live timer under the trust line shows days, hours, minutes, and seconds until the pass expires along with the exact date, turns red inside the last day, and flips the page to the closed card the moment it reaches zero on an unredeemed pass (2026-08-15).
+- Hourly `expire gift links` cron that closes active gift dispatches whose links passed the 7 day cap, keeping the admin Dispatches log accurate without waiting for someone to open a dead link (2026-08-15).
 - Rybbit analytics: the deferred tracking script now loads from the SPA shell `index.html`, covering every route (2026-08-15).
 - Load more on the leaderboard: both board tabs replace Previous/Next paging with a Load more button and a "Showing X of Y" counter. A themed Top filter dropdown (Top 30, 60, 100, 150, All) sits next to Copy link and caps the list after search and sort; the board opens on Top 30 by default. Picking a Top N shows all N rows at once, so the list length always matches the dropdown; Load more only appears on All yappers, revealing thirty rows per click (2026-08-15).
 - Gift count filter in the Approved recipients picker: All, No gifts yet, 1 through 4, and 5+ gifts. Combined with Select shown, selecting everyone who has never received a gift takes two clicks. Counts come from the gift history's gift numbers, so production data stays accurate (2026-08-15).

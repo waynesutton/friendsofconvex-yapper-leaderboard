@@ -58,7 +58,7 @@
 - `src/components/FilterDropdown.tsx` — Shared themed listbox dropdown (trigger button plus floating menu) used for the board Top N filter and the gift count filter; closes on outside click, Escape, or selection.
 - `src/components/AdminPanel.tsx` — Add, archive, restore, rescan, and two step confirm permanent remove controls plus board settings for visible board columns, rank badges, and the Slack digest.
 - `src/components/GiftAdminPanel.tsx` — Sender connection, repeat-recipient history with per-person gift and sent counts plus a gift count filter, the product shelf of Fourthwall-verified saved products with thumbnails, campaign creation with pick-to-fill preset chips, consent controls, DM delivery, a searchable recipient ledger with CSV export, and the Dispatches log showing every recipient chip with sent state, archive, restore, confirmed delete, and CSV export.
-- `src/components/GiftPortal.tsx` — Private gift reveal and safe public Convex thank-you card experiences.
+- `src/components/GiftPortal.tsx` — Private gift reveal with a live pass expiry countdown and safe public Convex thank-you card experiences.
 - `src/components/AdminGate.tsx` — X sign-in and stable-ID allowlist gate for private admin pages; waits for the Convex Auth token exchange so admins sign in once, with a sign-in busy state, failed round-trip message, and mobile hint.
 - `src/components/AdminAccessNote.tsx` — Shared admin-only notice with the signed-in admin chip and steps for adding another admin to `ADMIN_X_USER_IDS`.
 - `src/components/ImportPanel.tsx` — Bulk handle and public X List preview and import controls.
@@ -85,7 +85,7 @@
 - `convex/xSync.ts` — X lookup, seven-day aggregation, the Convex mention scan, and sync actions.
 - `convex/badges.ts` — Top 3 rank badge query and admin mutations with file storage uploads.
 - `convex/slack.ts` — Admin action posting the Convex yappers digest to Slack.
-- `convex/gifts.ts` — Gift campaigns, numbered repeat recipients, consent consumption, history, portal state, events, redemption, saved Fourthwall product presets, recipient handle search, and campaign archive plus cascade delete.
+- `convex/gifts.ts` — Gift campaigns, numbered repeat recipients, consent consumption, history, portal state with a hard 7 day link expiry cap, the hourly expiry job, events, redemption, saved Fourthwall product presets, recipient handle search, and campaign archive plus cascade delete.
 - `convex/giftActions.ts` — Fourthwall provisioning/reconciliation, verified product preset saves with name and thumbnail lookup, and encrypted X sender OAuth/DM actions.
 - `convex/giftCrypto.ts` — PKCE, token generation, AES-GCM encryption, and webhook HMAC helpers.
 - `convex/giftWebhooks.ts` — X sender callback and verified, deduplicated Fourthwall order webhook.
@@ -95,7 +95,7 @@
 - `convex/xAccountActivityWebhooks.ts` — X CRC response, raw-body signature verification, and event dispatch.
 - `convex/xAccountActivity.ts` — Idempotent X event storage and global GIFT or STOP state.
 - `convex/xAccountActivityActions.ts` — Admin webhook registration and OAuth 1.0a sender subscription.
-- `convex/crons.ts` — Daily X metrics refresh at 15:17 UTC (8:17 AM Pacific during PDT).
+- `convex/crons.ts` — Daily X metrics refresh at 15:17 UTC (8:17 AM Pacific during PDT) and an hourly job that closes gift dispatches whose links passed the 7 day cap.
 - `convex/validators.ts` — Shared return validators, including the public leaderboard projection that keeps internal profile fields server side.
 - `convex/convex.config.ts` — Convex app definition mounting Agent Ready and the static hosting component.
 - `scripts/generate-auth-keys.mjs` — Local utility for creating Convex Auth JWT key pairs.

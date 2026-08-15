@@ -3,13 +3,66 @@ import {
   CheckCircleIcon,
   GiftIcon,
   ShareNetworkIcon,
+  TimerIcon,
   WarningCircleIcon,
   XLogoIcon,
 } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "convex/react";
-import { useEffect, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../../convex/_generated/api";
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+// "6d 23:14:05" while more than a day remains, "23:14:05" on the last day.
+function formatCountdown(remainingMs: number): string {
+  const total = Math.max(0, Math.floor(remainingMs / 1000));
+  const days = Math.floor(total / 86400);
+  const clock = [Math.floor((total % 86400) / 3600), Math.floor((total % 3600) / 60), total % 60]
+    .map((part) => String(part).padStart(2, "0"))
+    .join(":");
+  return days > 0 ? `${days}d ${clock}` : clock;
+}
+
+function formatExpiryDate(timestamp: number): string {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(timestamp);
+}
+
+// Live day-and-time countdown to the pass expiry. Ticks once per second and
+// tells the parent when the pass runs out so the page can flip to the
+// expired state without a reload. The server still enforces expiry on every
+// reveal and claim mutation.
+function GiftCountdown({ expiresAt, onExpired }: { expiresAt: number; onExpired: () => void }) {
+  const [remaining, setRemaining] = useState(() => expiresAt - Date.now());
+
+  useEffect(() => {
+    const tick = () => {
+      const next = expiresAt - Date.now();
+      setRemaining(next);
+      if (next <= 0) onExpired();
+    };
+    tick();
+    const id = window.setInterval(tick, 1000);
+    return () => window.clearInterval(id);
+  }, [expiresAt, onExpired]);
+
+  const lastDay = remaining <= DAY_MS;
+  return (
+    <div className="gift-expiry-line" data-urgent={lastDay || undefined}>
+      <TimerIcon aria-hidden="true" />
+      <span>
+        Pass expires in <strong aria-hidden="true">{formatCountdown(remaining)}</strong>
+        <span className="sr-only">on {formatExpiryDate(expiresAt)}</span>
+        <span className="gift-expiry-date"> · {formatExpiryDate(expiresAt)}</span>
+      </span>
+    </div>
+  );
+}
 
 function GiftRotor() {
   return (
@@ -51,6 +104,24 @@ function GiftIdentity({
   );
 }
 
+// Shared closed-state card for invalid, expired, revoked, and cancelled
+// passes, plus the client-side countdown hitting zero.
+function GiftClosedCard({ message, handle }: { message: string; handle: string | null }) {
+  return (
+    <section className="gift-portal gift-portal-closed">
+      <div className="gift-closed-card">
+        <WarningCircleIcon aria-hidden="true" />
+        <p className="eyebrow">Gift signal closed</p>
+        <h1>{message}</h1>
+        {handle ? <p>This pass was reserved for @{handle}.</p> : null}
+        <Link className="text-link" to="/">
+          Return to the Yapper Board
+        </Link>
+      </div>
+    </section>
+  );
+}
+
 export function GiftPortal({ token }: { token: string }) {
   const [now] = useState(() => Date.now());
   const portal = useQuery(api.gifts.getPortal, { token, now });
@@ -60,6 +131,10 @@ export function GiftPortal({ token }: { token: string }) {
   const [busy, setBusy] = useState<"reveal" | "fourthwall" | null>(null);
   const [revealedUrl, setRevealedUrl] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
+  // Flipped by the countdown when it reaches zero so the page closes itself
+  // without a reload. Server mutations enforce the same deadline.
+  const [countdownExpired, setCountdownExpired] = useState(false);
+  const handleExpired = useCallback(() => setCountdownExpired(true), []);
 
   useEffect(() => {
     if (portal?.state === "active") {
@@ -112,19 +187,7 @@ export function GiftPortal({ token }: { token: string }) {
       revoked: "This gift pass was closed by the Friends of Convex team.",
       cancelled: "Fourthwall marked this giveaway link as cancelled.",
     };
-    return (
-      <section className="gift-portal gift-portal-closed">
-        <div className="gift-closed-card">
-          <WarningCircleIcon aria-hidden="true" />
-          <p className="eyebrow">Gift signal closed</p>
-          <h1>{messages[portal.reason]}</h1>
-          {portal.handle ? <p>This pass was reserved for @{portal.handle}.</p> : null}
-          <Link className="text-link" to="/">
-            Return to the Yapper Board
-          </Link>
-        </div>
-      </section>
-    );
+    return <GiftClosedCard message={messages[portal.reason]} handle={portal.handle} />;
   }
 
   // The private Fourthwall URL never rides along with the portal query; the
@@ -132,6 +195,12 @@ export function GiftPortal({ token }: { token: string }) {
   // expiry checks, so the query only exposes the revealed flag.
   const isRevealed = revealedUrl !== null || portal.revealed;
   const isRedeemed = portal.status === "redeemed";
+
+  // The countdown ran out while the page was open. Redeemed passes keep
+  // their thank-you view; everyone else sees the expired card.
+  if (countdownExpired && !isRedeemed) {
+    return <GiftClosedCard message="This gift pass has expired." handle={portal.handle} />;
+  }
 
   return (
     <section className="gift-portal">
@@ -156,6 +225,9 @@ export function GiftPortal({ token }: { token: string }) {
             payment method.
           </span>
         </div>
+        {portal.portalExpiresAt !== null && !isRedeemed ? (
+          <GiftCountdown expiresAt={portal.portalExpiresAt} onExpired={handleExpired} />
+        ) : null}
       </div>
 
       <article className={`gift-signal-card${isRedeemed ? " is-redeemed" : ""}`}>

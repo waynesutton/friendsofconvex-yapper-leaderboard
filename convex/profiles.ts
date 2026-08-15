@@ -211,6 +211,21 @@ export const listLeaderboard = query({
       )
       .order("desc")
       .take(limit);
+    // Canonical Yappers rank is engagement, not impressions. The frontend
+    // assigns rank numbers and top 3 badges from this array's order, so the
+    // sort here is what keeps badges correct after every sync or import.
+    // Profiles awaiting their first X sync sort after rows with real metrics.
+    profiles.sort((left, right) => {
+      const leftGroup = left.syncStatus === "synced" ? 0 : 1;
+      const rightGroup = right.syncStatus === "synced" ? 0 : 1;
+      return (
+        leftGroup - rightGroup ||
+        right.currentEngagements - left.currentEngagements ||
+        right.currentImpressions - left.currentImpressions ||
+        right.currentPosts - left.currentPosts ||
+        left.addedAt - right.addedAt
+      );
+    });
     return profiles.map(toPublicLeaderboardRow);
   },
 });
