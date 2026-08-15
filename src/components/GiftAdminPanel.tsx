@@ -266,7 +266,9 @@ export function GiftAdminPanel() {
   const beginXSenderConnection = useAction(api.giftActions.beginXSenderConnection);
   const setupAccountActivity = useAction(api.xAccountActivityActions.setup);
   const productPresets = useQuery(api.gifts.listProductPresetsAdmin, {});
-  const saveProductPreset = useMutation(api.gifts.saveProductPreset);
+  // Saving is an action: it verifies the ID against Fourthwall and stores the
+  // product name plus thumbnail for previews.
+  const saveProductPreset = useAction(api.giftActions.saveProductPreset);
   const deleteProductPreset = useMutation(api.gifts.deleteProductPreset);
   const [chosenCampaignId, setChosenCampaignId] = useState<Id<"giftCampaigns"> | null>(null);
   const selectedCampaignId = chosenCampaignId ?? campaigns?.[0]?._id ?? null;
@@ -286,7 +288,9 @@ export function GiftAdminPanel() {
   const recipients = trimmedLedgerSearch ? searchedRecipients : allRecipients;
   const [title, setTitle] = useState("Friends of Convex gift");
   const [productId, setProductId] = useState("");
-  const [presetLabel, setPresetLabel] = useState("");
+  // Product shelf add form: stock labeled products before any dispatch.
+  const [shelfLabel, setShelfLabel] = useState("");
+  const [shelfProductId, setShelfProductId] = useState("");
   const [portalDays, setPortalDays] = useState("30");
   const [selectedProfiles, setSelectedProfiles] = useState<Set<Id<"profiles">>>(new Set());
   const [consentConfirmed, setConsentConfirmed] = useState(false);
@@ -414,9 +418,23 @@ export function GiftAdminPanel() {
     setBusy("preset");
     setFeedback(null);
     try {
-      await saveProductPreset({ label: presetLabel, fourthwallProductId: productId });
-      setPresetLabel("");
-      setFeedback({ tone: "success", message: "Saved this Fourthwall product for one-click reuse." });
+      const result = await saveProductPreset({
+        label: shelfLabel,
+        fourthwallProductId: shelfProductId,
+      });
+      setShelfLabel("");
+      setShelfProductId("");
+      if (result.previewWarning) {
+        setFeedback({
+          tone: "info",
+          message: `Saved the product, but the Fourthwall preview could not load: ${result.previewWarning}`,
+        });
+      } else {
+        setFeedback({
+          tone: "success",
+          message: `Verified with Fourthwall and saved “${result.productName ?? "product"}” to the shelf.`,
+        });
+      }
     } catch (error) {
       setFeedback({ tone: "error", message: error instanceof Error ? error.message : "Could not save the product." });
     } finally {
@@ -529,6 +547,95 @@ export function GiftAdminPanel() {
 
       {feedback ? <div className={`feedback-message feedback-${feedback.tone}`} role="status" aria-live="polite">{feedback.message}</div> : null}
 
+      {/* Product shelf: stock labeled Fourthwall products before any dispatch.
+          Each save is verified against Fourthwall and carries a live preview. */}
+      <section className="gift-product-shelf" aria-labelledby="gift-shelf-title">
+        <div>
+          <p className="section-kicker">Gift inventory</p>
+          <h2 id="gift-shelf-title">Product shelf</h2>
+          <p>
+            Save Fourthwall products with a short label ahead of time. Each save
+            checks the ID with Fourthwall and pulls the product name and a
+            preview image, so the campaign form is one click instead of a paste.
+          </p>
+        </div>
+        <div className="gift-shelf-add">
+          <input
+            value={shelfLabel}
+            onChange={(event) => setShelfLabel(event.target.value)}
+            placeholder="Label, like Racing tee"
+            maxLength={60}
+            aria-label="Label for the saved Fourthwall product"
+          />
+          <input
+            value={shelfProductId}
+            onChange={(event) => setShelfProductId(event.target.value)}
+            placeholder="Fourthwall product ID"
+            aria-label="Fourthwall product ID to save"
+            title="Copy the product ID from the Fourthwall dashboard"
+          />
+          <button
+            type="button"
+            className="secondary-button"
+            disabled={busy === "preset" || !shelfLabel.trim() || !shelfProductId.trim()}
+            title="Verify this product with Fourthwall and save it for one-click reuse"
+            onClick={() => void savePreset()}
+          >
+            <FloppyDiskIcon aria-hidden="true" /> {busy === "preset" ? "Checking Fourthwall" : "Save product"}
+          </button>
+        </div>
+        {productPresets === undefined ? (
+          <span className="gift-empty">Loading saved products…</span>
+        ) : productPresets.length === 0 ? (
+          <span className="gift-empty">No saved products yet. Add your first one above.</span>
+        ) : (
+          <div className="gift-shelf-grid" role="group" aria-label="Saved Fourthwall products">
+            {productPresets.map((preset) => (
+              <article
+                key={preset._id}
+                className={`gift-shelf-card${preset.fourthwallProductId === productId ? " is-active" : ""}`}
+              >
+                {preset.thumbnailUrl ? (
+                  <img src={preset.thumbnailUrl} alt="" loading="lazy" />
+                ) : (
+                  <span className="gift-shelf-placeholder" aria-hidden="true">
+                    <GiftIcon />
+                  </span>
+                )}
+                <div className="gift-shelf-copy">
+                  <strong>{preset.label}</strong>
+                  {preset.productName ? <small>{preset.productName}</small> : null}
+                  <code title={preset.fourthwallProductId}>
+                    {preset.fourthwallProductId.length > 14
+                      ? `${preset.fourthwallProductId.slice(0, 8)}…${preset.fourthwallProductId.slice(-4)}`
+                      : preset.fourthwallProductId}
+                  </code>
+                </div>
+                <div className="gift-shelf-actions">
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    title={`Fill the campaign form with product ID ${preset.fourthwallProductId}`}
+                    onClick={() => setProductId(preset.fourthwallProductId)}
+                  >
+                    Use
+                  </button>
+                  <button
+                    type="button"
+                    className="gift-preset-remove"
+                    aria-label={`Remove saved product ${preset.label}`}
+                    title={`Remove “${preset.label}” from the shelf`}
+                    onClick={() => void removePreset(preset._id, preset.label)}
+                  >
+                    <TrashIcon aria-hidden="true" />
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+
       <section className="gift-studio-grid">
         <form className="gift-campaign-form" onSubmit={submitCampaign}>
           <p className="section-kicker">New dispatch</p>
@@ -550,50 +657,30 @@ export function GiftAdminPanel() {
             required
           />
 
-          {/* Saved products: click to fill the ID instead of pasting each time. */}
+          {/* Saved products from the shelf: click to fill the ID instead of
+              pasting each time. Manage the list in the Product shelf above. */}
           {productPresets && productPresets.length > 0 ? (
             <div className="gift-preset-list" role="group" aria-label="Saved Fourthwall products">
               {productPresets.map((preset) => (
                 <span key={preset._id} className={`gift-preset-chip${preset.fourthwallProductId === productId ? " is-active" : ""}`}>
                   <button
                     type="button"
-                    title={`Use product ID ${preset.fourthwallProductId}`}
+                    title={
+                      preset.productName
+                        ? `${preset.productName} · product ID ${preset.fourthwallProductId}`
+                        : `Use product ID ${preset.fourthwallProductId}`
+                    }
                     onClick={() => setProductId(preset.fourthwallProductId)}
                   >
+                    {preset.thumbnailUrl ? (
+                      <img className="gift-preset-thumb" src={preset.thumbnailUrl} alt="" loading="lazy" />
+                    ) : null}
                     {preset.label}
-                  </button>
-                  <button
-                    type="button"
-                    className="gift-preset-remove"
-                    aria-label={`Remove saved product ${preset.label}`}
-                    title={`Remove “${preset.label}” from saved products`}
-                    onClick={() => void removePreset(preset._id, preset.label)}
-                  >
-                    <TrashIcon aria-hidden="true" />
                   </button>
                 </span>
               ))}
             </div>
           ) : null}
-
-          <div className="gift-preset-save">
-            <input
-              value={presetLabel}
-              onChange={(event) => setPresetLabel(event.target.value)}
-              placeholder="Label to save this product, like Racing tee"
-              maxLength={60}
-              aria-label="Label for the saved Fourthwall product"
-            />
-            <button
-              type="button"
-              className="secondary-button"
-              disabled={busy === "preset" || !productId.trim() || !presetLabel.trim()}
-              title="Save the product ID above so you can pick it next time instead of pasting"
-              onClick={() => void savePreset()}
-            >
-              <FloppyDiskIcon aria-hidden="true" /> {busy === "preset" ? "Saving" : "Save product"}
-            </button>
-          </div>
 
           <label htmlFor="gift-days">Portal access days</label>
           <input id="gift-days" type="number" min={1} max={365} value={portalDays} onChange={(event) => setPortalDays(event.target.value)} required />

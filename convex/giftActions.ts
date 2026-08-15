@@ -167,6 +167,116 @@ async function fourthwallRequest(
   return payload;
 }
 
+type ProductPreview = { productName: string; thumbnailUrl: string | null };
+
+function imageUrl(value: unknown): string | null {
+  if (!isRecord(value)) return null;
+  if (typeof value.transformedUrl === "string") return value.transformedUrl;
+  if (typeof value.url === "string") return value.url;
+  return null;
+}
+
+// Looks a product up on Fourthwall so a preset save can carry the real name
+// and a thumbnail. A 404 is a hard "wrong ID" signal; anything else (missing
+// credentials, network trouble) degrades to saving without a preview.
+async function fetchProductPreview(
+  productId: string,
+): Promise<
+  | { ok: true; preview: ProductPreview }
+  | { ok: false; notFound: boolean; message: string }
+> {
+  let response: Response;
+  let payload: unknown;
+  try {
+    response = await fetch(
+      `${FOURTHWALL_API}/products/${encodeURIComponent(productId)}`,
+      {
+        headers: {
+          Authorization: basicAuth(
+            requiredEnv("FOURTHWALL_API_USERNAME"),
+            requiredEnv("FOURTHWALL_API_PASSWORD"),
+          ),
+        },
+      },
+    );
+    payload = await response.json().catch(() => null);
+  } catch (error) {
+    return {
+      ok: false,
+      notFound: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Could not reach Fourthwall to load the product preview.",
+    };
+  }
+  if (response.status === 404) {
+    return {
+      ok: false,
+      notFound: true,
+      message:
+        "Fourthwall could not find this product ID. Copy it again from your Fourthwall dashboard.",
+    };
+  }
+  if (!response.ok || !isRecord(payload)) {
+    return {
+      ok: false,
+      notFound: false,
+      message: errorMessage(
+        payload,
+        `Fourthwall product lookup failed with status ${response.status}.`,
+      ),
+    };
+  }
+  const productName =
+    typeof payload.name === "string" && payload.name.trim()
+      ? payload.name.trim()
+      : "Fourthwall product";
+  const thumbnailUrl =
+    imageUrl(payload.thumbnailImage) ??
+    (Array.isArray(payload.images) ? imageUrl(payload.images[0]) : null);
+  return { ok: true, preview: { productName, thumbnailUrl } };
+}
+
+// Saves a labeled Fourthwall product to the shelf. Verifies the ID against
+// Fourthwall first so typos never reach a campaign, and stores the product
+// name plus thumbnail for previews in the studio.
+export const saveProductPreset = action({
+  args: { label: v.string(), fourthwallProductId: v.string() },
+  returns: v.object({
+    presetId: v.id("giftProductPresets"),
+    productName: v.union(v.string(), v.null()),
+    previewWarning: v.union(v.string(), v.null()),
+  }),
+  handler: async (ctx, args) => {
+    const userId = await requireAdminAction(ctx);
+    const label = args.label.trim();
+    const productId = args.fourthwallProductId.trim();
+    if (!label) throw new Error("Give this product a short label.");
+    if (!productId) throw new Error("Paste the Fourthwall product ID first.");
+
+    const lookup = await fetchProductPreview(productId);
+    if (!lookup.ok && lookup.notFound) throw new Error(lookup.message);
+    const preview = lookup.ok ? lookup.preview : null;
+
+    const presetId: Id<"giftProductPresets"> = await ctx.runMutation(
+      internal.gifts.upsertProductPreset,
+      {
+        label,
+        fourthwallProductId: productId,
+        productName: preview?.productName,
+        thumbnailUrl: preview?.thumbnailUrl ?? undefined,
+        createdByUserId: userId,
+      },
+    );
+    return {
+      presetId,
+      productName: preview?.productName ?? null,
+      previewWarning: lookup.ok ? null : lookup.message,
+    };
+  },
+});
+
 function callbackUrl(): string {
   const siteOrigin = requiredEnv("CONVEX_SITE_URL").replace(/\/$/, "");
   return `${siteOrigin}/x-dm/callback`;

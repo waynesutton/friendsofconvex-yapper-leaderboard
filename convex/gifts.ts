@@ -226,6 +226,8 @@ const productPresetValidator = v.object({
   _creationTime: v.number(),
   label: v.string(),
   fourthwallProductId: v.string(),
+  productName: v.optional(v.string()),
+  thumbnailUrl: v.optional(v.string()),
   createdByUserId: v.id("users"),
   createdAt: v.number(),
 });
@@ -243,33 +245,39 @@ export const listProductPresetsAdmin = query({
   },
 });
 
-export const saveProductPreset = mutation({
-  args: { label: v.string(), fourthwallProductId: v.string() },
+// Written by the giftActions.saveProductPreset action after it looks the
+// product up on Fourthwall. Saving the same ID again updates label, name,
+// and thumbnail instead of duplicating.
+export const upsertProductPreset = internalMutation({
+  args: {
+    label: v.string(),
+    fourthwallProductId: v.string(),
+    productName: v.optional(v.string()),
+    thumbnailUrl: v.optional(v.string()),
+    createdByUserId: v.id("users"),
+  },
   returns: v.id("giftProductPresets"),
   handler: async (ctx, args) => {
-    const viewer = await requireAdmin(ctx);
-    const label = args.label.trim();
-    const productId = args.fourthwallProductId.trim();
-    if (!label) throw new Error("Give this product a short label.");
-    if (!productId) throw new Error("Paste the Fourthwall product ID first.");
-
-    // Saving the same product ID twice just updates its label.
     const existing = await ctx.db
       .query("giftProductPresets")
       .withIndex("by_fourthwall_product_id", (q) =>
-        q.eq("fourthwallProductId", productId),
+        q.eq("fourthwallProductId", args.fourthwallProductId),
       )
       .unique();
     if (existing) {
       await ctx.db.patch("giftProductPresets", existing._id, {
-        label,
+        label: args.label,
+        productName: args.productName,
+        thumbnailUrl: args.thumbnailUrl,
       });
       return existing._id;
     }
     return await ctx.db.insert("giftProductPresets", {
-      label,
-      fourthwallProductId: productId,
-      createdByUserId: viewer.userId,
+      label: args.label,
+      fourthwallProductId: args.fourthwallProductId,
+      productName: args.productName,
+      thumbnailUrl: args.thumbnailUrl,
+      createdByUserId: args.createdByUserId,
       createdAt: Date.now(),
     });
   },

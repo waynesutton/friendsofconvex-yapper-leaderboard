@@ -1,5 +1,12 @@
 # Task log
 
+## Completed — 2026-08-15 19:05 UTC
+
+- [x] Product shelf in the Gift studio: a new section where admins save labeled Fourthwall product IDs before any dispatch. Each save calls the Fourthwall Get Product endpoint, rejects unknown IDs, and stores the product name plus thumbnail. Cards show the image (or a gift glyph), label, name, short ID, a Use button that fills the campaign form, and remove. PRD: `prds/gift-product-shelf-previews.md`.
+- [x] The pick-to-fill chips under the campaign form's product ID input stay and now show a tiny product thumbnail when one is stored. The old in-form label plus Save row moved to the shelf.
+- [x] Backend: `giftActions.saveProductPreset` action (Fourthwall lookup, 404 rejects, other failures save without preview), `gifts.upsertProductPreset` internal mutation, optional `productName` and `thumbnailUrl` on `giftProductPresets`.
+- [x] Verified: `npm run check` passes (lint, typecheck, build); Convex dev deploy accepted the schema. The signed in shelf flow needs a manual pass since the IDE browser stops at the X sign in gate.
+
 ## Completed — 2026-08-15 18:40 UTC
 
 - [x] Admins can permanently remove a handle from the Friends on the board section. New admin only `profiles.remove` mutation deletes the profile plus all its snapshots and is idempotent. PRD: `prds/admin-remove-handle.md`.

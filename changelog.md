@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
+- Product shelf in the Gift studio: save labeled Fourthwall product IDs ahead of any send. Saves are verified against Fourthwall's Get Product endpoint, so typo'd IDs are rejected and each saved product carries its real name and a thumbnail preview. Shelf cards offer Use (fills the campaign form) and remove; the pick-to-fill chips in the form now show a tiny product image (2026-08-15).
 - Remove button in the Friends on the board admin section: a two step confirm (Remove, then Confirm in red) permanently deletes a profile and its snapshot history. Gift ledger rows keep their own name copies, so gift history is unaffected (2026-08-15).
 - A full README: what the board does, the stack, required environment values, a one prompt setup block for coding agents with Convex agent mode, manual run steps, and Convex docs links (2026-08-15).
 - Download CSV in the Recipient ledger: one click exports the whole selected campaign (gift number, name, handle, status, sent/opened/redeemed times, consent source, DM opt out, delivery error, pass URL) as a spreadsheet-safe CSV named after the campaign and date (2026-08-15).

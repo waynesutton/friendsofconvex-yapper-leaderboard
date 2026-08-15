@@ -23,6 +23,7 @@
 - `prds/daily-board-refresh-cron.md` — Move the daily X metrics cron to 8 AM Pacific and tell `/about` visitors how it runs.
 - `prds/rank-badges-both-modes.md` — Show top 3 badges in both board modes as big avatar-anchored chips with a first place sparkle popout.
 - `prds/admin-remove-handle.md` — Permanent admin remove for board profiles: two step confirm button, snapshot cleanup, and gift ledger safety.
+- `prds/gift-product-shelf-previews.md` — Product shelf in the Gift studio with Fourthwall-verified saves, product names, and thumbnail previews.
 - `agent-ready.config.json` — Agent Ready app settings and static page list used by `npx agent-ready sync`.
 - `llms.txt` — GitHub pointer to the live discovery files on the site origin.
 - `design/convex-dev-home-design.md` — Supplied Convex.dev homepage design specification used for the default theme.
@@ -52,7 +53,7 @@
 - `src/pages/GiftSharePage.tsx` — Safe public thank-you card route without claim credentials.
 - `src/components/Leaderboard.tsx` — Search, sortable ranking, the compact board toolbar (kicker, freshness chip, Yappers / Convex mentions toggle, share), admin-controlled column visibility with a dynamic grid, expandable Convex post rows, streak chips, avatar-anchored top 3 rank badges in both modes with a first place sparkle, and pagination.
 - `src/components/AdminPanel.tsx` — Add, archive, restore, rescan, and two step confirm permanent remove controls plus board settings for visible board columns, rank badges, and the Slack digest.
-- `src/components/GiftAdminPanel.tsx` — Sender connection, repeat-recipient history, campaign creation with saved Fourthwall product presets, consent controls, DM delivery, and a searchable recipient ledger with CSV export.
+- `src/components/GiftAdminPanel.tsx` — Sender connection, repeat-recipient history, the product shelf of Fourthwall-verified saved products with thumbnails, campaign creation with pick-to-fill preset chips, consent controls, DM delivery, and a searchable recipient ledger with CSV export.
 - `src/components/GiftPortal.tsx` — Private gift reveal and safe public Convex thank-you card experiences.
 - `src/components/AdminGate.tsx` — X sign-in and stable-ID allowlist gate for private admin pages; waits for the Convex Auth token exchange so admins sign in once.
 - `src/components/AdminAccessNote.tsx` — Shared admin-only notice with the signed-in admin chip and steps for adding another admin to `ADMIN_X_USER_IDS`.
@@ -81,7 +82,7 @@
 - `convex/badges.ts` — Top 3 rank badge query and admin mutations with file storage uploads.
 - `convex/slack.ts` — Admin action posting the Convex yappers digest to Slack.
 - `convex/gifts.ts` — Gift campaigns, numbered repeat recipients, consent consumption, history, portal state, events, redemption, saved Fourthwall product presets, and recipient handle search.
-- `convex/giftActions.ts` — Fourthwall provisioning/reconciliation and encrypted X sender OAuth/DM actions.
+- `convex/giftActions.ts` — Fourthwall provisioning/reconciliation, verified product preset saves with name and thumbnail lookup, and encrypted X sender OAuth/DM actions.
 - `convex/giftCrypto.ts` — PKCE, token generation, AES-GCM encryption, and webhook HMAC helpers.
 - `convex/giftWebhooks.ts` — X sender callback and verified, deduplicated Fourthwall order webhook.
 - `convex/sharePages.ts` — HTTP actions serving crawler-friendly `/gift/share/:token` pages with rewritten meta tags and the `/og/gift/:token.png` share image route.

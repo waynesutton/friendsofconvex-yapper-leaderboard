@@ -167,6 +167,11 @@ export default defineSchema({
   giftProductPresets: defineTable({
     label: v.string(),
     fourthwallProductId: v.string(),
+    // Filled from Fourthwall's Get Product endpoint when the save is verified.
+    // Missing on presets saved before verification existed or when the lookup
+    // failed for a network reason.
+    productName: v.optional(v.string()),
+    thumbnailUrl: v.optional(v.string()),
     createdByUserId: v.id("users"),
     createdAt: v.number(),
   })

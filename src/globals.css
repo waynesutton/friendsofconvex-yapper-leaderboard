@@ -2835,20 +2835,138 @@ html[data-theme="convex"] .board-sync-chip {
   color: var(--signal-coral-dark) !important;
 }
 
-.gift-preset-save {
-  margin-top: 12px;
+.gift-preset-chip > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gift-preset-chip > button:only-child {
+  padding-right: 14px;
+}
+
+/* Tiny Fourthwall thumbnail inside a pick-to-fill chip. */
+.gift-preset-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--line-standard);
+}
+
+/* Product shelf: labeled Fourthwall products saved ahead of any dispatch. */
+.gift-product-shelf {
+  margin-top: 24px;
+  padding: 28px;
+  border: 1px solid var(--line-standard);
+  border-radius: var(--radius-medium);
+}
+
+.gift-product-shelf > div:first-child p:last-child {
+  max-width: 560px;
+  color: var(--caption-ink);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.gift-shelf-add {
+  margin-top: 16px;
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-.gift-preset-save input {
+.gift-shelf-add input {
   flex: 1;
   min-width: 0;
 }
 
-.gift-preset-save .secondary-button {
+.gift-shelf-add .secondary-button {
   flex-shrink: 0;
+}
+
+.gift-shelf-grid {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.gift-shelf-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--line-standard);
+  border-radius: var(--radius-medium);
+}
+
+.gift-shelf-card.is-active {
+  border-color: var(--signal-coral);
+}
+
+.gift-shelf-card img,
+.gift-shelf-placeholder {
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  object-fit: cover;
+  border: 1px solid var(--line-standard);
+}
+
+.gift-shelf-placeholder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--caption-ink);
+}
+
+.gift-shelf-placeholder svg {
+  width: 22px;
+  height: 22px;
+}
+
+.gift-shelf-copy {
+  min-width: 0;
+  flex: 1;
+  display: grid;
+  gap: 2px;
+}
+
+.gift-shelf-copy strong {
+  font-size: 14px;
+}
+
+.gift-shelf-copy small {
+  color: var(--caption-ink);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gift-shelf-copy code {
+  font-size: 11px;
+  color: var(--caption-ink);
+}
+
+.gift-shelf-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.gift-shelf-actions .secondary-button {
+  padding: 6px 14px;
+  font-size: 12px;
+}
+
+.gift-shelf-actions .gift-preset-remove {
+  padding: 6px !important;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
 }
 
 .gift-count-strip {
@@ -3449,6 +3567,14 @@ html[data-theme="convex"] .board-sync-chip {
   .gift-ledger-tools {
     width: 100%;
     flex-wrap: wrap;
+  }
+
+  .gift-shelf-add {
+    flex-wrap: wrap;
+  }
+
+  .gift-shelf-add input {
+    flex-basis: 100%;
   }
 
   .gift-ledger-search {
