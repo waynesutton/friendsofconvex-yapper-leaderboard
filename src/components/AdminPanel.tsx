@@ -328,6 +328,18 @@ function BoardSettings() {
   );
 }
 
+// Cleans pasted or typed handle input so "@name", " @name ", "x.com/name",
+// and full profile links all become a plain handle. The backend normalizes
+// again, but this keeps the browser pattern check from blocking the form.
+function sanitizeHandleInput(value: string): string {
+  let cleaned = value.trim();
+  const urlMatch = cleaned.match(/(?:x\.com|twitter\.com)\/(@?[A-Za-z0-9_]+)/i);
+  if (urlMatch) {
+    cleaned = urlMatch[1];
+  }
+  return cleaned.replace(/^@+/, "").replace(/[^A-Za-z0-9_]/g, "");
+}
+
 export function AdminPanel() {
   const profiles = useQuery(api.profiles.listAdmin, { limit: 200 });
   const setup = useQuery(api.profiles.getSetupStatus, {});
@@ -507,11 +519,11 @@ export function AdminPanel() {
             <input
               id="handle"
               value={handle}
-              onChange={(event) => setHandle(event.target.value)}
+              onChange={(event) => setHandle(sanitizeHandleInput(event.target.value))}
               placeholder="jamesacowling"
               autoComplete="off"
               required
-              pattern="@?[A-Za-z0-9_]{1,50}"
+              pattern="[A-Za-z0-9_]{1,50}"
             />
             <button type="submit" disabled={busy === "add"} title="Add this X handle to the board right away">
               <PlusIcon aria-hidden="true" /> {busy === "add" ? "Adding" : "Add person"}

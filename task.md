@@ -1,5 +1,11 @@
 # Task log
 
+## Completed — 2026-08-15 21:30 UTC (forgiving X handle input)
+
+- [x] The Add to the board handle box on `/admin` now accepts anything reasonable: typed or pasted values with a leading @, extra spaces, or a full x.com/twitter.com profile link all sanitize to a plain handle as you type. Before, the HTML pattern only allowed one optional @, so pastes like "@name " failed browser validation and never reached Convex.
+- [x] Frontend only change in `src/components/AdminPanel.tsx` (`sanitizeHandleInput` plus a tightened input pattern). The backend `normalizeHandle` in `convex/profiles.ts` already strips @ and lowercases, so no server change was needed.
+- [x] Verified: no linter errors; input sanitization happens on every change so the visible field never shows a double @.
+
 ## Completed — 2026-08-15 21:05 UTC (gift studio bulk operations)
 
 - [x] Dispatches log toolbar like the dashboard logs pattern: Recent, Archived, and All view tabs with counts, a search box matching title, gift name, or recipient @handle, a select all checkbox, per row checkboxes, and a bulk action cluster (Archive, Restore, two step Confirm delete, Clear). Bulk actions only touch selected rows still visible, so a search or tab change can never act on hidden dispatches. Download CSV now exports what the log shows. PRD: `prds/gift-studio-bulk-operations.md`.

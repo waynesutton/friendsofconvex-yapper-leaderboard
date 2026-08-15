@@ -34,6 +34,10 @@ All notable changes to this project are documented here. The format follows [Kee
 - Personalized OpenGraph for public gift share pages. `GET /gift/share/:token` now rewrites the SPA shell's title and meta tags with the recipient's handle, and `GET /og/gift/:token.png` renders a 1200×630 card server side with `@resvg/resvg-wasm` and Space Grotesk, showing the recipient avatar, handle at an auto fitted size, and campaign name. Unknown tokens fall back to the default site image (2026-08-15).
 - `scripts/preview-share-og.mjs`, a local preview of the share card renderer using the same wasm and fonts shipped under `public/render/` (2026-08-15).
 
+### Fixed
+
+- The Add to the board handle box on `/admin` now accepts a leading @, extra spaces, or a pasted x.com/twitter.com profile link. Input sanitizes to a plain handle as you type, so browser pattern validation no longer blocks pastes like "@name" (2026-08-15).
+
 ### Changed
 
 - The Dispatches sidebar list now flexes to the full height of the studio section, matching the campaign form beside it and resizing with it; the 420px cap only applies on single column layouts (2026-08-15).
