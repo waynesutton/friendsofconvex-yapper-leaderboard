@@ -1,5 +1,19 @@
 # Task log
 
+## Completed — 2026-08-16 20:10 UTC (impressions column matches, refresh honesty in About and README)
+
+- [x] Unbolded the Impressions column: the cell is now a `metric-cell` span like Posts and Engagements instead of a `<strong>` with a 15px override, so no column visually claims the ranking. `src/components/Leaderboard.tsx`, `src/globals.css`.
+- [x] About 04 now says every active profile refreshes in the same daily run in join order; README fixes the cron time to 8:17 AM Pacific, states the batch refresh covers boards past 100 people, adds `npm run test` to the scripts table, and updates `npm run check` copy to include tests. `src/pages/AboutPage.tsx`, `README.md`.
+- [x] Verified with `npm run lint` and `npm run typecheck`.
+
+## Completed — 2026-08-16 20:05 UTC (sync every profile, honest metrics, engagement rank copy — issue 2)
+
+- [x] Fixed the production sync skip from GitHub issue 2: `listForSync` read the impressions index ascending with a 100 row cap, so a 119 person board refreshed its 100 lowest-impression profiles daily and left the top 19 (including @theo) stale. New `by_active_and_added_at` index, cursor-paginated `listForSync` in join order, and `xSync.syncAllProfiles` drains pages in batches of 25 with an 8 minute deadline, scheduling `refreshAllContinuation` with the cursor and running totals when a huge board needs more time. Admin Sync all reports a background remainder. PRD: prds/sync-all-profiles-and-metric-honesty.md. `convex/schema.ts`, `convex/profiles.ts`, `convex/xSync.ts`, `src/components/AdminPanel.tsx`.
+- [x] Posts now count replies (X analytics parity): `exclude=retweets` only, `referenced_tweets` drops just reposts. Convex mention scan widened to long form `note_tweet` text and expanded/unwound URLs plus card titles, so replies about Convex and `t.co` wrapped convex.dev links count. Pure parsing extracted to `convex/xSyncParsing.ts` for direct unit testing; stored Convex post text prefers the full note text.
+- [x] Ranking copy agrees with the code everywhere: board sr-only heading, About 02/03 (post rule, private-metrics caveat, "Yappers ranks by public engagement / Convex mode by Convex post count"), README feature line, `siteDirectory.ts` description, and `siteFiles.listPublicDirectory` now sorts sitemap.md people in the canonical board order. Posts and Convex posts tooltips updated.
+- [x] Added vitest + convex-test + @edge-runtime/vm with `npm run test` (and in `npm run check`): 17 tests covering score-blind full paging past 100 profiles (each profile exactly once, archived excluded, high-impression row included) and the metric parsing fixtures. `vitest.config.ts`, `tests/`, `tsconfig.json` include.
+- [x] Verified: `npm run test` 17/17, `npm run lint`, `npm run typecheck`, `npm run build` pass; `npx convex dev --once` deployed; live dev run of `xSync:refreshAllScheduled` processed all 3 profiles (2 failures are fake seed handles), @waynesutton resynced 26 → 116 posts with 53 Convex posts; live `llms.txt` says engagement rank and `sitemap.md` orders synced rows first.
+
 ## Completed — 2026-08-16 19:42 UTC (avatar bio peek on the board)
 
 - [x] Every leaderboard avatar now opens a bio peek card: hover (280ms delay), keyboard focus, or tap shows the person's synced X bio with linkified @mentions and URLs, their follower count in mono, and an Open on X link. A coral ring plus a small scale on the avatar signals the face is live. PRD: prds/avatar-hover-bio.md. `src/components/ProfilePeek.tsx` (new), `src/components/Leaderboard.tsx`, `src/globals.css`.
@@ -8,7 +22,8 @@
 
 ## To do
 
-- [ ] Run one production sync (`xSync.refreshAll` from the admin page, or wait for the 15:17 UTC cron) so the live board picks up the reply-filtered post counts. Numbers will drop for everyone; that is the fix landing.
+- [ ] Run one production sync (`xSync.refreshAll` from the admin page, or wait for the 15:17 UTC cron) so the live board picks up the new counting rules. Post counts rise for everyone (replies count again, matching X analytics) and the 19 highest-impression profiles finally refresh on schedule.
+- [ ] Comment on GitHub issue 2 with what shipped and leave the issue open for Theo to confirm. Reference commits with `Refs #2`, never `Fixes` or `Closes`.
 - [ ] Optional follow up if the "engagements" name keeps causing confusion: rename the column to "Public engagement" so it stops colliding with the broader engagements figure in X analytics.
 
 ## Completed — 2026-08-16 19:25 UTC (board mode switch stands out)

@@ -119,6 +119,9 @@ export default defineSchema({
       "active",
       "currentImpressions",
     ])
+    // Score-blind sync order: the daily refresh pages this index so every
+    // active profile gets one attempt per run, however large the board gets.
+    .index("by_active_and_added_at", ["active", "addedAt"])
     .index("by_added_at", ["addedAt"])
     .index("by_membership_status_and_added_at", [
       "membershipStatus",

@@ -10,12 +10,12 @@ Live at [friendsofconvex.dev](https://friendsofconvex.dev). Everything on the bo
 
 The board tracks public X activity for an approved list of people over a rolling seven day window. No bots, no brands, just yappers.
 
-- Two board modes: a general Yappers ranking (defaults to engagements), and a Convex mentions mode that only counts posts that mention Convex
+- Two board modes: a general Yappers ranking by public engagement, and a Convex mentions mode ranked by Convex post count. A post is an original, quote, or reply from the last seven days; reposts are out. Convex mentions match the whole word convex in the post text, long post text, or a convex.dev link
 - Expandable rows in Convex mentions mode that reveal the posts behind the numbers
 - Top filter (30 / 60 / 100 / 150 / All) plus Load more, a board freshness chip, streak chips, and avatar anchored rank badges for the top 3
 - Sign in with X to request a spot; admins approve or reject from a review queue
 - Bulk imports from pasted handles or a public X List
-- A daily cron that refreshes metrics every morning at 8 AM Pacific
+- A daily cron at 8:17 AM Pacific that refreshes every active profile in batches, so boards past 100 people never skip anyone
 - Admin controlled board columns, custom rank badges, permanent remove, and an optional Slack digest
 - Gift studio: Fourthwall gift links to yappers over X DM, with consent first delivery, product shelf, Dispatches log (archive / restore / bulk delete / CSV), batch DM send, and 7 day link expiry with a live countdown
 - Gift lab: mint named Fourthwall gift links for people who are not on the board (full name greeting, optional 7 day expiry, no X handle and no public share card)
@@ -121,7 +121,7 @@ Steps:
    walk me through signing in at /join with my X account.
 8. After I sign in, read my numeric xUserId from the users table and
    set ADMIN_X_USER_IDS to it so I can open /admin.
-9. Run npm run check and confirm lint, typecheck, and build all pass.
+9. Run npm run check and confirm lint, typecheck, tests, and build all pass.
 
 Skip Gift studio, Gift lab, Fourthwall, X Account Activity webhooks, and
 Slack for now. Use https://docs.convex.dev and
@@ -148,7 +148,8 @@ Useful scripts:
 | Command | What it does |
 | --- | --- |
 | `npm run auth:keys` | Generates the Convex Auth JWT key pair |
-| `npm run check` | Lint, typecheck, and build in one pass |
+| `npm run test` | Runs the vitest suite: sync target paging and metric parsing |
+| `npm run check` | Lint, typecheck, test, and build in one pass |
 | `npm run deploy` | Deploys the frontend and backend together to Convex static hosting |
 
 ## Admin surfaces after you are allowlisted

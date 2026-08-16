@@ -17,6 +17,13 @@
     "noFallthroughCasesInSwitch": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["src", "convex", "vite.config.ts", "scripts/**/*.mts"],
+  "include": [
+    "src",
+    "convex",
+    "tests",
+    "vite.config.ts",
+    "vitest.config.ts",
+    "scripts/**/*.mts"
+  ],
   "exclude": ["node_modules", "dist"]
 }

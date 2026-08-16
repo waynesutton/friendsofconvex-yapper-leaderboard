@@ -673,21 +673,33 @@ export const getForSync = internalQuery({
   },
 });
 
+// Sync targets are paged in join order (addedAt), never score order. The old
+// version read the impressions index ascending with a 100 row cap, so a board
+// past 100 people silently skipped its highest-impression profiles every run.
 export const listForSync = internalQuery({
-  args: { limit: v.number() },
-  returns: v.array(syncTargetValidator),
+  args: {
+    cursor: v.union(v.string(), v.null()),
+    numItems: v.number(),
+  },
+  returns: v.object({
+    targets: v.array(syncTargetValidator),
+    continueCursor: v.string(),
+    isDone: v.boolean(),
+  }),
   handler: async (ctx, args) => {
-    const limit = Math.min(Math.max(Math.floor(args.limit), 1), 100);
-    const profiles = await ctx.db
+    const numItems = Math.min(Math.max(Math.floor(args.numItems), 1), 200);
+    const page = await ctx.db
       .query("profiles")
-      .withIndex("by_active_and_current_impressions", (q) =>
-        q.eq("active", true),
-      )
-      .take(limit);
-    return profiles.map((profile) => ({
-      profileId: profile._id,
-      handle: profile.handle,
-    }));
+      .withIndex("by_active_and_added_at", (q) => q.eq("active", true))
+      .paginate({ cursor: args.cursor, numItems });
+    return {
+      targets: page.page.map((profile) => ({
+        profileId: profile._id,
+        handle: profile.handle,
+      })),
+      continueCursor: page.continueCursor,
+      isDone: page.isDone,
+    };
   },
 });
 

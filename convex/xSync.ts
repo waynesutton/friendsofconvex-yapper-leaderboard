@@ -8,15 +8,26 @@ import {
   internalAction,
 } from "./_generated/server";
 import { syncResultValidator } from "./validators";
+import {
+  isRecord,
+  numberOrZero,
+  parsePostPage,
+  stringOrNull,
+} from "./xSyncParsing";
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 const X_API_ORIGIN = "https://api.x.com";
 
-// Word boundary match so "Convex" and "convex." count but "convexity" does not.
-const CONVEX_MENTION_PATTERN = /\bconvex\b/i;
 // Cap stored Convex posts at the sync per page fetch limit.
 const CONVEX_POST_STORE_LIMIT = 100;
 const CONVEX_POST_TEXT_LIMIT = 200;
+
+// How many profiles one listForSync page returns. Small enough that a batch
+// plus its X API calls always fits the action deadline below.
+const SYNC_BATCH_SIZE = 25;
+// Leave headroom inside Convex's 10 minute action limit. When the deadline
+// passes with pages remaining, the run continues in a scheduled action.
+const SYNC_DEADLINE_MS = 8 * 60 * 1000;
 
 type SyncTarget = {
   profileId: Id<"profiles">;
@@ -40,15 +51,6 @@ type XUser = {
   followerCount: number;
 };
 
-type XPost = {
-  id: string;
-  text: string;
-  createdAt: number;
-  impressionCount: number;
-  engagementCount: number;
-  isReplyOrRepost: boolean;
-};
-
 type StoredConvexPost = {
   postId: string;
   url: string;
@@ -65,18 +67,6 @@ async function requireAdminAction(ctx: ActionCtx): Promise<void> {
     userId,
   });
   if (!isAdmin) throw new Error("This X account is not on the admin allowlist.");
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-function stringOrNull(value: unknown): string | null {
-  return typeof value === "string" ? value : null;
-}
-
-function numberOrZero(value: unknown): number {
-  return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
 
 function getXError(payload: unknown, fallback: string): string {
@@ -131,54 +121,6 @@ function parseUser(payload: unknown): XUser {
   };
 }
 
-// X's `exclude=retweets,replies` parameter still returns self-thread replies, so
-// the timeline has to be filtered again here. Without this the Posts column
-// counted replies it claimed to leave out. Quote posts stay counted: they carry
-// original commentary, which is what the column measures.
-function isReplyOrRepost(referencedTweets: unknown): boolean {
-  if (!Array.isArray(referencedTweets)) return false;
-  return referencedTweets.some((reference) => {
-    if (!isRecord(reference)) return false;
-    return reference.type === "replied_to" || reference.type === "retweeted";
-  });
-}
-
-function parsePostPage(payload: unknown): {
-  posts: XPost[];
-  nextToken: string | null;
-} {
-  if (!isRecord(payload)) {
-    throw new Error("X returned an invalid posts response.");
-  }
-
-  const data = Array.isArray(payload.data) ? payload.data : [];
-  const posts = data.map((post): XPost => {
-    const record = isRecord(post) ? post : {};
-    const metrics = isRecord(record.public_metrics)
-      ? record.public_metrics
-      : {};
-    const engagementCount =
-      numberOrZero(metrics.like_count) +
-      numberOrZero(metrics.retweet_count) +
-      numberOrZero(metrics.reply_count) +
-      numberOrZero(metrics.quote_count) +
-      numberOrZero(metrics.bookmark_count);
-    const createdAtRaw = stringOrNull(record.created_at);
-    const createdAt = createdAtRaw ? Date.parse(createdAtRaw) : Number.NaN;
-    return {
-      id: stringOrNull(record.id) ?? "",
-      text: stringOrNull(record.text) ?? "",
-      createdAt: Number.isFinite(createdAt) ? createdAt : 0,
-      impressionCount: numberOrZero(metrics.impression_count),
-      engagementCount,
-      isReplyOrRepost: isReplyOrRepost(record.referenced_tweets),
-    };
-  });
-
-  const meta = isRecord(payload.meta) ? payload.meta : {};
-  return { posts, nextToken: stringOrNull(meta.next_token) };
-}
-
 function startOfUtcDay(timestamp: number): number {
   const date = new Date(timestamp);
   return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
@@ -231,10 +173,13 @@ async function syncProfile(
       const postsUrl = new URL(`/2/users/${user.id}/tweets`, X_API_ORIGIN);
       postsUrl.searchParams.set("start_time", new Date(windowStart).toISOString());
       postsUrl.searchParams.set("max_results", "100");
-      postsUrl.searchParams.set("exclude", "retweets,replies");
+      // Replies count as posts, matching the posts number in X analytics.
+      // Only reposts are excluded, and parsePostPage double checks that with
+      // referenced_tweets because X's exclude filter has leaked before.
+      postsUrl.searchParams.set("exclude", "retweets");
       postsUrl.searchParams.set(
         "tweet.fields",
-        "created_at,public_metrics,text,referenced_tweets",
+        "created_at,public_metrics,text,referenced_tweets,note_tweet,entities",
       );
       if (nextToken) postsUrl.searchParams.set("pagination_token", nextToken);
 
@@ -242,16 +187,15 @@ async function syncProfile(
       // Every metric below counts the same filtered set, so Posts,
       // Engagements, Impressions, and the Convex mention totals always
       // describe one consistent group of posts.
-      const originalPosts = pageResult.posts.filter(
-        (post) => !post.isReplyOrRepost,
-      );
-      for (const post of originalPosts) {
+      const countedPosts = pageResult.posts.filter((post) => !post.isRepost);
+      for (const post of countedPosts) {
         impressions += post.impressionCount;
         engagementCount += post.engagementCount;
 
         // The mention scan reuses this same fetch, so it costs zero extra
-        // X API calls.
-        if (CONVEX_MENTION_PATTERN.test(post.text)) {
+        // X API calls. mentionsConvex covers the post text, long form note
+        // text, and expanded convex.dev links.
+        if (post.mentionsConvex) {
           convexPostCount += 1;
           convexImpressions += post.impressionCount;
           convexEngagements += post.engagementCount;
@@ -267,7 +211,7 @@ async function syncProfile(
           }
         }
       }
-      postCount += originalPosts.length;
+      postCount += countedPosts.length;
       nextToken = pageResult.nextToken;
       if (!nextToken) break;
     }
@@ -315,35 +259,78 @@ async function syncProfile(
   }
 }
 
+type RefreshTotals = {
+  processed: number;
+  synced: number;
+  failed: number;
+};
+
+type SyncPage = {
+  targets: Array<SyncTarget>;
+  continueCursor: string;
+  isDone: boolean;
+};
+
+// Drains listForSync pages from the given cursor. Sequential requests keep
+// the integration comfortably below X rate limits. Stops early when the
+// action deadline nears so the caller can schedule a continuation instead of
+// timing out; every active profile still gets exactly one attempt per run.
+async function syncBatchesFrom(
+  ctx: ActionCtx,
+  startCursor: string | null,
+  totals: RefreshTotals,
+): Promise<{ nextCursor: string | null }> {
+  const startedAt = Date.now();
+  let cursor: string | null = startCursor;
+  for (;;) {
+    const page: SyncPage = await ctx.runQuery(internal.profiles.listForSync, {
+      cursor,
+      numItems: SYNC_BATCH_SIZE,
+    });
+    for (const target of page.targets) {
+      const result = await syncProfile(ctx, target);
+      totals.processed += 1;
+      if (result.status === "synced") totals.synced += 1;
+      else totals.failed += 1;
+    }
+    if (page.isDone) return { nextCursor: null };
+    cursor = page.continueCursor;
+    if (Date.now() - startedAt > SYNC_DEADLINE_MS) {
+      return { nextCursor: cursor };
+    }
+  }
+}
+
 async function syncAllProfiles(ctx: ActionCtx): Promise<{
   processed: number;
   synced: number;
   failed: number;
   missingKey: boolean;
+  remainderScheduled: boolean;
 }> {
   if (!process.env.X_BEARER_TOKEN) {
-    return { processed: 0, synced: 0, failed: 0, missingKey: true };
+    return {
+      processed: 0,
+      synced: 0,
+      failed: 0,
+      missingKey: true,
+      remainderScheduled: false,
+    };
   }
 
-  const profiles: SyncTarget[] = await ctx.runQuery(
-    internal.profiles.listForSync,
-    { limit: 100 },
-  );
-  let synced = 0;
-  let failed = 0;
-
-  // Sequential requests keep the integration comfortably below X rate limits.
-  for (const profile of profiles) {
-    const result = await syncProfile(ctx, profile);
-    if (result.status === "synced") synced += 1;
-    else failed += 1;
+  const totals: RefreshTotals = { processed: 0, synced: 0, failed: 0 };
+  const { nextCursor } = await syncBatchesFrom(ctx, null, totals);
+  if (nextCursor !== null) {
+    await ctx.scheduler.runAfter(0, internal.xSync.refreshAllContinuation, {
+      cursor: nextCursor,
+      ...totals,
+    });
   }
 
   return {
-    processed: profiles.length,
-    synced,
-    failed,
+    ...totals,
     missingKey: false,
+    remainderScheduled: nextCursor !== null,
   };
 }
 
@@ -374,6 +361,7 @@ const refreshAllResultValidator = v.object({
   synced: v.number(),
   failed: v.number(),
   missingKey: v.boolean(),
+  remainderScheduled: v.boolean(),
 });
 
 export const refreshAll = action({
@@ -389,4 +377,36 @@ export const refreshAllScheduled = internalAction({
   args: {},
   returns: refreshAllResultValidator,
   handler: async (ctx) => await syncAllProfiles(ctx),
+});
+
+// Picks up a refresh that ran out of action time, resuming from the stored
+// cursor with the running totals. Reschedules itself until every active
+// profile has been attempted once.
+export const refreshAllContinuation = internalAction({
+  args: {
+    cursor: v.string(),
+    processed: v.number(),
+    synced: v.number(),
+    failed: v.number(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const totals: RefreshTotals = {
+      processed: args.processed,
+      synced: args.synced,
+      failed: args.failed,
+    };
+    const { nextCursor } = await syncBatchesFrom(ctx, args.cursor, totals);
+    if (nextCursor !== null) {
+      await ctx.scheduler.runAfter(0, internal.xSync.refreshAllContinuation, {
+        cursor: nextCursor,
+        ...totals,
+      });
+      return null;
+    }
+    console.log(
+      `refreshAll complete: ${totals.synced} synced, ${totals.failed} failed, ${totals.processed} processed.`,
+    );
+    return null;
+  },
 });

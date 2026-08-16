@@ -32,6 +32,7 @@ import type * as xAccountActivityActions from "../xAccountActivityActions.js";
 import type * as xAccountActivityPayload from "../xAccountActivityPayload.js";
 import type * as xAccountActivityWebhooks from "../xAccountActivityWebhooks.js";
 import type * as xSync from "../xSync.js";
+import type * as xSyncParsing from "../xSyncParsing.js";
 
 import type {
   ApiFromModules,
@@ -64,6 +65,7 @@ declare const fullApi: ApiFromModules<{
   xAccountActivityPayload: typeof xAccountActivityPayload;
   xAccountActivityWebhooks: typeof xAccountActivityWebhooks;
   xSync: typeof xSync;
+  xSyncParsing: typeof xSyncParsing;
 }>;
 
 /**

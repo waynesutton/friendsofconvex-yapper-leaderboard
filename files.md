@@ -31,6 +31,7 @@
 - `design/references/convex-homepage-reference.png` — Supplied full-page visual reference retained with the project.
 - `design/references/lines-source.svg` — Original supplied racing-line source file retained exactly as provided; its contents are PNG data despite the source extension.
 - `prds/metric-definitions-and-tooltips.md` — Investigation of the "way off" metrics feedback: prod values verified against a live X API replay, the `exclude=replies` leak, and the definition, tooltip, and copy fixes.
+- `prds/sync-all-profiles-and-metric-honesty.md` — GitHub issue 2 fix: score-blind paginated sync with a continuation action, replies counted as posts, the widened Convex mention scan, engagement rank copy alignment, and the vitest test setup.
 - `prds/board-mode-switch-affordance.md` — Make the Yappers / Convex mentions ranking switch look like a clickable channel control.
 - `prds/lessons.md` — Durable project lessons from corrected implementation and environment assumptions.
 - `README.md` — Public repo introduction: what the board does, the stack, required and optional API / Convex env names (no secrets), Convex agent mode one prompt setup, admin route map, and Convex docs links.
@@ -86,11 +87,12 @@
 - `convex/auth.ts` — X OAuth 2.0 provider and profile mapping.
 - `convex/http.ts` — Convex Auth, X DM sender, Fourthwall, and X Account Activity HTTP routes, Agent Ready routes, live discovery files, plus the static hosting catch-all registered last.
 - `convex/siteDirectory.ts` — Pure builders for live `llms.txt`, `sitemap.md`, `sitemap.xml`, and `robots.txt`.
-- `convex/siteFiles.ts` — Internal public-directory query and HTTP actions that serve the live discovery files from active profiles.
+- `convex/siteFiles.ts` — Internal public-directory query and HTTP actions that serve the live discovery files from active profiles, sorted in the board's canonical engagement rank so sitemap numbering matches the homepage.
 - `convex/authz.ts` — X identity lookup and stable-ID admin allowlist checks.
 - `convex/imports.ts` — Bulk handle and public X List validation and import actions.
-- `convex/profiles.ts` — Leaderboard (default and Convex mentions modes) returning a public projection that strips internal profile fields, stored Convex posts, membership, import, and protected admin functions including permanent profile removal with snapshot cleanup.
-- `convex/xSync.ts` — X lookup, seven-day aggregation, the Convex mention scan, and sync actions. Filters the timeline on `referenced_tweets` because X's `exclude=replies` still returns self-thread replies, so posts, engagements, impressions, and mention counts all describe original and quote posts only.
+- `convex/profiles.ts` — Leaderboard (default and Convex mentions modes) returning a public projection that strips internal profile fields, stored Convex posts, membership, import, and protected admin functions including permanent profile removal with snapshot cleanup. `listForSync` pages every active profile in join order through a cursor, never by score.
+- `convex/xSync.ts` — X lookup, seven-day aggregation, the Convex mention scan, and sync actions. Counts original posts, quote posts, and replies (reposts stay out via `referenced_tweets`), drains the whole board in batches, and schedules a continuation action when a run nears the action deadline so boards past 100 people still refresh everyone.
+- `convex/xSyncParsing.ts` — Pure X post parsing: repost detection, engagement field sum, and the Convex mention haystack covering post text, long form note text, and expanded convex.dev links. No Convex imports so vitest tests it directly.
 - `convex/badges.ts` — Top 3 rank badge query and admin mutations with file storage uploads.
 - `convex/slack.ts` — Admin action posting the Convex yappers digest to Slack.
 - `convex/gifts.ts` — Gift campaigns, numbered repeat recipients, consent consumption, history, portal state with a hard 7 day link expiry cap, the hourly expiry job, events, redemption (with a Gift lab link fallback), saved Fourthwall product presets, recipient handle search, and campaign archive plus cascade delete.
@@ -111,6 +113,12 @@
 - `scripts/test-x-account-activity.mjs` — Parser, inbound filtering, consent availability, and HMAC regression checks.
 - `scripts/check-node-version.mjs` — Clear Node 22.13 minimum preflight that explains npm cannot switch runtimes before development, builds, and production startup.
 - `scripts/preview-share-og.mjs` — Local preview of the personalized share OG card using the shipped wasm and fonts.
+
+## Tests
+
+- `vitest.config.ts` — Vitest setup: edge runtime environment for convex-test, tests kept in `tests/` outside the Convex bundler's reach.
+- `tests/xSyncParsing.test.ts` — Post classification, engagement field sum, and Convex mention matching fixtures (replies, long posts, expanded convex.dev links, no "convexity").
+- `tests/profilesListForSync.test.ts` — convex-test paging checks: a board past 100 active profiles is visited exactly once per refresh, score blind, with archived rows excluded.
 
 ## Build and hosting
 

@@ -12,7 +12,7 @@ export const SITE_PAGES: Array<{
     title: "Home",
     path: "/",
     description:
-      "People-only seven-day X leaderboard for Friends of Convex, ranked by public impressions.",
+      "People-only seven-day X leaderboard for Friends of Convex, ranked by public engagement.",
   },
   {
     title: "About",

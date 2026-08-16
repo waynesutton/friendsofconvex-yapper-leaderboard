@@ -466,7 +466,7 @@ export function AdminPanel() {
         tone: result.failed > 0 ? "info" : "success",
         message: result.missingKey
           ? "Add X_BEARER_TOKEN to Convex before syncing."
-          : `Synced ${result.synced} of ${result.processed} active profiles${result.failed ? `; ${result.failed} need attention` : ""}.`,
+          : `Synced ${result.synced} of ${result.processed} active profiles${result.failed ? `; ${result.failed} need attention` : ""}.${result.remainderScheduled ? " The rest of the board is refreshing in the background." : ""}`,
       });
     } catch (error) {
       setFeedback({ tone: "error", message: error instanceof Error ? error.message : "Sync failed." });

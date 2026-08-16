@@ -777,10 +777,6 @@ button:disabled {
   font-size: 13px;
 }
 
-.impression-cell {
-  font-size: 15px;
-}
-
 .row-actions {
   display: flex;
   justify-content: flex-end;

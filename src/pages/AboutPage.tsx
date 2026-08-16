@@ -27,10 +27,10 @@ export function AboutPage() {
           <span className="method-number">02</span>
           <h2>What counts as a post</h2>
           <p>
-            A post is an original post or a quote post from the last seven days. Replies and
-            reposts are not counted, so the Posts number is smaller than your total X activity. If
-            you spend the week in the replies, the board will show a low number and still be
-            correct.
+            A post is an original post, a quote post, or a reply from the last seven days. Reposts
+            are not counted. That is the same posts number you see in your own X analytics. Convex
+            mentions come from those same posts: the whole word convex in the text, in a long
+            post&apos;s full text, or in a shared link that points to convex.dev.
           </p>
         </section>
         <section>
@@ -47,8 +47,10 @@ export function AboutPage() {
               X API public metrics
             </a>
             . That is a narrower number than the engagements figure in X analytics, which also
-            counts link clicks, profile visits, detail expands, and follows. Impressions are the
-            public impression count on the same posts.
+            counts link clicks, profile visits, detail expands, and follows. Those private counts
+            are only visible to the account owner, so the board cannot read them. Impressions are
+            the public impression count on the same posts. The Yappers board ranks by public
+            engagement; the Convex mentions board ranks by Convex post count.
           </p>
         </section>
         <section>
@@ -57,7 +59,8 @@ export function AboutPage() {
           <p>
             Convex refreshes the board once a day at 8:17 AM Pacific, so a number can be up to a
             day behind live X counts, and everyone gets a new shot at moving up after the next good
-            yap. The seven day window is measured from that run. That run is a{" "}
+            yap. Every active profile is refreshed in the same run, in join order, no matter how
+            big the board gets. The seven day window is measured from that run. That run is a{" "}
             <a
               className="text-link"
               href="https://docs.convex.dev/scheduling/cron-jobs"

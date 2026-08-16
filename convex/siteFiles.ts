@@ -39,6 +39,21 @@ export const listPublicDirectory = internalQuery({
       .order("desc")
       .take(DIRECTORY_CAP);
 
+    // Canonical board order, mirroring profiles.listLeaderboard: synced rows
+    // first, then engagements with impressions, posts, and join date as tie
+    // breakers, so sitemap.md numbering matches the homepage ranking.
+    profiles.sort((left, right) => {
+      const leftGroup = left.syncStatus === "synced" ? 0 : 1;
+      const rightGroup = right.syncStatus === "synced" ? 0 : 1;
+      return (
+        leftGroup - rightGroup ||
+        right.currentEngagements - left.currentEngagements ||
+        right.currentImpressions - left.currentImpressions ||
+        right.currentPosts - left.currentPosts ||
+        left.addedAt - right.addedAt
+      );
+    });
+
     let newestUpdatedAt: number | null = null;
     const people = profiles.map((profile) => {
       if (newestUpdatedAt === null || profile.updatedAt > newestUpdatedAt) {

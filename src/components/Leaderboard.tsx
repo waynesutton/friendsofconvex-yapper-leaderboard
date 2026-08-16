@@ -85,7 +85,7 @@ const YAPPERS_TRACKS: Array<{ key: keyof BoardDisplay["yappersColumns"]; width: 
 // "how is this being measured", shown in the header tooltips and mirrored on the
 // About page. Keep them in sync with the sync rules in `convex/xSync.ts`.
 const POSTS_DEFINITION =
-  "Original posts and quote posts published in the last 7 days. Replies and reposts are not counted, so this is lower than your total X activity.";
+  "Original posts, quote posts, and replies published in the last 7 days. Reposts are not counted. This matches the posts count in your own X analytics.";
 
 const METRIC_DEFINITIONS: Partial<Record<SortKey, string>> = {
   posts: POSTS_DEFINITION,
@@ -93,7 +93,8 @@ const METRIC_DEFINITIONS: Partial<Record<SortKey, string>> = {
     "Likes plus reposts plus replies plus quotes plus bookmarks on those posts, straight from the X API public metrics. This is not the broader engagement number in X analytics, which also counts link clicks, profile visits, and detail expands.",
   impressions:
     "Total public impressions on those posts as reported by the X API. Impressions keep accruing after a post goes up, so this rises between refreshes.",
-  convexPosts: "How many of those posts mention Convex, matched on the whole word only.",
+  convexPosts:
+    "How many of those posts mention Convex. The scan matches the whole word convex in the post text, a long post's full text, or a shared link that points to convex.dev, and it includes replies.",
   convexImpressions: "Public impressions on the Convex mentioning posts only.",
   convexEngagements:
     "Likes, reposts, replies, quotes, and bookmarks on the Convex mentioning posts only.",
@@ -508,7 +509,7 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
         <h2 id="board-title" className="sr-only">
           {convexMode
             ? "People, ranked by Convex mentions"
-            : "People, ranked by public impressions"}
+            : "People, ranked by public engagement"}
         </h2>
         <div className="board-toolbar">
           <p className="eyebrow board-kicker">
@@ -825,14 +826,14 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
                           </span>
                         ) : null}
                         {yappersColumns.impressions ? (
-                          <strong
-                            className="impression-cell"
+                          <span
+                            className="metric-cell impression-cell"
                             role="cell"
                             data-label="Impressions (7D)">
                             {profile.syncStatus === "synced"
                               ? compactNumber(profile.currentImpressions)
                               : "Awaiting X"}
-                          </strong>
+                          </span>
                         ) : null}
                       </>
                     )}
