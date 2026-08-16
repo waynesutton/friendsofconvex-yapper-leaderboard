@@ -399,6 +399,33 @@ html[data-theme="convex"] .board-sync-chip {
   color: rgba(255, 250, 240, 0.6);
 }
 
+/* Route to the methodology for readers on mobile, where the column header
+   tooltips are not rendered at all. */
+.board-method-link {
+  color: var(--caption-ink);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+}
+
+.board-method-link:hover {
+  color: var(--signal-coral-dark);
+}
+
+html[data-theme="convex"] .board-method-link {
+  color: rgba(255, 250, 240, 0.6);
+}
+
+html[data-theme="convex"] .board-method-link:hover {
+  color: rgba(255, 250, 240, 0.95);
+}
+
 .board-toolbar .mode-tabs {
   margin-top: 0;
 }
@@ -805,6 +832,114 @@ html[data-theme="convex"] .board-sync-chip {
   min-height: 44px;
   display: inline-flex;
   align-items: center;
+}
+
+/* Metric definition tooltip on column headers. The header cell becomes an
+   inline flex row so the trigger sits beside the sort button without adding a
+   grid track, and the bubble is absolutely positioned so it never reflows the
+   table. */
+.table-header [role="columnheader"]:has(.metric-info) {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.metric-info {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+}
+
+.metric-info-trigger {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  color: var(--quiet-ink);
+  cursor: help;
+}
+
+.metric-info-trigger svg {
+  width: 13px;
+  height: 13px;
+}
+
+.metric-info-trigger:hover,
+.metric-info-trigger[aria-expanded="true"] {
+  color: var(--signal-coral-dark);
+}
+
+.metric-info-trigger:focus-visible {
+  outline: 2px solid var(--signal-coral-dark);
+  outline-offset: 1px;
+}
+
+.metric-info-bubble {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  z-index: 40;
+  width: max-content;
+  max-width: 280px;
+  transform: translateX(-50%);
+  padding: 10px 12px;
+  display: grid;
+  gap: 4px;
+  background: var(--studio-sheet);
+  border: 1px solid var(--line-emphasis);
+  border-radius: var(--radius-medium);
+  box-shadow: 0 14px 32px rgba(20, 12, 10, 0.18);
+  color: var(--broadcast-ink-soft);
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.45;
+  text-transform: none;
+  white-space: normal;
+}
+
+.metric-info-bubble strong {
+  color: var(--broadcast-ink);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Keep the last columns' bubbles inside the table instead of overflowing. */
+.table-header > [role="columnheader"]:nth-last-child(2) .metric-info-bubble,
+.table-header > [role="columnheader"]:nth-last-child(3) .metric-info-bubble {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+
+html[data-theme="convex"] .metric-info-bubble {
+  background: #211917;
+  border-color: rgba(255, 250, 240, 0.18);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.5);
+  color: rgba(255, 250, 240, 0.86);
+}
+
+html[data-theme="convex"] .metric-info-bubble strong {
+  color: rgba(255, 250, 240, 0.98);
+}
+
+html[data-theme="convex"] .metric-info-trigger {
+  color: rgba(255, 250, 240, 0.5);
+}
+
+html[data-theme="convex"] .metric-info-trigger:hover,
+html[data-theme="convex"] .metric-info-trigger[aria-expanded="true"] {
+  color: rgba(255, 250, 240, 0.95);
 }
 
 /* Zero rows stay on the board, just dimmed. Being seen with a zero is the fun. */

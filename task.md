@@ -1,5 +1,21 @@
 # Task log
 
+## To do
+
+- [ ] Run one production sync (`xSync.refreshAll` from the admin page, or wait for the 15:17 UTC cron) so the live board picks up the reply-filtered post counts. Numbers will drop for everyone; that is the fix landing.
+- [ ] Optional follow up if the "engagements" name keeps causing confusion: rename the column to "Public engagement" so it stops colliding with the broader engagements figure in X analytics.
+
+## Completed — 2026-08-16 02:55 UTC (metric definitions, honest post counts, column tooltips)
+
+- [x] Investigated the "49 posts and 75k engagements ... that is way off" feedback. Read prod (`profiles:listLeaderboard`), then replayed the exact X API v2 request `convex/xSync.ts` makes for the rank 1 account. The stored values match the API, so **no resync was needed and a resync would not have changed anything**. The problem was definitional. PRD: prds/metric-definitions-and-tooltips.md.
+- [x] Found the real data bug: X's `exclude=replies` does not remove self-thread replies. Breaking the board's own 50 results down by `referenced_tweets` gave 18 original, 22 quote posts, and 10 replies, so the Posts column counted replies it claimed to exclude. `convex/xSync.ts` now requests `referenced_tweets` and drops anything referencing `replied_to` or `retweeted`. Quote posts stay counted. All four metrics (posts, engagements, impressions, Convex mentions) now read from the same filtered list.
+- [x] Verified on dev with a live sync: the same real account's snapshot went from postCount 42 to 26 after the change, which is the reply leakage coming out.
+- [x] Added `src/components/MetricInfo.tsx`, an accessible definition popover (hover, focus, click for touch; closes on Escape, blur, outside pointer), and attached a plain language definition to every metric column header in both board modes, including the static Share of posts header. Styles for both themes in `src/globals.css`, with the last two columns' bubbles right aligned so they stay inside the table.
+- [x] Added a "How this is measured" link beside the freshness chip, since the table header is `display: none` under the mobile breakpoint and tooltips are unreachable there.
+- [x] Rewrote About sections 02 and 03 to state the exact rules: what counts as a post, and that engagements is likes + reposts + replies + quotes + bookmarks from the X API public metrics, which is narrower than the engagements number in X analytics. Added a closing note inviting corrections.
+- [x] Fixed wrong refresh copy. The hero panel said "Daily at 08:00 UTC" but `convex/crons.ts` runs `17 15 * * *`. Now reads "Daily at 8:17 AM Pacific" on the board and About.
+- [x] Verified: `npx tsc --noEmit`, `npm run lint`, and `npm run build` all pass; `npx convex dev --once` deployed and `xSync:refreshAllScheduled` ran clean on dev.
+
 ## Completed — 2026-08-16 00:55 UTC (README and agent setup prompt)
 
 - [x] Rewrote `README.md` so fork setup is self contained (local `docs/` stays gitignored). Feature list now covers Gift lab, Top N / Load more, 7 day gift expiry, product shelf, Dispatches bulk ops, and admin surfaces.

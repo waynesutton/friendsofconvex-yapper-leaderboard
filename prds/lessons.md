@@ -33,3 +33,23 @@ Never derive or invent that final origin from a requested slug.
 so the daily X refresh lands at 8:17 AM Pacific in daylight time.
 Docs: https://docs.convex.dev/scheduling/cron-jobs
 
+## 2026-08-16 — A public number needs its definition next to it
+
+When someone says a metric is "way off", check the definition before the
+pipeline. The board's numbers matched the X API exactly; what was wrong was that
+"Posts" and "Engagements" are words readers already have their own meanings for.
+A resync would have proved nothing.
+
+Two rules that came out of it:
+
+1. Any number shown to the public gets its formula reachable from the same
+   screen. A tooltip on the column header, plus a link for the breakpoint where
+   the header is hidden.
+2. Do not trust an upstream API's filter parameter to mean what it says. X's
+   `exclude=replies` still returns self-thread replies, so the timeline had to be
+   filtered again locally on `referenced_tweets`. Verify a filter by counting
+   what actually came back, not by reading the query string.
+
+Also: whenever UI copy repeats a schedule, treat it as a duplicate of the cron
+string and check both. The hero said 08:00 UTC while the cron ran at 15:17 UTC.
+

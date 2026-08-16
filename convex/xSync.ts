@@ -46,6 +46,7 @@ type XPost = {
   createdAt: number;
   impressionCount: number;
   engagementCount: number;
+  isReplyOrRepost: boolean;
 };
 
 type StoredConvexPost = {
@@ -130,6 +131,18 @@ function parseUser(payload: unknown): XUser {
   };
 }
 
+// X's `exclude=retweets,replies` parameter still returns self-thread replies, so
+// the timeline has to be filtered again here. Without this the Posts column
+// counted replies it claimed to leave out. Quote posts stay counted: they carry
+// original commentary, which is what the column measures.
+function isReplyOrRepost(referencedTweets: unknown): boolean {
+  if (!Array.isArray(referencedTweets)) return false;
+  return referencedTweets.some((reference) => {
+    if (!isRecord(reference)) return false;
+    return reference.type === "replied_to" || reference.type === "retweeted";
+  });
+}
+
 function parsePostPage(payload: unknown): {
   posts: XPost[];
   nextToken: string | null;
@@ -158,6 +171,7 @@ function parsePostPage(payload: unknown): {
       createdAt: Number.isFinite(createdAt) ? createdAt : 0,
       impressionCount: numberOrZero(metrics.impression_count),
       engagementCount,
+      isReplyOrRepost: isReplyOrRepost(record.referenced_tweets),
     };
   });
 
@@ -218,11 +232,20 @@ async function syncProfile(
       postsUrl.searchParams.set("start_time", new Date(windowStart).toISOString());
       postsUrl.searchParams.set("max_results", "100");
       postsUrl.searchParams.set("exclude", "retweets,replies");
-      postsUrl.searchParams.set("tweet.fields", "created_at,public_metrics,text");
+      postsUrl.searchParams.set(
+        "tweet.fields",
+        "created_at,public_metrics,text,referenced_tweets",
+      );
       if (nextToken) postsUrl.searchParams.set("pagination_token", nextToken);
 
       const pageResult = parsePostPage(await requestX(postsUrl, token));
-      for (const post of pageResult.posts) {
+      // Every metric below counts the same filtered set, so Posts,
+      // Engagements, Impressions, and the Convex mention totals always
+      // describe one consistent group of posts.
+      const originalPosts = pageResult.posts.filter(
+        (post) => !post.isReplyOrRepost,
+      );
+      for (const post of originalPosts) {
         impressions += post.impressionCount;
         engagementCount += post.engagementCount;
 
@@ -244,7 +267,7 @@ async function syncProfile(
           }
         }
       }
-      postCount += pageResult.posts.length;
+      postCount += originalPosts.length;
       nextToken = pageResult.nextToken;
       if (!nextToken) break;
     }

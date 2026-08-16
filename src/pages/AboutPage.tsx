@@ -25,26 +25,39 @@ export function AboutPage() {
         </section>
         <section>
           <span className="method-number">02</span>
-          <h2>A week of yaps</h2>
+          <h2>What counts as a post</h2>
           <p>
-            The board looks at original public posts from the last seven days. Replies and reposts
-            sit this one out.
+            A post is an original post or a quote post from the last seven days. Replies and
+            reposts are not counted, so the Posts number is smaller than your total X activity. If
+            you spend the week in the replies, the board will show a low number and still be
+            correct.
           </p>
         </section>
         <section>
           <span className="method-number">03</span>
-          <h2>Most yap wins</h2>
+          <h2>What counts as engagement</h2>
           <p>
-            The leaderboard adds up public impressions from those posts. It is a friendly
-            scoreboard, not a measure of who matters most.
+            Engagements are likes plus reposts plus replies plus quotes plus bookmarks on those
+            posts, read from the{" "}
+            <a
+              className="text-link"
+              href="https://docs.x.com/x-api/fundamentals/metrics"
+              target="_blank"
+              rel="noreferrer noopener">
+              X API public metrics
+            </a>
+            . That is a narrower number than the engagements figure in X analytics, which also
+            counts link clicks, profile visits, detail expands, and follows. Impressions are the
+            public impression count on the same posts.
           </p>
         </section>
         <section>
           <span className="method-number">04</span>
           <h2>Convex keeps it fresh</h2>
           <p>
-            Convex refreshes the board once a day at 8 AM Pacific, so everyone gets a new shot at
-            moving up after the next good yap. That run is a{" "}
+            Convex refreshes the board once a day at 8:17 AM Pacific, so a number can be up to a
+            day behind live X counts, and everyone gets a new shot at moving up after the next good
+            yap. The seven day window is measured from that run. That run is a{" "}
             <a
               className="text-link"
               href="https://docs.convex.dev/scheduling/cron-jobs"
@@ -78,6 +91,12 @@ export function AboutPage() {
           Rankings move. Handles change. Good posts keep shipping. This board is a fun snapshot of
           Friends of Convex showing up in public, so share what you know, be kind, and do not take
           the number too seriously.
+        </p>
+        <p>
+          Every number here comes from the public X API, counted with the rules above and nothing
+          else. If a number looks wrong for your account, it is almost always a definition gap, so
+          check the tooltip on the column header first, then tell us and we will fix the
+          measurement.
         </p>
       </aside>
     </div>

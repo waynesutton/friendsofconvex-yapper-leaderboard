@@ -14,10 +14,12 @@ import {
 import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { useMemo, useState, type CSSProperties } from "react";
+import { Link } from "react-router-dom";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { FilterDropdown, type FilterDropdownOption } from "./FilterDropdown";
 import { compactNumber, formatSyncTime, initials, relativeSyncTime } from "./formatters";
+import { MetricInfo } from "./MetricInfo";
 
 // Load-more step when the board is on "All yappers"; Top N picks show all N.
 const PAGE_SIZE = 30;
@@ -69,6 +71,29 @@ const YAPPERS_TRACKS: Array<{ key: keyof BoardDisplay["yappersColumns"]; width: 
   { key: "engagements", width: "minmax(110px, 0.7fr)" },
   { key: "impressions", width: "minmax(150px, 0.8fr)" },
 ];
+
+// Plain language definition for every metric column. These are the answer to
+// "how is this being measured", shown in the header tooltips and mirrored on the
+// About page. Keep them in sync with the sync rules in `convex/xSync.ts`.
+const POSTS_DEFINITION =
+  "Original posts and quote posts published in the last 7 days. Replies and reposts are not counted, so this is lower than your total X activity.";
+
+const METRIC_DEFINITIONS: Partial<Record<SortKey, string>> = {
+  posts: POSTS_DEFINITION,
+  engagements:
+    "Likes plus reposts plus replies plus quotes plus bookmarks on those posts, straight from the X API public metrics. This is not the broader engagement number in X analytics, which also counts link clicks, profile visits, and detail expands.",
+  impressions:
+    "Total public impressions on those posts as reported by the X API. Impressions keep accruing after a post goes up, so this rises between refreshes.",
+  convexPosts: "How many of those posts mention Convex, matched on the whole word only.",
+  convexImpressions: "Public impressions on the Convex mentioning posts only.",
+  convexEngagements:
+    "Likes, reposts, replies, quotes, and bookmarks on the Convex mentioning posts only.",
+  weeklyChange:
+    "Change in Convex post count against the closest saved snapshot at least 7 days older.",
+};
+
+const SHARE_OF_POSTS_DEFINITION =
+  "Convex mentioning posts out of all posts counted in the same 7 day window.";
 
 const CONVEX_TRACKS: Array<{ key: keyof BoardDisplay["convexColumns"]; width: string }> = [
   { key: "convexPosts", width: "minmax(150px, 0.85fr)" },
@@ -408,6 +433,7 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
   }
 
   function headerCell(column: SortKey, label: string) {
+    const definition = METRIC_DEFINITIONS[column];
     return (
       <span role="columnheader" aria-sort={activeSortKey === column ? sortDirection : "none"}>
         <button
@@ -416,6 +442,7 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
           data-active={activeSortKey === column}>
           {label} <span aria-hidden="true">{sortIndicator(column)}</span>
         </button>
+        {definition ? <MetricInfo label={label} definition={definition} /> : null}
       </span>
     );
   }
@@ -441,7 +468,7 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
           <span>Friends of Convex</span>
           <div className="signal-meta">
             <span>{formatSyncTime(latestSync)}</span>
-            <span>Daily at 08:00 UTC</span>
+            <span>Daily at 8:17 AM Pacific</span>
           </div>
         </aside>
       </section>
@@ -459,6 +486,10 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
             <span className="board-sync-chip" title={formatSyncTime(latestSync)}>
               {relativeSyncTime(latestSync)}
             </span>
+            {/* Mobile hides the table header, so the definitions need a link too. */}
+            <Link className="board-method-link" to="/about">
+              How this is measured
+            </Link>
           </p>
           <div className="mode-tabs" aria-label="Ranking mode">
             <button
@@ -600,6 +631,7 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
                 {convexColumns.shareOfPosts ? (
                   <span role="columnheader" className="static-header">
                     Share of posts
+                    <MetricInfo label="Share of posts" definition={SHARE_OF_POSTS_DEFINITION} />
                   </span>
                 ) : null}
                 {convexColumns.convexImpressions
