@@ -2801,16 +2801,23 @@ html[data-theme="convex"] .metric-info-trigger[aria-expanded="true"] {
 }
 
 /* Scoped to the list only: the picker toolbar is also a direct child div, and
-   overflow-y on it clipped the gift count dropdown menu. */
+   overflow-y on it clipped the gift count dropdown menu. Boxed like an inset
+   control so the scroll region reads as one contained well, and the height
+   grows with taller viewports instead of stopping at a fixed cap. */
 .gift-profile-picker > .gift-profile-list {
-  max-height: 420px;
+  max-height: clamp(420px, 60dvh, 960px);
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding-right: 8px;
-  border-top: 1px solid var(--line-standard);
-  border-bottom: 1px solid var(--line-standard);
+  padding: 2px 12px;
+  background: var(--studio-paper);
+  border: 1px solid var(--line-standard);
+  border-radius: var(--radius-small);
   scrollbar-width: thin;
   scrollbar-color: var(--line-emphasis) transparent;
+}
+
+.gift-profile-picker > .gift-profile-list label:last-child {
+  border-bottom: 0;
 }
 
 .gift-profile-picker label {

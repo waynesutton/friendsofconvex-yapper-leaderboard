@@ -22,6 +22,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Changed
 
+- The Approved recipients list in the Gift studio is now a boxed inset well with a full border, rounded corners, and a slightly darker background, so it is obvious the region scrolls. Its height also scales with the viewport (60% of the screen height, between 420px and 960px) instead of stopping at a fixed 420px, so taller screens show more recipients before scrolling (2026-08-16).
 - The board toolbar is rearranged into two rows. Row one pairs the kicker (window label, freshness chip, methodology link) with a compact right aligned search field. Row two sits directly above the table with the Yappers / Convex mentions tabs on the left and the Top filter, Copy link, Share, and Post on X actions on the right. The full width search line is gone; on phones everything stacks with the search taking its own line (2026-08-16).
 - The board kicker now reads "This week's board · Last 7 days" in bold, near full ink so the measurement window is visible at a glance. In the Convex theme the bordered box wraps just the label instead of the whole row, keeping the freshness chip and methodology link beside it (2026-08-16).
 - The board opens on the ranking view in both modes. Yappers previously loaded with the Engagements column as the active sort; now Rank is active on load and when switching between Yappers and Convex mentions. The row order is unchanged since rank already follows each mode's canonical order, only the highlighted sort column moves (2026-08-16).

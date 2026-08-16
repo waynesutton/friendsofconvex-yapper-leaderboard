@@ -5,6 +5,11 @@
 - [ ] Run one production sync (`xSync.refreshAll` from the admin page, or wait for the 15:17 UTC cron) so the live board picks up the reply-filtered post counts. Numbers will drop for everyone; that is the fix landing.
 - [ ] Optional follow up if the "engagements" name keeps causing confusion: rename the column to "Public engagement" so it stops colliding with the broader engagements figure in X analytics.
 
+## Completed — 2026-08-16 03:25 UTC (approved recipients list boxed and viewport aware)
+
+- [x] The Approved recipients list in the Gift studio campaign form is now a visible boxed well: full `--line-standard` border with `--radius-small`, inset `--studio-paper` background against the form's sheet, and inner padding, so the scroll region reads as one contained control instead of two floating hairlines. The last row drops its bottom border to avoid a double line against the box edge. `src/globals.css`.
+- [x] The list height now scales with the viewport: `max-height: clamp(420px, 60dvh, 960px)` replaces the fixed 420px cap, so taller screens show more recipients before scrolling while small screens keep the old floor. Both themes covered since they each define the tokens used.
+
 ## Completed — 2026-08-16 03:10 UTC (board toolbar rearranged)
 
 - [x] Row one of the board is now kicker plus search: "This week's board · Last 7 days", the freshness chip, and the methodology link on the left, with a compact search field (min 380px cap, 48px tall) right aligned beside them. New `board-search` class on the existing `.search-field` control keeps the inset styling.
