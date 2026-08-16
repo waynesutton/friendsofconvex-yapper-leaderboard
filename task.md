@@ -5,6 +5,11 @@
 - [ ] Run one production sync (`xSync.refreshAll` from the admin page, or wait for the 15:17 UTC cron) so the live board picks up the reply-filtered post counts. Numbers will drop for everyone; that is the fix landing.
 - [ ] Optional follow up if the "engagements" name keeps causing confusion: rename the column to "Public engagement" so it stops colliding with the broader engagements figure in X analytics.
 
+## Completed — 2026-08-16 19:25 UTC (board mode switch stands out)
+
+- [x] The Yappers / Convex mentions control is now a two lane channel switch: sheet track, full ink border, equal lanes, sliding ink thumb, coral live pip on the selected ranking, hover fill on the rest lane. Arrow keys move between the two. Import source tabs are unchanged. PRD: prds/board-mode-switch-affordance.md.
+- [x] Verified in the local browser: Yappers starts selected, Convex mentions click slides the thumb and swaps the board columns. `npx tsc --noEmit` and `npm run lint` pass.
+
 ## Completed — 2026-08-16 05:05 UTC (custom DM message per dispatch)
 
 - [x] The New dispatch form has an "Edit the X DM message for this dispatch" toggle below Approved recipients. It opens a textarea prefilled with the default message as a template with `{link}`, `{name}`, and `{number}` placeholders, a character counter (1000 cap), Reset to default, and a live preview rendered with the first selected person. Only that dispatch's recipients get the custom text; the default message stays hardcoded for everything else. PRD: prds/custom-gift-dm-message.md.

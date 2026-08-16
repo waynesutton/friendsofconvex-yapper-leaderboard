@@ -31,6 +31,7 @@
 - `design/references/convex-homepage-reference.png` — Supplied full-page visual reference retained with the project.
 - `design/references/lines-source.svg` — Original supplied racing-line source file retained exactly as provided; its contents are PNG data despite the source extension.
 - `prds/metric-definitions-and-tooltips.md` — Investigation of the "way off" metrics feedback: prod values verified against a live X API replay, the `exclude=replies` leak, and the definition, tooltip, and copy fixes.
+- `prds/board-mode-switch-affordance.md` — Make the Yappers / Convex mentions ranking switch look like a clickable channel control.
 - `prds/lessons.md` — Durable project lessons from corrected implementation and environment assumptions.
 - `README.md` — Public repo introduction: what the board does, the stack, required and optional API / Convex env names (no secrets), Convex agent mode one prompt setup, admin route map, and Convex docs links.
 - `task.md` — Completed work and deferred production tasks.
@@ -56,7 +57,7 @@
 - `src/pages/GiftPassPage.tsx` — Private personalized gift-pass route.
 - `src/pages/GiftLabPassPage.tsx` — Named thank-you route for Gift lab links at `/gift/for/:token`.
 - `src/pages/GiftSharePage.tsx` — Safe public thank-you card route without claim credentials.
-- `src/components/Leaderboard.tsx` — Search, sortable ranking (both modes open on Rank), the compact board toolbar (kicker, freshness chip, How this is measured link, Yappers / Convex mentions toggle, Top N filter dropdown, share), per-column metric definitions rendered as header tooltips, admin-controlled column visibility with a dynamic grid, expandable Convex post rows, streak chips, avatar-anchored top 3 rank badges in both modes with a first place sparkle, and a Load more footer that steps by the Top filter size until the whole board is visible.
+- `src/components/Leaderboard.tsx` — Search, sortable ranking (both modes open on Rank), the compact board toolbar (kicker, freshness chip, How this is measured link, Yappers / Convex mentions channel switch with sliding thumb and live pip, Top N filter dropdown, share), per-column metric definitions rendered as header tooltips, admin-controlled column visibility with a dynamic grid, expandable Convex post rows, streak chips, avatar-anchored top 3 rank badges in both modes with a first place sparkle, and a Load more footer that steps by the Top filter size until the whole board is visible.
 - `src/components/MetricInfo.tsx` — Accessible metric definition popover used on leaderboard column headers; opens on hover and focus, toggles on tap, closes on Escape, blur, or outside press.
 - `src/components/FilterDropdown.tsx` — Shared themed listbox dropdown (trigger button plus floating menu) used for the board Top N filter and the gift count filter; closes on outside click, Escape, or selection.
 - `src/components/AdminPanel.tsx` — Add, archive, restore, rescan, and two step confirm permanent remove controls plus board settings for visible board columns, rank badges, and the Slack digest.

@@ -1578,7 +1578,6 @@ html[data-theme="convex"] .metric-info-trigger[aria-expanded="true"] {
 .primary-button,
 .text-button,
 .import-tabs button,
-.mode-tabs button,
 .import-form button {
   min-height: 44px;
   padding: 0 16px;
@@ -1639,32 +1638,111 @@ html[data-theme="convex"] .metric-info-trigger[aria-expanded="true"] {
   letter-spacing: -0.045em;
 }
 
-.import-tabs,
-.mode-tabs {
+.import-tabs {
   display: flex;
   padding: 3px;
   background: var(--control-inset);
   border-radius: 999px;
 }
 
-.import-tabs button,
-.mode-tabs button {
+.import-tabs button {
   min-height: 40px;
   background: transparent;
   border: 0;
   color: var(--caption-ink);
 }
 
-.import-tabs button[aria-pressed="true"],
-.mode-tabs button[aria-pressed="true"] {
+.import-tabs button[aria-pressed="true"] {
   background: var(--broadcast-ink);
   color: var(--studio-sheet);
 }
 
-/* Ranking mode toggle sits in the board toolbar above search. */
+/* Ranking channel switch: two equal lanes, sliding ink thumb, live pip. */
 .mode-tabs {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  width: min(100%, 440px);
   margin-top: 0;
-  width: fit-content;
+  padding: 4px;
+  background: var(--studio-sheet);
+  border: 1.5px solid var(--broadcast-ink);
+  border-radius: 999px;
+}
+
+.mode-tabs-thumb {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  z-index: 0;
+  width: calc(50% - 4px);
+  height: calc(100% - 8px);
+  background: var(--broadcast-ink);
+  border-radius: 999px;
+  pointer-events: none;
+  transform: translateX(0);
+  transition: transform 200ms ease-out;
+}
+
+.mode-tabs[data-mode="convex"] .mode-tabs-thumb {
+  transform: translateX(100%);
+}
+
+.mode-tabs button {
+  position: relative;
+  z-index: 1;
+  min-height: 48px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  color: var(--broadcast-ink);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  touch-action: manipulation;
+  user-select: none;
+  transition:
+    color 160ms ease,
+    background-color 160ms ease;
+}
+
+.mode-tabs button svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.mode-tabs-pip {
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--broadcast-ink);
+  opacity: 0.28;
+}
+
+.mode-tabs button:hover:not([aria-pressed="true"]) {
+  background: color-mix(in srgb, var(--broadcast-ink) 8%, transparent);
+}
+
+.mode-tabs button[aria-pressed="true"] {
+  color: var(--studio-sheet);
+}
+
+.mode-tabs button[aria-pressed="true"] .mode-tabs-pip {
+  background: var(--signal-coral);
+  opacity: 1;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--signal-coral) 34%, transparent);
+  animation: signal-pulse 2.2s ease-in-out infinite;
 }
 
 .import-form {
@@ -2371,6 +2449,16 @@ html[data-theme="convex"] .metric-info-trigger[aria-expanded="true"] {
   .board-controls .share-toolbar {
     margin-left: 0;
     justify-content: flex-start;
+  }
+
+  .mode-tabs {
+    width: 100%;
+  }
+
+  .mode-tabs button {
+    padding: 0 10px;
+    font-size: 13px;
+    gap: 6px;
   }
 
   /* Search takes its own full width line on small screens. */

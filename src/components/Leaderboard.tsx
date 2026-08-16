@@ -13,7 +13,7 @@ import {
 } from "@phosphor-icons/react";
 import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { useMemo, useState, type CSSProperties } from "react";
+import { useMemo, useState, type CSSProperties, type KeyboardEvent } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
@@ -416,6 +416,24 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
     setSortDirection(defaultSortDirection("rank"));
   }
 
+  function handleModeKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+    if (
+      event.key !== "ArrowLeft" &&
+      event.key !== "ArrowRight" &&
+      event.key !== "Home" &&
+      event.key !== "End"
+    ) {
+      return;
+    }
+    event.preventDefault();
+    const nextMode: BoardMode =
+      event.key === "ArrowLeft" || event.key === "Home" ? "impressions" : "convex";
+    changeMode(nextMode);
+    const tabs = event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>("button");
+    const nextTab = nextMode === "impressions" ? tabs?.[0] : tabs?.[1];
+    nextTab?.focus();
+  }
+
   function changeTopFilter(nextValue: TopFilterValue) {
     setTopFilter(nextValue);
     setVisibleCount(filterStep(nextValue));
@@ -516,19 +534,28 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
           </label>
         </div>
 
-        {/* Mode tabs plus the list and share actions, directly above the table. */}
+        {/* Channel switch plus the list and share actions, directly above the table. */}
         <div className="board-controls">
-          <div className="mode-tabs" aria-label="Ranking mode">
+          <div
+            className="mode-tabs"
+            data-mode={mode}
+            role="group"
+            aria-label="Switch ranking between Yappers and Convex mentions">
+            <span className="mode-tabs-thumb" aria-hidden="true" />
             <button
               type="button"
               aria-pressed={mode === "impressions"}
-              onClick={() => changeMode("impressions")}>
+              onClick={() => changeMode("impressions")}
+              onKeyDown={handleModeKeyDown}>
+              <span className="mode-tabs-pip" aria-hidden="true" />
               <ChatCircleTextIcon aria-hidden="true" /> Yappers
             </button>
             <button
               type="button"
               aria-pressed={mode === "convex"}
-              onClick={() => changeMode("convex")}>
+              onClick={() => changeMode("convex")}
+              onKeyDown={handleModeKeyDown}>
+              <span className="mode-tabs-pip" aria-hidden="true" />
               <TrophyIcon aria-hidden="true" /> Convex mentions
             </button>
           </div>
