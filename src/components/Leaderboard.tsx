@@ -222,9 +222,10 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
   // Board opens on Top 30 and shows the whole selection at once.
   const [topFilter, setTopFilter] = useState<TopFilterValue>("30");
   const [copied, setCopied] = useState<string | null>(null);
-  // Engagement is the default story even when impressions are visible.
-  const [sortKey, setSortKey] = useState<SortKey>("engagements");
-  const [sortDirection, setSortDirection] = useState<SortDirection>("descending");
+  // Both modes open on the ranking view. The canonical rank already encodes
+  // each mode's story (engagements for Yappers, mention count for Convex).
+  const [sortKey, setSortKey] = useState<SortKey>("rank");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("ascending");
   const [expandedId, setExpandedId] = useState<Id<"profiles"> | null>(null);
 
   const convexMode = mode === "convex";
@@ -401,9 +402,10 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
     setMode(nextMode);
     setVisibleCount(PAGE_SIZE);
     setExpandedId(null);
-    const nextKey: SortKey = nextMode === "convex" ? "rank" : "engagements";
-    setSortKey(nextKey);
-    setSortDirection(defaultSortDirection(nextKey));
+    // Switching modes returns to the ranking view so both boards open the
+    // same way.
+    setSortKey("rank");
+    setSortDirection(defaultSortDirection("rank"));
   }
 
   function changeTopFilter(nextValue: TopFilterValue) {
@@ -481,7 +483,8 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
         </h2>
         <div className="board-toolbar">
           <p className="eyebrow board-kicker">
-            This week&apos;s board
+            {/* The label names the window so readers know the counts cover 7 days. */}
+            <span className="board-kicker-label">This week&apos;s board · Last 7 days</span>
             {/* Freshness chip: relative label, absolute time in the tooltip. */}
             <span className="board-sync-chip" title={formatSyncTime(latestSync)}>
               {relativeSyncTime(latestSync)}

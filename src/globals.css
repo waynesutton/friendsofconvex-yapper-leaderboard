@@ -379,6 +379,13 @@ button:disabled {
   gap: 10px;
 }
 
+/* The kicker label states the 7 day window, so it reads at near full ink
+   while the chip and method link stay quieter beside it. */
+.board-kicker-label {
+  color: var(--broadcast-ink-soft);
+  font-weight: 750;
+}
+
 /* Freshness chip beside the board kicker: quiet mono label, exact time on hover. */
 .board-sync-chip {
   padding: 3px 10px;
@@ -392,11 +399,6 @@ button:disabled {
   text-transform: uppercase;
   white-space: nowrap;
   cursor: default;
-}
-
-html[data-theme="convex"] .board-sync-chip {
-  border-color: rgba(255, 250, 240, 0.2);
-  color: rgba(255, 250, 240, 0.6);
 }
 
 /* Route to the methodology for readers on mobile, where the column header
@@ -416,14 +418,6 @@ html[data-theme="convex"] .board-sync-chip {
 
 .board-method-link:hover {
   color: var(--signal-coral-dark);
-}
-
-html[data-theme="convex"] .board-method-link {
-  color: rgba(255, 250, 240, 0.6);
-}
-
-html[data-theme="convex"] .board-method-link:hover {
-  color: rgba(255, 250, 240, 0.95);
 }
 
 .board-toolbar .mode-tabs {
@@ -4371,8 +4365,18 @@ html[data-theme="convex"] .board-shell {
   padding: 20px 0 96px;
 }
 
+/* The generic convex eyebrow draws a box around the whole row, which would trap
+   the sync chip and method link. Move the box onto the label span instead. */
 html[data-theme="convex"] .board-toolbar .board-kicker {
   margin: 0;
+  padding: 0;
+  border: none;
+}
+
+html[data-theme="convex"] .board-toolbar .board-kicker-label {
+  padding: 4px 7px;
+  border: 1px solid currentColor;
+  border-radius: 3px;
 }
 
 html[data-theme="convex"] .board-heading h2 {

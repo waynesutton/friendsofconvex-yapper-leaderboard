@@ -13,6 +13,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Fixed
 
+- The board's freshness chip and "How this is measured" link were unreadable in the Convex theme: leftover overrides painted them near white on the cream paper background. The overrides are gone and both now use the theme's ink tokens, so they read in both themes (2026-08-16).
 - The Posts column no longer counts replies. X's `exclude=replies` parameter still returns self-thread replies, so a week that looked like 50 posts was really 18 original posts, 22 quote posts, and 10 replies. The sync now reads `referenced_tweets` and drops anything that is a reply or a repost, and every metric in the row (posts, engagements, impressions, Convex mentions) is counted from that same filtered list. Quote posts still count as posts. Post counts drop for everyone after the next daily refresh (2026-08-16).
 - The board and About page said the daily refresh runs at 08:00 UTC. The cron actually runs at 15:17 UTC, so both now read "8:17 AM Pacific" (2026-08-16).
 - The Share a safe public card button keeps its 56px pill size after a gift is confirmed. The confirmed message box was taller than the buttons, so the grid row stretched the share button into a bigger oval. The message is now the same 56px pill as the actions, and its copy reads "Gift confirmed." on both the board pass and Gift lab pages (2026-08-15).
@@ -21,6 +22,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Changed
 
+- The board kicker now reads "This week's board · Last 7 days" in bold, near full ink so the measurement window is visible at a glance. In the Convex theme the bordered box wraps just the label instead of the whole row, keeping the freshness chip and methodology link beside it (2026-08-16).
+- The board opens on the ranking view in both modes. Yappers previously loaded with the Engagements column as the active sort; now Rank is active on load and when switching between Yappers and Convex mentions. The row order is unchanged since rank already follows each mode's canonical order, only the highlighted sort column moves (2026-08-16).
 - README is the public setup source of truth: feature list covers Gift lab, Top N / Load more, 7 day gift expiry, and gift studio bulk tools; a new APIs and accounts section lists required and optional Convex env **names** with no secret values; the one prompt agent block documents Convex agent mode and the X OAuth callback shape without pointing at gitignored local docs (2026-08-16).
 - Gift links now hard expire 7 days after the dispatch is created, and the cap applies to links generated before this rule with no migration. The portal query and both reveal mutations enforce the cap with server time; redeemed passes stay viewable. The campaign form caps Days active at 7, the DM text tells recipients about the window, and the gifts guide documents it (2026-08-15).
 

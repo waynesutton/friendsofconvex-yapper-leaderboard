@@ -5,6 +5,20 @@
 - [ ] Run one production sync (`xSync.refreshAll` from the admin page, or wait for the 15:17 UTC cron) so the live board picks up the reply-filtered post counts. Numbers will drop for everyone; that is the fix landing.
 - [ ] Optional follow up if the "engagements" name keeps causing confusion: rename the column to "Public engagement" so it stops colliding with the broader engagements figure in X analytics.
 
+## Completed — 2026-08-16 03:00 UTC (readable board kicker and time window)
+
+- [x] The board kicker now reads "This week's board · Last 7 days" so the measurement window is stated where readers look first. The label renders at near full ink (`--broadcast-ink-soft`, weight 750) instead of muted caption ink. `src/components/Leaderboard.tsx`, `src/globals.css`.
+- [x] Fixed a real contrast bug the screenshot exposed: the freshness chip and the "How this is measured" link had Convex theme overrides of `rgba(255, 250, 240, 0.6)` (near white) sitting on the cream `--studio-paper` background, so both were unreadable. The overrides are removed and both now use the theme's ink tokens.
+- [x] In the Convex theme the bordered eyebrow box wrapped the whole kicker row (label, chip, and link). The border now sits on the label span only, so the chip and link stand beside the boxed label.
+- [x] Verified in the local browser in both themes with screenshots; `npx tsc --noEmit`, `npm run lint`, and `npm run build` pass.
+
+## Completed — 2026-08-16 03:00 UTC (default rank view and reply filter re-check)
+
+- [x] Both board modes now open on the ranking view. Default `sortKey` is `rank` ascending, and toggling Yappers / Convex mentions resets to Rank instead of Engagements. Row order is unchanged because rank already encodes each mode's canonical order. `src/components/Leaderboard.tsx`.
+- [x] Re-verified the reply filter on dev: re-ran `xSync:refreshAllScheduled`, today's snapshot upserts to postCount 26 / convexPostCount 11 (pre-fix rows were 42 / 26), and the browser board shows 26 posts with "11 of 26" share. Convex mention counts also exclude reply-thread mentions now, keeping Convex posts a true subset of Posts.
+- [x] Verified in the local browser: Rank is `aria-sort="ascending"` and the active header on load in both modes, and sorting by Convex impressions then toggling back to Yappers resets to Rank. Tooltips render on all metric headers.
+- [x] Verified: `npx tsc --noEmit`, `npm run lint`, and `npm run build` pass.
+
 ## Completed — 2026-08-16 02:55 UTC (metric definitions, honest post counts, column tooltips)
 
 - [x] Investigated the "49 posts and 75k engagements ... that is way off" feedback. Read prod (`profiles:listLeaderboard`), then replayed the exact X API v2 request `convex/xSync.ts` makes for the rank 1 account. The stored values match the API, so **no resync was needed and a resync would not have changed anything**. The problem was definitional. PRD: prds/metric-definitions-and-tooltips.md.
