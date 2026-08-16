@@ -110,8 +110,8 @@ export function GiftLabPortal({ token }: { token: string }) {
           </span>
         </h1>
         <p>
-          This private pass reveals one free Fourthwall gift. Fourthwall collects the shipping
-          details only after you continue.
+          This private pass reveals one free gift from Convex. Continue to Fourthwall to collect the
+          shipping details.
         </p>
         <div className="gift-trust-line">
           <CheckCircleIcon aria-hidden="true" />

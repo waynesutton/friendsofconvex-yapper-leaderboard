@@ -19,6 +19,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Changed
 
+- README is the public setup source of truth: feature list covers Gift lab, Top N / Load more, 7 day gift expiry, and gift studio bulk tools; a new APIs and accounts section lists required and optional Convex env **names** with no secret values; the one prompt agent block documents Convex agent mode and the X OAuth callback shape without pointing at gitignored local docs (2026-08-16).
 - Gift links now hard expire 7 days after the dispatch is created, and the cap applies to links generated before this rule with no migration. The portal query and both reveal mutations enforce the cap with server time; redeemed passes stay viewable. The campaign form caps Days active at 7, the DM text tells recipients about the window, and the gifts guide documents it (2026-08-15).
 
 ### Added

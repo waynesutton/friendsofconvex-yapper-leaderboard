@@ -1,5 +1,12 @@
 # Task log
 
+## Completed — 2026-08-16 00:55 UTC (README and agent setup prompt)
+
+- [x] Rewrote `README.md` so fork setup is self contained (local `docs/` stays gitignored). Feature list now covers Gift lab, Top N / Load more, 7 day gift expiry, product shelf, Dispatches bulk ops, and admin surfaces.
+- [x] Added an APIs and accounts table with Convex env **names only** (required X OAuth + Bearer Token + Auth keys + SITE_URL + ADMIN_X_USER_IDS; optional Fourthwall, X DM / Account Activity, Slack). No secret values.
+- [x] Updated the one prompt coding agent block for Convex agent mode (`CONVEX_AGENT_MODE=anonymous`), callback URL shape, and skip list for gifts on first run.
+- [x] Synced `task.md`, `changelog.md`, and `files.md` for this docs pass.
+
 ## Completed — 2026-08-16 00:52 UTC (confirmed state button size and copy)
 
 - [x] The Share a safe public card button no longer changes shape after a gift is confirmed. `.gift-portal-actions` is a grid and its items stretch to the row height, so the taller confirmed message box (68px, boxy corners) stretched the share pill into a bigger oval. `.gift-redeemed-message` is now the same 56px pill as `.gift-primary-action` and `.gift-share-action`, so both grid cells match before and after redemption. `src/globals.css`.

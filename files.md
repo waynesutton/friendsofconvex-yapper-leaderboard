@@ -31,7 +31,7 @@
 - `design/references/convex-homepage-reference.png` — Supplied full-page visual reference retained with the project.
 - `design/references/lines-source.svg` — Original supplied racing-line source file retained exactly as provided; its contents are PNG data despite the source extension.
 - `prds/lessons.md` — Durable project lessons from corrected implementation and environment assumptions.
-- `README.md` — Public repo introduction: what the board does, the stack, setup requirements, a one prompt agent setup block, and Convex docs links.
+- `README.md` — Public repo introduction: what the board does, the stack, required and optional API / Convex env names (no secrets), Convex agent mode one prompt setup, admin route map, and Convex docs links.
 - `task.md` — Completed work and deferred production tasks.
 - `changelog.md` — User-visible changes in Keep a Changelog format.
 

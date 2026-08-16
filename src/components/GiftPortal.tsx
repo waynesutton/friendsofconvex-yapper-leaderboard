@@ -37,7 +37,13 @@ function formatExpiryDate(timestamp: number): string {
 // tells the parent when the pass runs out so the page can flip to the
 // expired state without a reload. The server still enforces expiry on every
 // reveal and claim mutation. Exported so the Gift lab portal reuses it.
-export function GiftCountdown({ expiresAt, onExpired }: { expiresAt: number; onExpired: () => void }) {
+export function GiftCountdown({
+  expiresAt,
+  onExpired,
+}: {
+  expiresAt: number;
+  onExpired: () => void;
+}) {
   const [remaining, setRemaining] = useState(() => expiresAt - Date.now());
 
   useEffect(() => {
@@ -215,8 +221,8 @@ export function GiftPortal({ token }: { token: string }) {
           </span>
         </h1>
         <p>
-          This private pass reveals one free Fourthwall gift. Fourthwall collects the shipping
-          details only after you continue.
+          This private pass reveals one free gift from Convex. Continue to Fourthwall to collect the
+          shipping details.
         </p>
         <div className="gift-trust-line">
           <CheckCircleIcon aria-hidden="true" />
