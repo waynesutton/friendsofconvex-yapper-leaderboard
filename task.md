@@ -1,5 +1,11 @@
 # Task log
 
+## Completed — 2026-08-16 19:42 UTC (avatar bio peek on the board)
+
+- [x] Every leaderboard avatar now opens a bio peek card: hover (280ms delay), keyboard focus, or tap shows the person's synced X bio with linkified @mentions and URLs, their follower count in mono, and an Open on X link. A coral ring plus a small scale on the avatar signals the face is live. PRD: prds/avatar-hover-bio.md. `src/components/ProfilePeek.tsx` (new), `src/components/Leaderboard.tsx`, `src/globals.css`.
+- [x] Card is `position: fixed` and measured from the avatar rect so the table's `overflow: hidden` cannot clip it; it flips above near the viewport bottom and shifts inside the right edge. One card at a time via board-level state; closes on Escape (refocuses the avatar), blur, outside press, or scroll. Frontend only: `bio` and `currentFollowers` were already on the public leaderboard projection.
+- [x] Verified in the browser on dev: card contents and coral bio links, viewport bounding boxes on first and last rows, single-card behavior, Escape, both themes (cream sheet in each), empty-bio row shows "Awaiting sync", zero console errors. `npx tsc --noEmit` and `npm run lint` pass.
+
 ## To do
 
 - [ ] Run one production sync (`xSync.refreshAll` from the admin page, or wait for the 15:17 UTC cron) so the live board picks up the reply-filtered post counts. Numbers will drop for everyone; that is the fix landing.

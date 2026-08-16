@@ -20,6 +20,7 @@ import type { Id } from "../../convex/_generated/dataModel";
 import { FilterDropdown, type FilterDropdownOption } from "./FilterDropdown";
 import { compactNumber, formatSyncTime, initials, relativeSyncTime } from "./formatters";
 import { MetricInfo } from "./MetricInfo";
+import { ProfilePeek } from "./ProfilePeek";
 
 // Load-more step when the board is on "All yappers"; Top N picks step by N.
 const PAGE_SIZE = 30;
@@ -237,6 +238,8 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
   const [sortKey, setSortKey] = useState<SortKey>("rank");
   const [sortDirection, setSortDirection] = useState<SortDirection>("ascending");
   const [expandedId, setExpandedId] = useState<Id<"profiles"> | null>(null);
+  // Which row's avatar bio peek is open; one card at a time across the board.
+  const [peekId, setPeekId] = useState<Id<"profiles"> | null>(null);
 
   const convexMode = mode === "convex";
   const activeRows = convexMode ? convexProfiles : profiles;
@@ -729,7 +732,12 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
                     </span>
                     <div className="person-cell" role="cell">
                       <span className="avatar-stack">
-                        <ProfileAvatar profile={profile} />
+                        <ProfilePeek
+                          profile={profile}
+                          open={peekId === profile._id}
+                          onOpenChange={(next) => setPeekId(next ? profile._id : null)}>
+                          <ProfileAvatar profile={profile} />
+                        </ProfilePeek>
                         {badge ? <RankBadgeMark badge={badge} /> : null}
                       </span>
                       <span>

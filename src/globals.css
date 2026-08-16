@@ -1058,6 +1058,143 @@ html[data-theme="convex"] .metric-info-trigger[aria-expanded="true"] {
   height: 34px;
 }
 
+/* Avatar bio peek: hover or focus the face and a small call sheet card opens
+   with the synced X bio, followers, and an Open on X link. The card uses
+   position: fixed so the table's overflow: hidden cannot clip it. */
+.profile-peek {
+  display: inline-flex;
+}
+
+.profile-peek-trigger {
+  margin: 0;
+  padding: 0;
+  display: inline-flex;
+  background: none;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.profile-peek-trigger .profile-avatar {
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+/* Coral tally ring: the signal that the face is live. */
+.profile-peek-trigger:hover .profile-avatar,
+.profile-peek-trigger[aria-expanded="true"] .profile-avatar {
+  transform: scale(1.04);
+  box-shadow:
+    0 0 0 2px var(--studio-sheet),
+    0 0 0 4px var(--signal-coral);
+}
+
+.profile-peek-card {
+  position: fixed;
+  z-index: 60;
+  width: min(320px, calc(100vw - 24px));
+  padding: 12px 14px;
+  display: grid;
+  gap: 8px;
+  background: var(--studio-sheet);
+  border: 1px solid var(--line-emphasis);
+  border-radius: var(--radius-medium);
+  box-shadow: 0 14px 32px rgba(20, 12, 10, 0.18);
+  color: var(--broadcast-ink-soft);
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.45;
+  text-align: left;
+}
+
+/* Undo the person-cell ellipsis rules that would otherwise clip card text. */
+.profile-peek-card strong,
+.profile-peek-card a {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.profile-peek-identity {
+  margin: 0;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.profile-peek-identity strong {
+  overflow: hidden;
+  color: var(--broadcast-ink);
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-peek-identity a {
+  flex: 0 0 auto;
+  color: var(--caption-ink);
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.profile-peek-identity a:hover {
+  color: var(--signal-coral-dark);
+  text-decoration: underline;
+}
+
+.profile-peek-bio {
+  margin: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.profile-peek-bio a {
+  color: var(--signal-coral-dark);
+  text-decoration: none;
+}
+
+.profile-peek-bio a:hover {
+  text-decoration: underline;
+}
+
+.profile-peek-footer {
+  margin: 0;
+  padding-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--line-whisper);
+}
+
+.profile-peek-followers {
+  color: var(--caption-ink);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.profile-peek-open {
+  color: var(--signal-coral-dark);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.profile-peek-open:hover {
+  text-decoration: underline;
+}
+
 .convex-posts-panel {
   padding: 6px 20px 18px;
   background: var(--studio-paper-deep);
