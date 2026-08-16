@@ -1,5 +1,14 @@
 # Task log
 
+## Completed — 2026-08-16 21:42 UTC (hero eyebrow hidden)
+
+- [x] Commented out the hero eyebrow line "Friends of Convex · people edition / Top signal / 7 days" above the main board headline. The JSX stays in `src/components/Leaderboard.tsx` as a comment so it can come back with one edit; the `.hero-eyebrow` styles are untouched.
+
+## Completed — 2026-08-16 21:40 UTC (no radial backgrounds on page headers)
+
+- [x] Removed the radial gradient glow overlay from the Convex theme hero header (`.hero::before` in `src/globals.css`), acting on direct user feedback that radial backgrounds make a page read as AI generated. The header keeps its flat `#211718` base and the racing lines image for texture. A comment in the stylesheet records the standing rule: no radial gradient backgrounds anywhere in the app, header washes stay flat or linear only.
+- [x] Confirmed this was the only radial gradient in `src/`; the remaining gradients are the paper grid and the brand tricolor bar, both linear.
+
 ## Completed — 2026-08-16 20:10 UTC (impressions column matches, refresh honesty in About and README)
 
 - [x] Unbolded the Impressions column: the cell is now a `metric-cell` span like Posts and Engagements instead of a `<strong>` with a 15px override, so no column visually claims the ranking. `src/components/Leaderboard.tsx`, `src/globals.css`.

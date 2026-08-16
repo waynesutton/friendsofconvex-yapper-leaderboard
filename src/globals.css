@@ -4654,14 +4654,8 @@ html[data-theme="convex"] .hero {
   color: #fffaf0;
 }
 
-html[data-theme="convex"] .hero::before {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  inset: 0;
-  background: radial-gradient(circle at 22% 44%, rgba(238, 52, 47, 0.12), transparent 34%);
-  pointer-events: none;
-}
+/* Design constraint: no radial gradient backgrounds anywhere in the app.
+   Header washes stay flat color or linear only. */
 
 html[data-theme="convex"] .hero-copy,
 html[data-theme="convex"] .signal-panel {

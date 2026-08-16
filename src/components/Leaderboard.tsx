@@ -483,10 +483,10 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
     <div className="leaderboard-page">
       <section className="hero" aria-labelledby="hero-title">
         <div className="hero-copy">
-          <p className="eyebrow hero-eyebrow">
+          {/* <p className="eyebrow hero-eyebrow">
             <span>Friends of Convex · people edition</span>
             <span>Top signal / 7 days</span>
-          </p>
+          </p> */}
           <p className="hero-deck">Who&rsquo;s yapping and who&rsquo;s posting about Convex.</p>
           <h1 id="hero-title">
             Friends of Convex <span>Yapper Leader Board</span>
