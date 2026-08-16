@@ -1,5 +1,10 @@
 # Task log
 
+## Completed — 2026-08-15 23:59 UTC (gift count dropdown fix)
+
+- [x] The "All gift counts" dropdown in the Approved recipients picker opens again. The recipient list rule `.gift-profile-picker > div` also matched the picker toolbar, and its `overflow-y: auto` clipped the floating menu, so the caret flipped but no options showed. The list div now carries a `gift-profile-list` class and the CSS targets only it, which also removes the stray border line under the toolbar. Filters (No gifts yet, 1 through 4, 5+) work as designed. `src/components/GiftAdminPanel.tsx`, `src/globals.css`.
+- [x] Verified: `npm run typecheck` and `npm run build` pass.
+
 ## Completed — 2026-08-15 23:46 UTC (engagement rank badges and 7 day gift links)
 
 - [x] Rank badges now follow the engagement order after every sync or import. `profiles.listLeaderboard` sorts synced profiles first, then engagements, impressions, posts, and added date as tie breakers, so the canonical rank the frontend uses for badges matches the board's default Engagements sort. Verified against the dev deployment: rows come back synced-first in engagement order. `convex/profiles.ts`.

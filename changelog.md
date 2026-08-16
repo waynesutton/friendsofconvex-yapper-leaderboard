@@ -13,6 +13,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Fixed
 
+- The gift count filter dropdown in the Approved recipients picker opens again. A recipient list style also matched the picker toolbar and its overflow clipped the floating menu, so the trigger toggled but no options appeared. The list now has its own class and the overflow rule no longer touches the toolbar (2026-08-15).
 - Rank badges no longer drift after a sync or import. The leaderboard query now returns rows in the board's canonical order: synced profiles first, then engagements, impressions, posts, and added date as tie breakers, so the top 3 badges always sit on the top 3 engagement rows (2026-08-15).
 
 ### Changed

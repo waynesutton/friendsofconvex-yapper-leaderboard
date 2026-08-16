@@ -1200,7 +1200,7 @@ export function GiftAdminPanel() {
                 A dispatch supports at most 50 recipients. Deselect {selectedProfiles.size - 50} to continue.
               </p>
             ) : null}
-            <div>
+            <div className="gift-profile-list">
               {eligibleProfiles.length === 0 ? <span className="gift-empty">Sync an approved X profile before issuing a gift.</span> : shownProfiles.length === 0 ? <span className="gift-empty">{profileSearch.trim() ? `No recipients match “${profileSearch.trim()}”${giftCountFilter !== "all" ? " with this gift filter" : ""}.` : "No recipients match this gift filter."}</span> : shownProfiles.map((profile) => {
                 const intent = profile.xUserId ? intentsByXUserId.get(profile.xUserId) : null;
                 const stats = giftStatsByProfileId.get(profile._id);

@@ -2641,7 +2641,9 @@ html[data-theme="convex"] .board-sync-chip {
   font-size: 13px;
 }
 
-.gift-profile-picker > div {
+/* Scoped to the list only: the picker toolbar is also a direct child div, and
+   overflow-y on it clipped the gift count dropdown menu. */
+.gift-profile-picker > .gift-profile-list {
   max-height: 420px;
   overflow-y: auto;
   overscroll-behavior: contain;
