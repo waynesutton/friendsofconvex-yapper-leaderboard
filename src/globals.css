@@ -2937,6 +2937,95 @@ html[data-theme="convex"] .metric-info-trigger[aria-expanded="true"] {
   line-height: 1.5;
 }
 
+/* Custom DM editor in the New dispatch form: the toggle sits with the other
+   checks, and the panel below carries the textarea, tools, and live preview. */
+.gift-dm-toggle {
+  margin-bottom: 0;
+}
+
+.gift-dm-editor {
+  margin: 14px 0 0;
+  padding: 16px;
+  display: grid;
+  gap: 10px;
+  background: var(--control-inset);
+  border-radius: var(--radius-small);
+}
+
+.gift-dm-editor > label {
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.gift-dm-editor textarea {
+  width: 100%;
+  min-height: 150px;
+  padding: 12px 14px;
+  background: var(--studio-sheet);
+  border: 1px solid var(--line-standard);
+  border-radius: var(--radius-small);
+  color: var(--broadcast-ink);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.55;
+  resize: vertical;
+}
+
+.gift-dm-editor textarea:focus {
+  border-color: var(--control-focus);
+  outline: 0;
+}
+
+.gift-dm-editor-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.gift-dm-editor-tools small {
+  flex: 1 1 240px;
+  color: var(--caption-ink);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.gift-dm-count {
+  color: var(--caption-ink);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.gift-dm-preview-label {
+  margin: 4px 0 0;
+  color: var(--caption-ink);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.gift-dm-preview-text {
+  margin: 0;
+  padding: 12px 14px;
+  background: var(--studio-sheet);
+  border: 1px solid var(--line-whisper);
+  border-radius: var(--radius-small);
+  color: var(--broadcast-ink-soft);
+  font-size: 13px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* Recipient ledger note for dispatches created with an edited DM. */
+.gift-dm-active-note {
+  border-top: 0;
+}
+
+.gift-dm-active-note .gift-dm-preview-text {
+  margin-bottom: 14px;
+  max-width: 720px;
+}
+
 /* The dispatch list scrolls on its own so a long history never stretches
    the studio page. */
 /* The rail is a flex column so the campaign list below can flex to the full

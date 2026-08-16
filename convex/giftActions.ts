@@ -372,6 +372,9 @@ export const createCampaign = action({
     profileIds: v.array(v.id("profiles")),
     portalDays: v.number(),
     consentConfirmed: v.boolean(),
+    // Optional per-dispatch DM text. Only the recipients in this dispatch get
+    // it; the hardcoded default in sendGiftDm stays the fallback for others.
+    customDmMessage: v.optional(v.string()),
   },
   returns: v.object({
     campaignId: v.id("giftCampaigns"),
@@ -409,6 +412,7 @@ export const createCampaign = action({
       profiles,
       portalTokens,
       shareTokens,
+      customDmMessage: args.customDmMessage,
     });
 
     try {
@@ -683,6 +687,38 @@ async function validSenderAccessToken(ctx: ActionCtx): Promise<string> {
   return refreshed.accessToken;
 }
 
+// Builds the DM body for one recipient. Without a custom message this is the
+// original default text, byte for byte. A custom message supports {link},
+// {name}, and {number} placeholders, and two safety nets keep every send
+// deliverable and compliant: the pass link is appended when {link} is missing,
+// and the STOP notice is appended when the text never mentions STOP.
+export function buildGiftDmText(args: {
+  customMessage: string | null;
+  portalUrl: string;
+  displayName: string;
+  giftNumber: number;
+}): string {
+  const custom = args.customMessage?.trim();
+  if (!custom) {
+    return (
+      `Your Friends of Convex gift #${args.giftNumber} is ready. Your personal gift pass is ${args.portalUrl}\n\n` +
+      "The pass expires 7 days after it was issued, so grab it soon. " +
+      "The page clearly links to Fourthwall for redemption. Reply STOP if you do not want another message."
+    );
+  }
+  let text = custom
+    .replaceAll("{link}", args.portalUrl)
+    .replaceAll("{name}", args.displayName)
+    .replaceAll("{number}", String(args.giftNumber));
+  if (!text.includes(args.portalUrl)) {
+    text += `\n\nYour personal gift pass is ${args.portalUrl}`;
+  }
+  if (!/\bstop\b/i.test(text)) {
+    text += "\n\nReply STOP if you do not want another message.";
+  }
+  return text;
+}
+
 export const sendGiftDm = action({
   args: { recipientId: v.id("giftRecipients") },
   returns: v.object({
@@ -741,11 +777,18 @@ export const sendGiftDm = action({
           "Send cancelled because this recipient is currently opted out.",
         );
       }
+      // The dispatch may carry a custom DM message; absent one, the default
+      // text below in buildGiftDmText is used unchanged.
+      const campaign = await ctx.runQuery(internal.gifts.getCampaignForSync, {
+        campaignId: recipient.campaignId,
+      });
       const portalUrl = `${frontendUrl()}/gift/${recipient.portalToken}`;
-      const text =
-        `Your Friends of Convex gift #${recipient.giftNumber ?? 1} is ready. Your personal gift pass is ${portalUrl}\n\n` +
-        "The pass expires 7 days after it was issued, so grab it soon. " +
-        "The page clearly links to Fourthwall for redemption. Reply STOP if you do not want another message.";
+      const text = buildGiftDmText({
+        customMessage: campaign?.customDmMessage ?? null,
+        portalUrl,
+        displayName: recipient.displayName,
+        giftNumber: recipient.giftNumber ?? 1,
+      });
       const response = await fetch(
         `${X_API}/2/dm_conversations/with/${encodeURIComponent(recipient.xUserId)}/messages`,
         {

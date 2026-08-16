@@ -21,10 +21,11 @@ import { FilterDropdown, type FilterDropdownOption } from "./FilterDropdown";
 import { compactNumber, formatSyncTime, initials, relativeSyncTime } from "./formatters";
 import { MetricInfo } from "./MetricInfo";
 
-// Load-more step when the board is on "All yappers"; Top N picks show all N.
+// Load-more step when the board is on "All yappers"; Top N picks step by N.
 const PAGE_SIZE = 30;
 
-// Top N cap applied after search and sort; "all" shows everyone.
+// Top N sets the starting row count after search and sort. Load more keeps
+// revealing rows past N until everyone is shown; "all" starts at PAGE_SIZE.
 type TopFilterValue = "30" | "60" | "100" | "150" | "all";
 const TOP_FILTER_OPTIONS: Array<FilterDropdownOption<TopFilterValue>> = [
   { value: "30", label: "Top 30" },
@@ -51,6 +52,13 @@ type SortKey =
 type SortDirection = "ascending" | "descending";
 
 type BoardDisplay = FunctionReturnType<typeof api.boardSettings.getBoardDisplay>;
+
+// How many rows a filter reveals at first, and how many each Load more click
+// adds. Top 30 starts at 30 and loads 30 more; Top 60 starts at 60 and loads
+// 60 more; "All yappers" starts at PAGE_SIZE and steps by PAGE_SIZE.
+function filterStep(filter: TopFilterValue): number {
+  return filter === "all" ? PAGE_SIZE : Number(filter);
+}
 
 // Everything visible until the admin settings load.
 const ALL_VISIBLE: BoardDisplay = {
@@ -208,19 +216,21 @@ function formatWeeklyChange(row: LeaderboardRow): string {
 
 export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) {
   // Both modes stay subscribed so toggling re-sorts instantly with no refetch.
-  const profiles = useQuery(api.profiles.listLeaderboard, { limit: 200 });
+  // 250 is the backend cap, so Load more can walk through the whole board.
+  const profiles = useQuery(api.profiles.listLeaderboard, { limit: 250 });
   const convexProfiles = useQuery(api.profiles.listLeaderboard, {
-    limit: 200,
+    limit: 250,
     mode: "convex",
   });
   const rankBadges = useQuery(api.badges.listRankBadges, {});
   const display = useQuery(api.boardSettings.getBoardDisplay, {}) ?? ALL_VISIBLE;
   const [mode, setMode] = useState<BoardMode>("impressions");
   const [search, setSearch] = useState(initialSearch);
-  // Only used on "All yappers": how many sorted rows are revealed right now.
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-  // Board opens on Top 30 and shows the whole selection at once.
+  // Board opens on Top 30; Load more extends past the filter until everyone
+  // is visible.
   const [topFilter, setTopFilter] = useState<TopFilterValue>("30");
+  // How many sorted rows are revealed right now.
+  const [visibleCount, setVisibleCount] = useState(() => filterStep("30"));
   const [copied, setCopied] = useState<string | null>(null);
   // Both modes open on the ranking view. The canonical rank already encodes
   // each mode's story (engagements for Yappers, mention count for Convex).
@@ -334,13 +344,11 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
     });
   }, [activeRows, activeSortKey, canonicalRanks, search, sortDirection]);
 
-  // The dropdown drives the list length: Top 30 renders 30 rows, Top 60
-  // renders 60, and so on. Load more only appears on "All yappers", stepping
-  // through everyone thirty at a time.
-  const topLimit = topFilter === "all" ? null : Number(topFilter);
-  const cappedProfiles = topLimit ? sortedProfiles.slice(0, topLimit) : sortedProfiles;
-  const visibleProfiles = topLimit ? cappedProfiles : cappedProfiles.slice(0, visibleCount);
-  const remainingCount = cappedProfiles.length - visibleProfiles.length;
+  // The dropdown drives the starting list length: Top 30 opens with 30 rows,
+  // Top 60 with 60, and so on. Load more always appears while more rows exist,
+  // stepping by the filter size until the whole board is visible.
+  const visibleProfiles = sortedProfiles.slice(0, visibleCount);
+  const remainingCount = sortedProfiles.length - visibleProfiles.length;
   const syncedProfiles = profiles?.filter((profile) => profile.syncStatus === "synced") ?? [];
   const latestSync = syncedProfiles.reduce<number | null>(
     (latest, profile) =>
@@ -394,13 +402,13 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
 
   function changeSearch(value: string) {
     setSearch(value);
-    setVisibleCount(PAGE_SIZE);
+    setVisibleCount(filterStep(topFilter));
   }
 
   function changeMode(nextMode: BoardMode) {
     if (nextMode === mode) return;
     setMode(nextMode);
-    setVisibleCount(PAGE_SIZE);
+    setVisibleCount(filterStep(topFilter));
     setExpandedId(null);
     // Switching modes returns to the ranking view so both boards open the
     // same way.
@@ -410,19 +418,19 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
 
   function changeTopFilter(nextValue: TopFilterValue) {
     setTopFilter(nextValue);
-    setVisibleCount(PAGE_SIZE);
+    setVisibleCount(filterStep(nextValue));
   }
 
   function chooseSort(nextSortKey: SortKey) {
     setSortKey(nextSortKey);
     setSortDirection(defaultSortDirection(nextSortKey));
-    setVisibleCount(PAGE_SIZE);
+    setVisibleCount(filterStep(topFilter));
   }
 
   function changeSort(nextSortKey: SortKey) {
     if (sortKey === nextSortKey) {
       setSortDirection((direction) => (direction === "ascending" ? "descending" : "ascending"));
-      setVisibleCount(PAGE_SIZE);
+      setVisibleCount(filterStep(topFilter));
       return;
     }
 
@@ -504,7 +512,7 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
               onChange={(event) => changeSearch(event.target.value)}
               placeholder="Search a person or @handle"
             />
-            {activeRows ? <span>{cappedProfiles.length} people</span> : null}
+            {activeRows ? <span>{sortedProfiles.length} people</span> : null}
           </label>
         </div>
 
@@ -856,13 +864,13 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
         <div className="board-load-more" aria-live="polite">
           <span>
             {remainingCount > 0
-              ? `Showing ${visibleProfiles.length} of ${cappedProfiles.length}`
+              ? `Showing ${visibleProfiles.length} of ${sortedProfiles.length}`
               : `Showing all ${visibleProfiles.length}`}
           </span>
           {remainingCount > 0 ? (
             <button
               type="button"
-              onClick={() => setVisibleCount((current) => current + PAGE_SIZE)}>
+              onClick={() => setVisibleCount((current) => current + filterStep(topFilter))}>
               Load more <CaretDownIcon aria-hidden="true" />
             </button>
           ) : null}

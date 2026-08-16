@@ -5,6 +5,20 @@
 - [ ] Run one production sync (`xSync.refreshAll` from the admin page, or wait for the 15:17 UTC cron) so the live board picks up the reply-filtered post counts. Numbers will drop for everyone; that is the fix landing.
 - [ ] Optional follow up if the "engagements" name keeps causing confusion: rename the column to "Public engagement" so it stops colliding with the broader engagements figure in X analytics.
 
+## Completed — 2026-08-16 05:05 UTC (custom DM message per dispatch)
+
+- [x] The New dispatch form has an "Edit the X DM message for this dispatch" toggle below Approved recipients. It opens a textarea prefilled with the default message as a template with `{link}`, `{name}`, and `{number}` placeholders, a character counter (1000 cap), Reset to default, and a live preview rendered with the first selected person. Only that dispatch's recipients get the custom text; the default message stays hardcoded for everything else. PRD: prds/custom-gift-dm-message.md.
+- [x] Backend: optional `customDmMessage` on `giftCampaigns`, threaded through `createCampaign` and `createProvisioningCampaign` (trim plus 1000 char server cap). `sendGiftDm` renders through a new `buildGiftDmText` helper: default path is byte for byte the original text, custom path substitutes placeholders and appends the pass link and STOP notice if the text leaves them out. `convex/schema.ts`, `convex/gifts.ts`, `convex/giftActions.ts`.
+- [x] Ledger: dispatches with an edited DM show a collapsible "Custom DM message active for this dispatch" note, and Copy DM copies the rendered custom text so the clipboard matches the send. `src/components/GiftAdminPanel.tsx`, `src/globals.css`.
+- [x] Verified: `npm run lint` and `npm run typecheck` pass; node sanity check confirms the default output is unchanged and placeholders plus safety nets render correctly.
+
+## Completed — 2026-08-16 04:50 UTC (Load more works past the Top filter)
+
+- [x] The Top filter no longer hard caps the board. Top 30 opens with 30 rows and Load more adds 30 per click; Top 60 opens with 60 and adds 60, and so on until every yapper is visible. Before, picking any Top N hid the Load more button entirely, so a board with 120+ friends stopped at 60. "All yappers" keeps its 30 row steps. `src/components/Leaderboard.tsx`.
+- [x] Search, mode toggle, sort, and filter changes reset the reveal back to the current filter's starting count instead of always 30. The "N people" counter beside search and the "Showing X of Y" footer now count the whole filtered board, not the capped slice.
+- [x] Bumped both `listLeaderboard` subscriptions from 200 to 250 rows, the backend cap, so Load more can actually reach everyone the query can return. Checked the rest of `src/` for the same capped-list pattern; the leaderboard was the only one.
+- [x] Verified: no linter errors on the touched file.
+
 ## Completed — 2026-08-16 03:25 UTC (approved recipients list boxed and viewport aware)
 
 - [x] The Approved recipients list in the Gift studio campaign form is now a visible boxed well: full `--line-standard` border with `--radius-small`, inset `--studio-paper` background against the form's sheet, and inner padding, so the scroll region reads as one contained control instead of two floating hairlines. The last row drops its bottom border to avoid a double line against the box edge. `src/globals.css`.

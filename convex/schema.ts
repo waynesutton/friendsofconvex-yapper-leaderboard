@@ -200,6 +200,9 @@ export default defineSchema({
     // Set when an admin archives the dispatch; archived campaigns leave the
     // sidebar but stay in the Dispatches log until deleted.
     archivedAt: v.optional(v.number()),
+    // Optional per-dispatch DM text set at creation. When absent, sends use
+    // the hardcoded default message in giftActions.sendGiftDm.
+    customDmMessage: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })

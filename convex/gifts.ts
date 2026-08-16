@@ -68,6 +68,7 @@ const giftCampaignFields = {
   lastSyncedAt: v.union(v.number(), v.null()),
   syncError: v.union(v.string(), v.null()),
   archivedAt: v.optional(v.number()),
+  customDmMessage: v.optional(v.string()),
   createdAt: v.number(),
   updatedAt: v.number(),
 };
@@ -996,6 +997,7 @@ export const createProvisioningCampaign = internalMutation({
     profiles: v.array(campaignProfileValidator),
     portalTokens: v.array(v.string()),
     shareTokens: v.array(v.string()),
+    customDmMessage: v.optional(v.string()),
   },
   returns: v.object({
     campaignId: v.id("giftCampaigns"),
@@ -1016,6 +1018,12 @@ export const createProvisioningCampaign = internalMutation({
     ) {
       throw new Error("Every gift recipient needs private and public tokens.");
     }
+    // Empty custom text falls back to the default DM; the cap keeps the
+    // rendered message well inside the X DM limit.
+    const customDmMessage = args.customDmMessage?.trim() || undefined;
+    if (customDmMessage && customDmMessage.length > 1000) {
+      throw new Error("The custom DM message must be 1000 characters or fewer.");
+    }
     const now = Date.now();
     const campaignId = await ctx.db.insert("giftCampaigns", {
       title,
@@ -1026,6 +1034,7 @@ export const createProvisioningCampaign = internalMutation({
       portalExpiresAt: args.portalExpiresAt,
       lastSyncedAt: null,
       syncError: null,
+      customDmMessage,
       createdAt: now,
       updatedAt: now,
     });

@@ -27,6 +27,37 @@ import { GiftProductShelf } from "./GiftProductShelf";
 
 type Feedback = { tone: "success" | "error" | "info"; message: string } | null;
 
+// Default DM template shown when the admin edits the message for a dispatch.
+// Placeholders match buildGiftDmText in convex/giftActions.ts, which renders
+// them per person at send time. Leaving the editor off keeps this text as the
+// hardcoded default on the server, so the default is never overwritten.
+const DEFAULT_DM_TEMPLATE =
+  "Your Friends of Convex gift #{number} is ready. Your personal gift pass is {link}\n\n" +
+  "The pass expires 7 days after it was issued, so grab it soon. " +
+  "The page clearly links to Fourthwall for redemption. Reply STOP if you do not want another message.";
+
+const DM_MESSAGE_MAX_LENGTH = 1000;
+
+// Client mirror of buildGiftDmText in convex/giftActions.ts so the live
+// preview and Copy DM show exactly what a send would produce, including the
+// pass link and STOP safety nets.
+function renderDmMessage(
+  template: string,
+  values: { link: string; name: string; number: number },
+): string {
+  let text = template
+    .replaceAll("{link}", values.link)
+    .replaceAll("{name}", values.name)
+    .replaceAll("{number}", String(values.number));
+  if (!text.includes(values.link)) {
+    text += `\n\nYour personal gift pass is ${values.link}`;
+  }
+  if (!/\bstop\b/i.test(text)) {
+    text += "\n\nReply STOP if you do not want another message.";
+  }
+  return text;
+}
+
 // Approved recipients picker filter: how many gifts a person has received.
 type GiftCountFilter = "all" | "0" | "1" | "2" | "3" | "4" | "5";
 const GIFT_COUNT_OPTIONS: Array<FilterDropdownOption<GiftCountFilter>> = [
@@ -221,12 +252,14 @@ function GiftEventLog({ recipientId }: { recipientId: Id<"giftRecipients"> }) {
 
 function GiftRecipientRow({
   recipient,
+  customDmMessage,
   onFeedback,
   selected,
   onToggleSelected,
   batchBusy,
 }: {
   recipient: Doc<"giftRecipients">;
+  customDmMessage: string | null;
   onFeedback: (feedback: Feedback) => void;
   selected: boolean;
   onToggleSelected: () => void;
@@ -238,7 +271,15 @@ function GiftRecipientRow({
 
   async function copyPortalMessage() {
     const portalUrl = localUrl(`/gift/${recipient.portalToken}`);
-    const message = `Your Friends of Convex gift #${recipient.giftNumber ?? 1} is ready. Your personal gift pass is ${portalUrl}`;
+    // Copy the dispatch's custom DM when one exists so the clipboard matches
+    // what the send action produces; otherwise keep the short default copy.
+    const message = customDmMessage
+      ? renderDmMessage(customDmMessage, {
+          link: portalUrl,
+          name: recipient.displayName,
+          number: recipient.giftNumber ?? 1,
+        })
+      : `Your Friends of Convex gift #${recipient.giftNumber ?? 1} is ready. Your personal gift pass is ${portalUrl}`;
     await navigator.clipboard.writeText(message);
     onFeedback({ tone: "success", message: `Copied the DM for @${recipient.handle}.` });
   }
@@ -427,6 +468,9 @@ export function GiftAdminPanel() {
   const [portalDays, setPortalDays] = useState("7");
   const [selectedProfiles, setSelectedProfiles] = useState<Set<Id<"profiles">>>(new Set());
   const [consentConfirmed, setConsentConfirmed] = useState(false);
+  // Optional per-dispatch DM editor: off means the server default is used.
+  const [customizeDm, setCustomizeDm] = useState(false);
+  const [dmMessage, setDmMessage] = useState(DEFAULT_DM_TEMPLATE);
   const [busy, setBusy] = useState<"create" | "connect" | "activity" | "sync" | null>(null);
   const [feedback, setFeedback] = useState<Feedback>(null);
   // Dispatches log toolbar: view tabs, search, and multi select for bulk
@@ -553,6 +597,23 @@ export function GiftAdminPanel() {
       return wanted === 5 ? giftCount >= 5 : giftCount === wanted;
     });
   }, [eligibleProfiles, giftCountFilter, giftStatsByProfileId, profileSearch]);
+  // Live preview values for the DM editor: the first selected person plus
+  // their next gift number, or sample values before anyone is selected. The
+  // pass link is a sample because real links are minted at creation.
+  const dmPreview = useMemo(() => {
+    const first =
+      eligibleProfiles.find((profile) => selectedProfiles.has(profile._id)) ??
+      null;
+    const giftCount = first
+      ? giftStatsByProfileId.get(first._id)?.giftCount ?? 0
+      : 0;
+    return {
+      name: first?.displayName ?? "Recipient name",
+      handle: first?.handle ?? null,
+      number: giftCount + 1,
+      link: localUrl("/gift/their-personal-pass"),
+    };
+  }, [eligibleProfiles, giftStatsByProfileId, selectedProfiles]);
   // Passes in the current ledger view that can still receive a batch DM.
   const sendableRecipients = useMemo(
     () => (recipients ?? []).filter(isSendable),
@@ -625,10 +686,14 @@ export function GiftAdminPanel() {
         profileIds: [...selectedProfiles],
         portalDays: Number(portalDays),
         consentConfirmed,
+        customDmMessage:
+          customizeDm && dmMessage.trim() ? dmMessage.trim() : undefined,
       });
       setChosenCampaignId(result.campaignId);
       setSelectedProfiles(new Set());
       setConsentConfirmed(false);
+      setCustomizeDm(false);
+      setDmMessage(DEFAULT_DM_TEMPLATE);
       setFeedback({
         tone: "success",
         message: `Created ${result.recipientCount} new personal Fourthwall gift passes. Repeat recipients keep a separate delivery history.`,
@@ -1105,6 +1170,64 @@ export function GiftAdminPanel() {
             </div>
           </fieldset>
 
+          {/* Optional per-dispatch DM text. Only this dispatch's recipients
+              get it; the default message stays untouched for every other
+              dispatch. */}
+          <label className="gift-consent-check gift-dm-toggle">
+            <input
+              type="checkbox"
+              checked={customizeDm}
+              onChange={(event) => setCustomizeDm(event.target.checked)}
+            />
+            <span>
+              Edit the X DM message for this dispatch. Only the people selected
+              above receive this text; the default message stays the same for
+              future dispatches.
+            </span>
+          </label>
+          {customizeDm ? (
+            <div className="gift-dm-editor">
+              <label htmlFor="gift-dm-message">Custom DM message</label>
+              <textarea
+                id="gift-dm-message"
+                value={dmMessage}
+                onChange={(event) => setDmMessage(event.target.value)}
+                maxLength={DM_MESSAGE_MAX_LENGTH}
+                rows={6}
+                title="Edit the DM text sent to this dispatch's recipients"
+              />
+              <div className="gift-dm-editor-tools">
+                <small>
+                  Placeholders: {"{link}"} pass link, {"{name}"} display name,{" "}
+                  {"{number}"} gift number. The pass link and a STOP notice are
+                  added automatically if the text leaves them out.
+                </small>
+                <span className="gift-dm-count" aria-live="polite">
+                  {dmMessage.length}/{DM_MESSAGE_MAX_LENGTH}
+                </span>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  disabled={dmMessage === DEFAULT_DM_TEMPLATE}
+                  title="Restore the default DM message text"
+                  onClick={() => setDmMessage(DEFAULT_DM_TEMPLATE)}
+                >
+                  Reset to default
+                </button>
+              </div>
+              <p className="gift-dm-preview-label">
+                Preview{dmPreview.handle ? ` for @${dmPreview.handle}` : " with sample values"}
+              </p>
+              <p className="gift-dm-preview-text">
+                {renderDmMessage(dmMessage.trim() ? dmMessage : DEFAULT_DM_TEMPLATE, {
+                  link: dmPreview.link,
+                  name: dmPreview.name,
+                  number: dmPreview.number,
+                })}
+              </p>
+            </div>
+          ) : null}
+
           <label className="gift-consent-check">
             <input type="checkbox" checked={consentConfirmed} onChange={(event) => setConsentConfirmed(event.target.checked)} />
             <span>I manually confirm that selected people without “GIFT ready” made a new request for this specific gift by DM on X. This never overrides STOP.</span>
@@ -1177,6 +1300,17 @@ export function GiftAdminPanel() {
           <span><strong>{counts.opened}</strong> opened</span>
           <span><strong>{counts.redeemed}</strong> redeemed</span>
         </div>
+        {/* Dispatches created with an edited DM show the exact text here so
+            single and batch sends are never a surprise. */}
+        {selectedCampaign?.customDmMessage ? (
+          <details className="gift-event-details gift-dm-active-note">
+            <summary title="Show the custom DM text every send in this dispatch uses">
+              <CaretRightIcon aria-hidden="true" className="gift-event-caret" />
+              Custom DM message active for this dispatch
+            </summary>
+            <p className="gift-dm-preview-text">{selectedCampaign.customDmMessage}</p>
+          </details>
+        ) : null}
         {/* Batch DM bar: pick sendable passes below, then send them one at a
             time with a 2 second gap. Each send re-checks STOP and opt out. */}
         {sendableRecipients.length > 0 ? (
@@ -1234,6 +1368,7 @@ export function GiftAdminPanel() {
               <GiftRecipientRow
                 key={recipient._id}
                 recipient={recipient}
+                customDmMessage={selectedCampaign?.customDmMessage ?? null}
                 onFeedback={setFeedback}
                 selected={selectedRecipientIds.has(recipient._id)}
                 onToggleSelected={() => toggleRecipientSelected(recipient._id)}
