@@ -494,6 +494,22 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
               How this is measured
             </Link>
           </p>
+          {/* Compact search on the kicker row so filtering sits with the board title. */}
+          <label className="search-field board-search">
+            <MagnifyingGlassIcon aria-hidden="true" />
+            <span className="sr-only">Search by name or X handle</span>
+            <input
+              type="search"
+              value={search}
+              onChange={(event) => changeSearch(event.target.value)}
+              placeholder="Search a person or @handle"
+            />
+            {activeRows ? <span>{cappedProfiles.length} people</span> : null}
+          </label>
+        </div>
+
+        {/* Mode tabs plus the list and share actions, directly above the table. */}
+        <div className="board-controls">
           <div className="mode-tabs" aria-label="Ranking mode">
             <button
               type="button"
@@ -532,18 +548,6 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
             </button>
           </div>
         </div>
-
-        <label className="search-field">
-          <MagnifyingGlassIcon aria-hidden="true" />
-          <span className="sr-only">Search by name or X handle</span>
-          <input
-            type="search"
-            value={search}
-            onChange={(event) => changeSearch(event.target.value)}
-            placeholder="Search a person or @handle"
-          />
-          {activeRows ? <span>{cappedProfiles.length} people</span> : null}
-        </label>
 
         {profiles && profiles.length > 0 && syncedProfiles.length === 0 ? (
           <div className="data-notice" role="status">

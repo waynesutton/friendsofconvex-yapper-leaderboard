@@ -420,11 +420,35 @@ button:disabled {
   color: var(--signal-coral-dark);
 }
 
-.board-toolbar .mode-tabs {
-  margin-top: 0;
+/* Compact search beside the kicker: same inset control, sized for one row.
+   The convex theme sets its own .board-search min-height further down. */
+.search-field.board-search {
+  margin-left: auto;
+  width: min(380px, 100%);
+  min-height: 48px;
+  padding: 0 16px;
 }
 
-.board-toolbar .share-toolbar {
+.search-field.board-search svg {
+  width: 18px;
+  height: 18px;
+}
+
+.search-field.board-search input {
+  padding: 12px 0;
+  font-size: 15px;
+}
+
+/* Mode tabs and the list plus share actions, one row directly above the table. */
+.board-controls {
+  margin-bottom: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+}
+
+.board-controls .share-toolbar {
   margin-left: auto;
 }
 
@@ -2344,9 +2368,15 @@ html[data-theme="convex"] .metric-info-trigger[aria-expanded="true"] {
     flex-direction: column;
   }
 
-  .board-toolbar .share-toolbar {
+  .board-controls .share-toolbar {
     margin-left: 0;
     justify-content: flex-start;
+  }
+
+  /* Search takes its own full width line on small screens. */
+  .search-field.board-search {
+    margin-left: 0;
+    width: 100%;
   }
 
   .share-toolbar {
@@ -4385,6 +4415,10 @@ html[data-theme="convex"] .board-heading h2 {
 
 html[data-theme="convex"] .search-field {
   min-height: 56px;
+}
+
+html[data-theme="convex"] .search-field.board-search {
+  min-height: 48px;
 }
 
 html[data-theme="convex"] .leaderboard-table {

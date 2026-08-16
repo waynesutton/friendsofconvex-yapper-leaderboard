@@ -22,6 +22,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Changed
 
+- The board toolbar is rearranged into two rows. Row one pairs the kicker (window label, freshness chip, methodology link) with a compact right aligned search field. Row two sits directly above the table with the Yappers / Convex mentions tabs on the left and the Top filter, Copy link, Share, and Post on X actions on the right. The full width search line is gone; on phones everything stacks with the search taking its own line (2026-08-16).
 - The board kicker now reads "This week's board · Last 7 days" in bold, near full ink so the measurement window is visible at a glance. In the Convex theme the bordered box wraps just the label instead of the whole row, keeping the freshness chip and methodology link beside it (2026-08-16).
 - The board opens on the ranking view in both modes. Yappers previously loaded with the Engagements column as the active sort; now Rank is active on load and when switching between Yappers and Convex mentions. The row order is unchanged since rank already follows each mode's canonical order, only the highlighted sort column moves (2026-08-16).
 - README is the public setup source of truth: feature list covers Gift lab, Top N / Load more, 7 day gift expiry, and gift studio bulk tools; a new APIs and accounts section lists required and optional Convex env **names** with no secret values; the one prompt agent block documents Convex agent mode and the X OAuth callback shape without pointing at gitignored local docs (2026-08-16).

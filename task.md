@@ -5,6 +5,13 @@
 - [ ] Run one production sync (`xSync.refreshAll` from the admin page, or wait for the 15:17 UTC cron) so the live board picks up the reply-filtered post counts. Numbers will drop for everyone; that is the fix landing.
 - [ ] Optional follow up if the "engagements" name keeps causing confusion: rename the column to "Public engagement" so it stops colliding with the broader engagements figure in X analytics.
 
+## Completed — 2026-08-16 03:10 UTC (board toolbar rearranged)
+
+- [x] Row one of the board is now kicker plus search: "This week's board · Last 7 days", the freshness chip, and the methodology link on the left, with a compact search field (min 380px cap, 48px tall) right aligned beside them. New `board-search` class on the existing `.search-field` control keeps the inset styling.
+- [x] Row two sits directly above the table: the Yappers / Convex mentions tabs on the left and the Top 30 filter, Copy link, Share, and Post on X actions right aligned. New `.board-controls` flex row; the old full width search line is gone.
+- [x] Mobile (375px) verified by measurement: kicker, full width search, tabs, then share actions stack with no horizontal overflow. The share toolbar's mobile left align rule moved from `.board-toolbar` to `.board-controls`.
+- [x] Verified in the browser in both themes; `npx tsc --noEmit`, `npm run lint`, and `npm run build` pass. `src/components/Leaderboard.tsx`, `src/globals.css`.
+
 ## Completed — 2026-08-16 03:00 UTC (readable board kicker and time window)
 
 - [x] The board kicker now reads "This week's board · Last 7 days" so the measurement window is stated where readers look first. The label renders at near full ink (`--broadcast-ink-soft`, weight 750) instead of muted caption ink. `src/components/Leaderboard.tsx`, `src/globals.css`.
