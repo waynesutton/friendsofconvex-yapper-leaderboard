@@ -15,6 +15,7 @@ import type * as boardSettings from "../boardSettings.js";
 import type * as crons from "../crons.js";
 import type * as giftActions from "../giftActions.js";
 import type * as giftCrypto from "../giftCrypto.js";
+import type * as giftLab from "../giftLab.js";
 import type * as giftShareRender from "../giftShareRender.js";
 import type * as giftWebhooks from "../giftWebhooks.js";
 import type * as gifts from "../gifts.js";
@@ -46,6 +47,7 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   giftActions: typeof giftActions;
   giftCrypto: typeof giftCrypto;
+  giftLab: typeof giftLab;
   giftShareRender: typeof giftShareRender;
   giftWebhooks: typeof giftWebhooks;
   gifts: typeof gifts;

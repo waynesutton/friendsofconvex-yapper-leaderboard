@@ -1530,7 +1530,25 @@ export const applyFourthwallOrder = internalMutation({
         q.eq("fourthwallGiftId", args.giftId),
       )
       .unique();
-    if (!recipient) return { duplicate: false, matched: false };
+    if (!recipient) {
+      // Not a board recipient; the order may belong to a Gift lab link.
+      const labLink = await ctx.db
+        .query("giftLabLinks")
+        .withIndex("by_fourthwall_gift_id", (q) =>
+          q.eq("fourthwallGiftId", args.giftId),
+        )
+        .unique();
+      if (!labLink) return { duplicate: false, matched: false };
+      if (labLink.status !== "redeemed") {
+        await ctx.db.patch("giftLabLinks", labLink._id, {
+          fourthwallStatus: "redeemed",
+          status: "redeemed",
+          redeemedAt: now,
+          updatedAt: now,
+        });
+      }
+      return { duplicate: false, matched: true };
+    }
     if (recipient.status !== "redeemed") {
       await Promise.all([
         ctx.db.patch("giftRecipients", recipient._id, {

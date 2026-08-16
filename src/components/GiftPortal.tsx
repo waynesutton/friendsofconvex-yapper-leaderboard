@@ -36,8 +36,8 @@ function formatExpiryDate(timestamp: number): string {
 // Live day-and-time countdown to the pass expiry. Ticks once per second and
 // tells the parent when the pass runs out so the page can flip to the
 // expired state without a reload. The server still enforces expiry on every
-// reveal and claim mutation.
-function GiftCountdown({ expiresAt, onExpired }: { expiresAt: number; onExpired: () => void }) {
+// reveal and claim mutation. Exported so the Gift lab portal reuses it.
+export function GiftCountdown({ expiresAt, onExpired }: { expiresAt: number; onExpired: () => void }) {
   const [remaining, setRemaining] = useState(() => expiresAt - Date.now());
 
   useEffect(() => {
@@ -64,7 +64,7 @@ function GiftCountdown({ expiresAt, onExpired }: { expiresAt: number; onExpired:
   );
 }
 
-function GiftRotor() {
+export function GiftRotor() {
   return (
     <div className="gift-rotor" aria-hidden="true">
       <img src="/convex/symbol-color.svg" alt="" />
@@ -254,7 +254,7 @@ export function GiftPortal({ token }: { token: string }) {
           <div className="gift-redeemed-message">
             <CheckCircleIcon aria-hidden="true" />
             <div>
-              <strong>Fourthwall confirmed your gift.</strong>
+              <strong>Gift confirmed.</strong>
               <span>Thank you for being a Friend of Convex.</span>
             </div>
           </div>

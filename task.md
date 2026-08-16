@@ -1,5 +1,19 @@
 # Task log
 
+## Completed — 2026-08-16 00:52 UTC (confirmed state button size and copy)
+
+- [x] The Share a safe public card button no longer changes shape after a gift is confirmed. `.gift-portal-actions` is a grid and its items stretch to the row height, so the taller confirmed message box (68px, boxy corners) stretched the share pill into a bigger oval. `.gift-redeemed-message` is now the same 56px pill as `.gift-primary-action` and `.gift-share-action`, so both grid cells match before and after redemption. `src/globals.css`.
+- [x] Confirmed message copy changed from "Fourthwall confirmed your gift." to "Gift confirmed." on both the board gift pass and Gift lab pages; the "Thank you for being a Friend of Convex." line stays. `src/components/GiftPortal.tsx`, `src/components/GiftLabPortal.tsx`.
+- [x] Verified: no linter errors on the three touched files.
+
+## Completed — 2026-08-16 00:45 UTC (Gift lab named links)
+
+- [x] New admin page `/admin/gift-lab` (Gift lab) linked from the admin header nav. Enter a full name, pick a Fourthwall product, and check or uncheck "Link expires 7 days" to mint a personal gift link at `/gift/for/:token`. The full URL shows on the page with a copy button, plus a Gift lab links log with per link copy, open, Check Fourthwall, Close link, and two step Delete. No consent section, no X sender, no DMs, no emails. PRD: prds/gift-lab-custom-links.md. `src/components/GiftLabPanel.tsx`, `src/pages/AdminGiftLabPage.tsx`, `src/App.tsx`, `src/components/SiteHeader.tsx`.
+- [x] Recipient page says "A signal of thanks for {Full Name}" with the branded gift card, a reveal button to Fourthwall, and a countdown only when the link expires. No X handle, no avatar, no public share card. `src/components/GiftLabPortal.tsx`, `src/pages/GiftLabPassPage.tsx`; `GiftCountdown` and `GiftRotor` exported from `GiftPortal.tsx` for reuse. Served by the existing `@convex-dev/static-hosting` catch all, so no HTTP route changes.
+- [x] Backend: `giftLabLinks` table (`by_token`, `by_created_at`, `by_fourthwall_gift_id`), `convex/giftLab.ts` (portal query and mutations with server time expiry, admin list/revoke/delete, internal helpers), `giftActions.createLabLink` and `syncLabLink`, and `gifts.applyFourthwallOrder` now falls back to lab links so the signed Fourthwall webhook marks them redeemed.
+- [x] Product shelf extracted into shared `src/components/GiftProductShelf.tsx`; the Gift studio and Gift lab read the same saved products.
+- [x] Verified: `npm run typecheck`, `npm run lint`, and `npm run build` pass; convex dev deployed the schema and functions; browser test of a seeded link showed the name-only page, reveal flow, and the closed card for an invalid token. A test row named "Fable Test" is on dev; delete it from the Gift lab log.
+
 ## Completed — 2026-08-15 23:59 UTC (gift count dropdown fix)
 
 - [x] The "All gift counts" dropdown in the Approved recipients picker opens again. The recipient list rule `.gift-profile-picker > div` also matched the picker toolbar, and its `overflow-y: auto` clipped the floating menu, so the caret flipped but no options showed. The list div now carries a `gift-profile-list` class and the CSS targets only it, which also removes the stray border line under the toolbar. Filters (No gifts yet, 1 through 4, 5+) work as designed. `src/components/GiftAdminPanel.tsx`, `src/globals.css`.

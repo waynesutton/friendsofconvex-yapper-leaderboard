@@ -13,6 +13,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Fixed
 
+- The Share a safe public card button keeps its 56px pill size after a gift is confirmed. The confirmed message box was taller than the buttons, so the grid row stretched the share button into a bigger oval. The message is now the same 56px pill as the actions, and its copy reads "Gift confirmed." on both the board pass and Gift lab pages (2026-08-15).
 - The gift count filter dropdown in the Approved recipients picker opens again. A recipient list style also matched the picker toolbar and its overflow clipped the floating menu, so the trigger toggled but no options appeared. The list now has its own class and the overflow rule no longer touches the toolbar (2026-08-15).
 - Rank badges no longer drift after a sync or import. The leaderboard query now returns rows in the board's canonical order: synced profiles first, then engagements, impressions, posts, and added date as tie breakers, so the top 3 badges always sit on the top 3 engagement rows (2026-08-15).
 
@@ -22,6 +23,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
+- Gift lab at `/admin/gift-lab`: mint personal Fourthwall gift links for clients, customers, and friends who are not on the board. Admins enter a full name, pick a product from the shared Gift inventory shelf, and choose whether the link expires in 7 days or stays open. The page shows the full link with a copy button and keeps a log of every link with copy, open, Fourthwall status check, close, and two step delete. The recipient page at `/gift/for/:token` greets the person by name with no X handle and no public share card, and the existing Fourthwall webhook marks lab links redeemed (2026-08-16).
+- Shared `GiftProductShelf` component: the Gift studio's Product shelf extracted so the Gift lab shows the same saved products with no duplicated logic (2026-08-16).
 - Gift pass expiry countdown on the claim page: a live timer under the trust line shows days, hours, minutes, and seconds until the pass expires along with the exact date, turns red inside the last day, and flips the page to the closed card the moment it reaches zero on an unredeemed pass (2026-08-15).
 - Hourly `expire gift links` cron that closes active gift dispatches whose links passed the 7 day cap, keeping the admin Dispatches log accurate without waiting for someone to open a dead link (2026-08-15).
 - Rybbit analytics: the deferred tracking script now loads from the SPA shell `index.html`, covering every route (2026-08-15).

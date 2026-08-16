@@ -11,6 +11,9 @@
 # Local environment and secrets
 .env*
 
+# Local docs (kept out of the repo)
+/docs/
+
 # Tooling
 *.tsbuildinfo
 coverage/

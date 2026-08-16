@@ -2,8 +2,7 @@
 
 ## Product and setup
 
-- `docs/SETUP_GUIDE.md` — Completed and repeatable development/production setup for the live Convex origins: X OAuth, Convex Auth keys, first-admin allowlist, security model, exact callback maps, and static hosting deploy.
-- `docs/fourthwall-setup.md` — Step-by-step Fourthwall, X DM sender, exact production webhook routes on `friendsofconvex.dev`, and Convex development/production setup for the static hosting stack.
+- `docs/` — Local-only setup guides (X OAuth, Convex Auth, Fourthwall, webhooks). Gitignored and not pushed to the repo.
 - `prds/gift-studio-bulk-operations.md` — Dispatches log tabs, search, and bulk actions; sidebar height; recipient picker search; batch X DM send requirements.
 - `prds/2026-08-08-friends-of-convex-yapper-board.md` — Product requirements and rollout boundaries.
 - `prds/2026-08-08-x-join-and-imports.md` — Requirements for X login, join review, bulk imports, and admin access.
@@ -50,15 +49,20 @@
 - `src/pages/AboutPage.tsx` — Methodology, scoring, daily 8 AM Pacific refresh, and a link to Convex cron jobs.
 - `src/pages/AdminSetupPage.tsx` — Admin-only in-product guide with the verified current state and production routes.
 - `src/pages/AdminGiftsPage.tsx` — Admin-only Fourthwall gift studio route.
+- `src/pages/AdminGiftLabPage.tsx` — Admin-only Gift lab route for named gift links.
 - `src/pages/AdminGiftsGuidePage.tsx` — Admin-only plain-language walkthrough of the Gift studio for non technical admins.
 - `src/pages/AdminDocsPage.tsx` — Admin-only reference page: who gets admin access, how to grant or revoke it, and what each admin surface does.
 - `src/pages/GiftPassPage.tsx` — Private personalized gift-pass route.
+- `src/pages/GiftLabPassPage.tsx` — Named thank-you route for Gift lab links at `/gift/for/:token`.
 - `src/pages/GiftSharePage.tsx` — Safe public thank-you card route without claim credentials.
 - `src/components/Leaderboard.tsx` — Search, sortable ranking (defaults to Engagements), the compact board toolbar (kicker, freshness chip, Yappers / Convex mentions toggle, Top N filter dropdown, share), admin-controlled column visibility with a dynamic grid, expandable Convex post rows, streak chips, avatar-anchored top 3 rank badges in both modes with a first place sparkle, and a Load more footer.
 - `src/components/FilterDropdown.tsx` — Shared themed listbox dropdown (trigger button plus floating menu) used for the board Top N filter and the gift count filter; closes on outside click, Escape, or selection.
 - `src/components/AdminPanel.tsx` — Add, archive, restore, rescan, and two step confirm permanent remove controls plus board settings for visible board columns, rank badges, and the Slack digest.
-- `src/components/GiftAdminPanel.tsx` — Sender connection, repeat-recipient history with per-person gift and sent counts plus a gift count filter, the product shelf of Fourthwall-verified saved products with thumbnails, campaign creation with pick-to-fill preset chips, consent controls, DM delivery, a searchable recipient ledger with CSV export, and the Dispatches log showing every recipient chip with sent state, archive, restore, confirmed delete, and CSV export.
-- `src/components/GiftPortal.tsx` — Private gift reveal with a live pass expiry countdown and safe public Convex thank-you card experiences.
+- `src/components/GiftAdminPanel.tsx` — Sender connection, repeat-recipient history with per-person gift and sent counts plus a gift count filter, the shared product shelf, campaign creation with pick-to-fill preset chips, consent controls, DM delivery, a searchable recipient ledger with CSV export, and the Dispatches log showing every recipient chip with sent state, archive, restore, confirmed delete, and CSV export.
+- `src/components/GiftProductShelf.tsx` — Shared Gift inventory Product shelf of Fourthwall-verified saved products with thumbnails, used by the Gift studio and the Gift lab.
+- `src/components/GiftLabPanel.tsx` — Gift lab admin page: name plus product form with an expiry checkbox, the generated link with a copy button, and a log of every lab link with copy, open, Fourthwall check, close, and confirmed delete.
+- `src/components/GiftPortal.tsx` — Private gift reveal with a live pass expiry countdown and safe public Convex thank-you card experiences; exports the countdown and rotor for the Gift lab portal.
+- `src/components/GiftLabPortal.tsx` — Named thank-you page for Gift lab links: full name greeting, gift card, Fourthwall reveal, optional countdown, no handle and no share card.
 - `src/components/AdminGate.tsx` — X sign-in and stable-ID allowlist gate for private admin pages; waits for the Convex Auth token exchange so admins sign in once, with a sign-in busy state, failed round-trip message, and mobile hint.
 - `src/components/AdminAccessNote.tsx` — Shared admin-only notice with the signed-in admin chip and steps for adding another admin to `ADMIN_X_USER_IDS`.
 - `src/components/ImportPanel.tsx` — Bulk handle and public X List preview and import controls.
@@ -72,7 +76,7 @@
 
 ## Convex backend
 
-- `convex/schema.ts` — Auth, leaderboard, Convex mention snapshot fields, rank badges, board display settings, gift product presets, numbered gift-delivery, and X Account Activity tables with indexes plus the recipient handle search index.
+- `convex/schema.ts` — Auth, leaderboard, Convex mention snapshot fields, rank badges, board display settings, gift product presets, numbered gift-delivery, Gift lab links, and X Account Activity tables with indexes plus the recipient handle search index.
 - `convex/boardSettings.ts` — Public query and admin mutation for which metric columns each leaderboard view shows.
 - `convex/auth.config.ts` — Convex Auth issuer configuration.
 - `convex/auth.ts` — X OAuth 2.0 provider and profile mapping.
@@ -85,8 +89,9 @@
 - `convex/xSync.ts` — X lookup, seven-day aggregation, the Convex mention scan, and sync actions.
 - `convex/badges.ts` — Top 3 rank badge query and admin mutations with file storage uploads.
 - `convex/slack.ts` — Admin action posting the Convex yappers digest to Slack.
-- `convex/gifts.ts` — Gift campaigns, numbered repeat recipients, consent consumption, history, portal state with a hard 7 day link expiry cap, the hourly expiry job, events, redemption, saved Fourthwall product presets, recipient handle search, and campaign archive plus cascade delete.
-- `convex/giftActions.ts` — Fourthwall provisioning/reconciliation, verified product preset saves with name and thumbnail lookup, and encrypted X sender OAuth/DM actions.
+- `convex/gifts.ts` — Gift campaigns, numbered repeat recipients, consent consumption, history, portal state with a hard 7 day link expiry cap, the hourly expiry job, events, redemption (with a Gift lab link fallback), saved Fourthwall product presets, recipient handle search, and campaign archive plus cascade delete.
+- `convex/giftLab.ts` — Gift lab links: recipient portal query and mutations with server time expiry, admin list, revoke, and delete, plus internal provisioning and status helpers.
+- `convex/giftActions.ts` — Fourthwall provisioning/reconciliation, Gift lab link creation and status sync, verified product preset saves with name and thumbnail lookup, and encrypted X sender OAuth/DM actions.
 - `convex/giftCrypto.ts` — PKCE, token generation, AES-GCM encryption, and webhook HMAC helpers.
 - `convex/giftWebhooks.ts` — X sender callback and verified, deduplicated Fourthwall order webhook.
 - `convex/sharePages.ts` — HTTP actions serving crawler-friendly `/gift/share/:token` pages with rewritten meta tags and the `/og/gift/:token.png` share image route.

@@ -256,6 +256,42 @@ export default defineSchema({
       filterFields: ["campaignId"],
     }),
 
+  // Gift lab links: named Fourthwall gift links for clients, customers, and
+  // friends who are not on the board. No profile, no X handle, no DM path.
+  // The team copies the link and shares it however they like.
+  giftLabLinks: defineTable({
+    fullName: v.string(),
+    token: v.string(),
+    fourthwallProductId: v.string(),
+    fourthwallPackageId: v.union(v.string(), v.null()),
+    fourthwallGiftId: v.union(v.string(), v.null()),
+    fourthwallUrl: v.union(v.string(), v.null()),
+    fourthwallStatus: fourthwallGiftStatus,
+    status: v.union(
+      v.literal("provisioning"),
+      v.literal("ready"),
+      v.literal("opened"),
+      v.literal("revealed"),
+      v.literal("redeemed"),
+      v.literal("cancelled"),
+      v.literal("error"),
+    ),
+    // null means the link never expires; a number is the hard cutoff.
+    expiresAt: v.union(v.number(), v.null()),
+    createdByUserId: v.id("users"),
+    openedAt: v.union(v.number(), v.null()),
+    revealedAt: v.union(v.number(), v.null()),
+    fourthwallClickedAt: v.union(v.number(), v.null()),
+    redeemedAt: v.union(v.number(), v.null()),
+    revokedAt: v.union(v.number(), v.null()),
+    syncError: v.union(v.string(), v.null()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_token", ["token"])
+    .index("by_created_at", ["createdAt"])
+    .index("by_fourthwall_gift_id", ["fourthwallGiftId"]),
+
   giftIntentStates: defineTable({
     xUserId: v.string(),
     profileId: v.union(v.id("profiles"), v.null()),

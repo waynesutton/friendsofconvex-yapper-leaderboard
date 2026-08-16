@@ -30,6 +30,7 @@ export function SiteHeader() {
           <nav className="site-nav" aria-label="Admin navigation">
             <Link to="/admin">Board ops</Link>
             <Link to="/admin/gifts">Gift studio</Link>
+            <Link to="/admin/gift-lab">Gift lab</Link>
             <Link to="/admin/gifts/guide">Gifts guide</Link>
             <Link to="/admin/docs">Admin docs</Link>
             {/* Setup guide link hidden for now; the page still exists at /admin/setup.

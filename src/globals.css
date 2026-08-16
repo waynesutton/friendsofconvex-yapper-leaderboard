@@ -3148,6 +3148,75 @@ html[data-theme="convex"] .board-sync-chip {
   line-height: 1.55;
 }
 
+/* Gift lab: the readiness strip only has two cells (Fourthwall + delivery
+   note), so it drops the four column studio grid. */
+.gift-readiness.gift-lab-readiness {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* Gift lab latest-link panel: same sheet treatment as the campaign form but
+   without the campaign rail's list-button styling. */
+.gift-lab-result {
+  padding: 28px;
+  background: var(--studio-sheet);
+  border: 1px solid var(--line-standard);
+  border-radius: var(--radius-medium);
+}
+
+.gift-lab-result h2 {
+  margin: 0;
+  font-family: var(--font-display), ui-sans-serif, sans-serif;
+  font-size: clamp(28px, 3vw, 42px);
+  font-weight: 500;
+  letter-spacing: -0.04em;
+}
+
+.gift-lab-result-note {
+  margin: 10px 0 0;
+  color: var(--caption-ink);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.gift-lab-result .text-link {
+  margin-top: 14px;
+  display: inline-block;
+}
+
+/* Full URL box with a copy button; the code line wraps so the whole link is
+   always visible for the team. */
+.gift-lab-link-box {
+  margin-top: 14px;
+  padding: 12px 14px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  background: var(--control-inset);
+  border: 1px solid var(--line-standard);
+  border-radius: var(--radius-small);
+}
+
+.gift-lab-link-box code {
+  min-width: 0;
+  flex: 1 1 240px;
+  color: var(--broadcast-ink);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  word-break: break-all;
+}
+
+.gift-lab-link-box .icon-text-button {
+  flex-shrink: 0;
+}
+
+/* Inside dispatch rows the link box stays compact under the status line. */
+.gift-dispatch-main .gift-lab-link-box {
+  margin-top: 8px;
+  padding: 8px 10px;
+}
+
 .gift-shelf-add {
   margin-top: 16px;
   display: flex;
@@ -3761,21 +3830,25 @@ html[data-theme="convex"] .board-sync-chip {
   font-size: 13px;
 }
 
+/* Matches the 56px pill of .gift-primary-action / .gift-share-action so the
+   share button in the same grid row does not stretch taller after redemption. */
 .gift-redeemed-message {
-  min-height: 68px;
-  padding: 16px;
-  display: flex;
+  min-height: 56px;
+  padding: 6px 20px;
+  display: inline-flex;
   align-items: center;
-  gap: 12px;
+  justify-content: center;
+  gap: 10px;
   background: color-mix(in srgb, var(--signal-green), transparent 90%);
   border: 1px solid color-mix(in srgb, var(--signal-green), transparent 55%);
-  border-radius: var(--radius-medium);
+  border-radius: 999px;
 }
 
 .gift-redeemed-message svg {
+  flex-shrink: 0;
   color: var(--signal-green);
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
 }
 
 .gift-redeemed-message div {

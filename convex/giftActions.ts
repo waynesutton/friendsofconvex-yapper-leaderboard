@@ -447,6 +447,108 @@ export const createCampaign = action({
   },
 });
 
+// Gift lab: mint one Fourthwall giveaway link for a named person who is not
+// on the board. No profile, no consent flow, no DM. The admin copies the
+// generated /gift/for/:token link and shares it directly.
+export const createLabLink = action({
+  args: {
+    fullName: v.string(),
+    fourthwallProductId: v.string(),
+    expires: v.boolean(),
+  },
+  returns: v.object({
+    labLinkId: v.id("giftLabLinks"),
+    token: v.string(),
+  }),
+  handler: async (ctx, args): Promise<{
+    labLinkId: Id<"giftLabLinks">;
+    token: string;
+  }> => {
+    const userId = await requireAdminAction(ctx);
+    const token = randomToken(32);
+    // Checked box means the studio's 7 day life; unchecked never expires.
+    const expiresAt = args.expires
+      ? Date.now() + 7 * 24 * 60 * 60 * 1000
+      : null;
+    const labLinkId: Id<"giftLabLinks"> = await ctx.runMutation(
+      internal.giftLab.createProvisioningLabLink,
+      {
+        fullName: args.fullName,
+        fourthwallProductId: args.fourthwallProductId,
+        token,
+        expiresAt,
+        createdByUserId: userId,
+      },
+    );
+    try {
+      const provisioned = parseFourthwallPackage(
+        await fourthwallRequest("/giveaway-links", {
+          method: "POST",
+          body: JSON.stringify({
+            productId: args.fourthwallProductId.trim(),
+            number: 1,
+          }),
+        }),
+      );
+      const link = provisioned.links[0];
+      if (!link || provisioned.links.length !== 1) {
+        throw new Error(
+          `Fourthwall returned ${provisioned.links.length} links instead of 1.`,
+        );
+      }
+      await ctx.runMutation(internal.giftLab.finalizeLabLink, {
+        labLinkId,
+        packageId: provisioned.packageId,
+        giftId: link.id,
+        url: link.link,
+        fourthwallStatus: link.status,
+      });
+      return { labLinkId, token };
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Fourthwall provisioning failed.";
+      await ctx.runMutation(internal.giftLab.markLabLinkError, {
+        labLinkId,
+        message,
+      });
+      throw new Error(message);
+    }
+  },
+});
+
+// Manual Fourthwall status check for one lab link, mirroring syncCampaign.
+// The signed order webhook usually flips redemption automatically; this is
+// the on-demand fallback.
+export const syncLabLink = action({
+  args: { labLinkId: v.id("giftLabLinks") },
+  returns: v.null(),
+  handler: async (ctx, args): Promise<null> => {
+    await requireAdminAction(ctx);
+    const link = await ctx.runQuery(internal.giftLab.getLabLinkForSync, {
+      labLinkId: args.labLinkId,
+    });
+    if (!link?.fourthwallPackageId) {
+      throw new Error("This link does not have a Fourthwall package yet.");
+    }
+    const packageResult = parseFourthwallPackage(
+      await fourthwallRequest(
+        `/giveaway-links/packages/${encodeURIComponent(link.fourthwallPackageId)}`,
+      ),
+    );
+    const match = packageResult.links.find(
+      (candidate) => candidate.id === link.fourthwallGiftId,
+    );
+    if (!match) {
+      throw new Error("Fourthwall did not return this gift link's status.");
+    }
+    await ctx.runMutation(internal.giftLab.applyLabLinkStatus, {
+      labLinkId: args.labLinkId,
+      fourthwallStatus: match.status,
+    });
+    return null;
+  },
+});
+
 export const syncCampaign = action({
   args: { campaignId: v.id("giftCampaigns") },
   returns: v.object({ updated: v.number() }),
