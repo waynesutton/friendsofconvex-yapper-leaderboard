@@ -489,7 +489,8 @@ export function GroupsPanel() {
       setExpandedId(groupId);
       setFeedback({
         tone: "success",
-        message: "Group created. Add members below; the pill appears once someone is active.",
+        message:
+          "Group created hidden. Add members below, then press Show to put its pill on the public board.",
       });
     } catch (error) {
       setFeedback({
@@ -548,7 +549,8 @@ export function GroupsPanel() {
             <CheckCircleIcon aria-hidden="true" />
             <span>
               <strong>Visible + 1 active member</strong>A group&apos;s pill only renders when the
-              group is shown and at least one member is active on the board.
+              group is shown and at least one member is active on the board. New groups start
+              hidden; press Show when the member list is ready.
             </span>
           </div>
           <div className="readiness-row">

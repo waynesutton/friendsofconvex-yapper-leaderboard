@@ -235,7 +235,9 @@ export const create = mutation({
       name,
       slug,
       description: args.description?.trim().slice(0, GROUP_DESCRIPTION_LIMIT) || undefined,
-      visible: true,
+      // New groups start hidden so an admin can build the member list first,
+      // then press Show when the board is ready for the public.
+      visible: false,
       order: highestOrder + 1,
       createdAt: now,
       updatedAt: now,

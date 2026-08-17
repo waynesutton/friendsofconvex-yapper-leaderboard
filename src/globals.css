@@ -93,6 +93,8 @@ button:disabled {
 }
 
 .site-header {
+  /* Positioning context for the absolutely placed mobile menu. */
+  position: relative;
   width: min(100%, var(--page-width));
   min-height: 72px;
   margin: 0 auto;
@@ -181,6 +183,111 @@ button:disabled {
 
 .theme-switcher:active {
   transform: translateY(1px);
+}
+
+/* Hamburger toggle: hidden on desktop, replaces the inline nav on small
+   screens. Same quiet 44px circle language as the theme switcher. */
+.nav-toggle {
+  display: none;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--line-standard);
+  border-radius: 50%;
+  color: var(--broadcast-ink);
+  font-size: 20px;
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease;
+}
+
+.nav-toggle:hover {
+  background: var(--studio-paper-deep);
+  border-color: var(--line-emphasis);
+}
+
+.nav-toggle:active {
+  transform: translateY(1px);
+}
+
+/* Dropdown menu panel anchored under the header. */
+.mobile-nav {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  padding: 10px var(--page-gutter) 18px;
+  background: var(--studio-sheet);
+  border-bottom: 1px solid var(--line-standard);
+  box-shadow: 0 18px 32px rgba(29, 29, 27, 0.12);
+}
+
+.mobile-nav a {
+  min-height: 50px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 6px;
+  border-bottom: 1px solid var(--line-whisper);
+  color: var(--broadcast-ink-soft);
+  font-size: 15px;
+  text-decoration: none;
+}
+
+.mobile-nav a:last-of-type {
+  border-bottom: 0;
+}
+
+.mobile-nav a:hover {
+  color: var(--broadcast-ink);
+}
+
+.mobile-nav .mobile-nav-settings svg {
+  font-size: 18px;
+}
+
+.mobile-nav-footer {
+  margin-top: 12px;
+  padding-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-top: 1px solid var(--line-whisper);
+}
+
+.mobile-nav .nav-signout {
+  border: 1px solid var(--line-standard);
+}
+
+/* The admin nav carries seven links plus a chip and sign out, so it trades
+   the inline nav for the hamburger well before phone widths. */
+@media (max-width: 1200px) {
+  .site-header--admin .site-nav {
+    display: none;
+  }
+
+  .site-header--admin .nav-toggle {
+    display: inline-flex;
+  }
+}
+
+@media (max-width: 760px) {
+  .site-nav {
+    display: none;
+  }
+
+  .nav-toggle {
+    display: inline-flex;
+  }
 }
 
 .site-nav a {
@@ -2770,21 +2877,12 @@ html[data-theme="convex"] .metric-info-trigger[aria-expanded="true"] {
     min-height: auto;
     padding-top: 12px;
     padding-bottom: 12px;
-    align-items: flex-start;
+    align-items: center;
   }
 
   .brand-slash,
   .brand-lockup > span:last-child {
     display: none;
-  }
-
-  .site-nav {
-    gap: 0;
-  }
-
-  .site-nav a {
-    padding: 0 9px;
-    font-size: 12px;
   }
 
   .hero {
@@ -4856,6 +4954,39 @@ html[data-theme="convex"] .theme-switcher:hover {
   border-color: rgba(255, 250, 240, 0.44);
 }
 
+html[data-theme="convex"] .nav-toggle {
+  border-color: rgba(255, 250, 240, 0.24);
+  color: #fffaf0;
+}
+
+html[data-theme="convex"] .nav-toggle:hover {
+  background: rgba(255, 250, 240, 0.1);
+  border-color: rgba(255, 250, 240, 0.44);
+}
+
+html[data-theme="convex"] .mobile-nav {
+  background: rgba(33, 23, 24, 0.98);
+  border-color: rgba(255, 250, 240, 0.16);
+  box-shadow: 0 22px 40px rgba(0, 0, 0, 0.4);
+}
+
+html[data-theme="convex"] .mobile-nav a {
+  border-color: rgba(255, 250, 240, 0.1);
+  color: rgba(255, 250, 240, 0.78);
+}
+
+html[data-theme="convex"] .mobile-nav a:hover {
+  color: #fffaf0;
+}
+
+html[data-theme="convex"] .mobile-nav-footer {
+  border-color: rgba(255, 250, 240, 0.1);
+}
+
+html[data-theme="convex"] .mobile-nav .nav-signout {
+  border-color: rgba(255, 250, 240, 0.24);
+}
+
 html[data-theme="convex"] .leaderboard-page {
   width: 100%;
   max-width: none;
@@ -5159,11 +5290,6 @@ html[data-theme="convex"] .site-footer .cursor-logomark {
     display: none;
   }
 
-  html[data-theme="convex"] .site-nav a {
-    padding-inline: 9px;
-    font-size: 12px;
-  }
-
   html[data-theme="convex"] .hero {
     min-height: auto;
     padding-top: 48px;
@@ -5201,15 +5327,7 @@ html[data-theme="convex"] .site-footer .cursor-logomark {
   }
 
   .header-actions {
-    gap: 2px;
-  }
-
-  .site-nav {
-    gap: 0;
-  }
-
-  .site-nav a:first-child {
-    display: none;
+    gap: 8px;
   }
 }
 

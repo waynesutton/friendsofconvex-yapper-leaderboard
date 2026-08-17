@@ -1,5 +1,12 @@
 # Task log
 
+## Completed — 2026-08-17 05:26 UTC (mobile header menu, admin docs refresh, groups start hidden)
+
+- [x] Mobile header menu: a Phosphor hamburger (ListIcon / XIcon) replaces the inline nav below 760px (public) and 1200px (admin, which carries seven links plus the chip and sign out). Dropdown panel styled for both themes with 50px touch targets, admin chip and Sign out in a footer row, closes on navigation. Nav links moved to shared arrays so desktop and mobile can't drift. `src/components/SiteHeader.tsx`, `src/globals.css` (removed the old 12px link shrink and the About-hiding rule at 520px).
+- [x] `/admin/docs` rewritten to cover the whole admin area: Convex mentions tab toggle, groups (12 group cap, 250 members, X List import), public vs internal groups, and `/admin/settings` branding with reset behavior. `src/pages/AdminDocsPage.tsx`.
+- [x] New groups now start hidden (`visible: false` in `groups.create`) so admins build the member list first and press Show to publish the pill. Create success message, How pills work panel, and admin docs updated to match. `convex/groups.ts`, `src/components/GroupsPanel.tsx`, `src/pages/AdminDocsPage.tsx`.
+- [x] Verified with `npx tsc --noEmit`, `npx vitest run` (27 tests), and live browser checks of the menu in both themes on a 390px viewport.
+
 ## Completed — 2026-08-17 04:13 UTC (internal admin only boards)
 
 - [x] Groups can be marked internal: the pill renders only for signed in admins (with a lock icon), `listPublic` filters internal groups for visitors, `listLeaderboard` returns an empty board when a non admin passes an internal group id, and internal boards never enter llms.txt, sitemap.md, or sitemap.xml. PRD: prds/internal-admin-boards.md. `convex/schema.ts`, `convex/authz.ts` (new `isAdminViewer`), `convex/groups.ts`, `convex/profiles.ts`, `convex/siteFiles.ts`.

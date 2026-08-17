@@ -58,7 +58,7 @@
 - `src/pages/AdminGiftsPage.tsx` — Admin-only Fourthwall gift studio route.
 - `src/pages/AdminGiftLabPage.tsx` — Admin-only Gift lab route for named gift links.
 - `src/pages/AdminGiftsGuidePage.tsx` — Admin-only plain-language walkthrough of the Gift studio for non technical admins.
-- `src/pages/AdminDocsPage.tsx` — Admin-only reference page: who gets admin access, how to grant or revoke it, and what each admin surface does.
+- `src/pages/AdminDocsPage.tsx` — Admin-only reference page: who gets admin access, how to grant or revoke it, and what each admin surface does (board ops, groups, public vs internal boards, site settings, gifts).
 - `src/pages/GiftPassPage.tsx` — Private personalized gift-pass route.
 - `src/pages/GiftLabPassPage.tsx` — Named thank-you route for Gift lab links at `/gift/for/:token`.
 - `src/pages/GiftSharePage.tsx` — Safe public thank-you card route without claim credentials.
@@ -78,7 +78,7 @@
 - `src/components/AdminAccessNote.tsx` — Shared admin-only notice with the signed-in admin chip and steps for adding another admin to `ADMIN_X_USER_IDS`.
 - `src/components/ImportPanel.tsx` — Bulk handle and public X List preview and import controls.
 - `src/components/JoinBoard.tsx` — X sign-in, membership request, and review status, with X in-app browser instructions, a mobile stay-in-this-browser hint, and a failed sign-in retry message.
-- `src/components/SiteHeader.tsx` — Primary navigation with the brandable lockup (custom logo and header title from site settings), plus admin links, the settings gear icon, the Admin @handle chip, and Sign out on `/admin` routes for signed-in admins.
+- `src/components/SiteHeader.tsx` — Primary navigation with the brandable lockup (custom logo and header title from site settings), a Phosphor hamburger menu that replaces the inline nav on small screens, plus admin links, the settings gear icon, the Admin @handle chip, and Sign out on `/admin` routes for signed-in admins.
 - `src/components/ThemeSwitcher.tsx` — Icon-only round Convex/Studio theme toggle with persistence and an accessible name.
 - `src/components/BuiltWithFooter.tsx` — Cursor and Convex attribution, the open source board credit, `llms.txt` and `sitemap.md` links, and Convex social icons.
 - `src/components/formatters.ts` — Metric, date, and relative sync time formatting helpers.
@@ -89,7 +89,7 @@
 
 - `convex/schema.ts` — Auth, leaderboard, Convex mention snapshot fields, rank badges, board display settings, custom groups and memberships, the site branding singleton, gift product presets, numbered gift-delivery, Gift lab links, and X Account Activity tables with indexes plus the recipient handle search index.
 - `convex/boardSettings.ts` — Public query and admin mutation for which metric columns each leaderboard view shows plus the Convex mentions tab toggle.
-- `convex/groups.ts` — Custom group CRUD, ordering, memberships, the internal (admin only) flag, and the X List sync action that creates missing profiles and upserts members.
+- `convex/groups.ts` — Custom group CRUD (new groups start hidden), ordering, memberships, the internal (admin only) flag, and the X List sync action that creates missing profiles and upserts members.
 - `convex/brandingDefaults.ts` — Shipped site branding constants shared by the backend and the frontend fallbacks.
 - `convex/siteSettings.ts` — Site branding singleton: public merged read, admin save with logo storage cleanup, upload URL, and reset.
 - `convex/auth.config.ts` — Convex Auth issuer configuration.

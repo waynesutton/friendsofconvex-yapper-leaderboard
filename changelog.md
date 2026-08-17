@@ -4,6 +4,15 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Added
+
+- The header now has a mobile menu. A Phosphor hamburger button replaces the inline nav on small screens (below 760px for the public nav, below 1200px for the seven link admin nav) and opens a dropdown panel styled for both themes, with the admin chip and sign out at the bottom of the admin menu. The old approach shrank the links to 12px and hid About outright on phones (2026-08-16).
+
+### Changed
+
+- New groups are created hidden. `groups.create` inserts with `visible: false`, so an admin can build the member list in private and press Show when the board is ready; before this every new group's pill could go public the moment a member turned active. The create confirmation, the How pills work panel, and the admin docs say so (2026-08-16).
+- `/admin/docs` now documents the full admin area: the Convex mentions tab toggle in board settings, groups (pills, member limits, X List import), public vs internal groups and what stays hidden from visitors, and the `/admin/settings` branding page with its reset behavior (2026-08-16).
+
 ### Security
 
 - The public leaderboard query now returns a trimmed projection instead of raw profile documents. Internal fields (`authUserId`, `syncError`, `xUserId`, membership status, source, and review timestamps) no longer leave the deployment through `profiles.listLeaderboard`. The board renders identically (2026-08-15).

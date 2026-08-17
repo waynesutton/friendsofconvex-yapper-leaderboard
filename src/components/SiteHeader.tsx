@@ -1,15 +1,32 @@
 import { useAuthActions } from "@convex-dev/auth/react";
-import { GearSixIcon } from "@phosphor-icons/react";
+import { GearSixIcon, ListIcon, XIcon } from "@phosphor-icons/react";
 import { useQuery } from "convex/react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { api } from "../../convex/_generated/api";
 import { DEFAULT_BRANDING } from "../../convex/brandingDefaults";
 import { ThemeSwitcher } from "./ThemeSwitcher";
 
+// One list per audience so the desktop nav and the mobile menu never drift.
+const ADMIN_LINKS = [
+  { to: "/admin", label: "Board ops" },
+  { to: "/admin/groups", label: "Groups" },
+  { to: "/admin/gifts", label: "Gift studio" },
+  { to: "/admin/gift-lab", label: "Gift lab" },
+  { to: "/admin/gifts/guide", label: "Gifts guide" },
+  { to: "/admin/docs", label: "Admin docs" },
+] as const;
+
+const PUBLIC_LINKS = [
+  { to: "/about", label: "About" },
+  { to: "/join", label: "Join the board" },
+] as const;
+
 export function SiteHeader() {
   const location = useLocation();
   const viewer = useQuery(api.authz.viewer, {});
   const { signOut } = useAuthActions();
+  const [menuOpen, setMenuOpen] = useState(false);
   // Falls back to the shipped defaults while loading so the lockup never
   // flashes empty. An untouched deploy renders exactly the prod header.
   const branding = useQuery(api.siteSettings.getSiteBranding, {}) ?? {
@@ -22,8 +39,13 @@ export function SiteHeader() {
   const onAdminRoute = location.pathname.startsWith("/admin");
   const showAdminNav = onAdminRoute && viewer?.authenticated === true && viewer.isAdmin;
 
+  // Navigating anywhere closes the mobile menu.
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [location.pathname]);
+
   return (
-    <header className="site-header">
+    <header className={`site-header${showAdminNav ? " site-header--admin" : ""}`}>
       <Link className="brand-lockup" to="/" aria-label={`${branding.communityName} home`}>
         {/* A custom logo from /admin/settings replaces the Convex wordmark. */}
         {branding.hasCustomLogo && branding.logoUrl ? (
@@ -46,12 +68,11 @@ export function SiteHeader() {
       <div className="header-actions">
         {showAdminNav ? (
           <nav className="site-nav" aria-label="Admin navigation">
-            <Link to="/admin">Board ops</Link>
-            <Link to="/admin/groups">Groups</Link>
-            <Link to="/admin/gifts">Gift studio</Link>
-            <Link to="/admin/gift-lab">Gift lab</Link>
-            <Link to="/admin/gifts/guide">Gifts guide</Link>
-            <Link to="/admin/docs">Admin docs</Link>
+            {ADMIN_LINKS.map((link) => (
+              <Link key={link.to} to={link.to}>
+                {link.label}
+              </Link>
+            ))}
             <Link
               to="/admin/settings"
               className="nav-settings-link"
@@ -71,12 +92,54 @@ export function SiteHeader() {
           </nav>
         ) : (
           <nav className="site-nav" aria-label="Primary navigation">
-            <Link to="/about">About</Link>
-            <Link to="/join">Join the board</Link>
+            {PUBLIC_LINKS.map((link) => (
+              <Link key={link.to} to={link.to}>
+                {link.label}
+              </Link>
+            ))}
           </nav>
         )}
         <ThemeSwitcher />
+        <button
+          type="button"
+          className="nav-toggle"
+          aria-expanded={menuOpen}
+          aria-controls="mobile-nav"
+          aria-label={menuOpen ? "Close menu" : "Open menu"}
+          onClick={() => setMenuOpen((open) => !open)}
+        >
+          {menuOpen ? <XIcon aria-hidden="true" /> : <ListIcon aria-hidden="true" />}
+        </button>
       </div>
+      {menuOpen ? (
+        <nav
+          id="mobile-nav"
+          className="mobile-nav"
+          aria-label={showAdminNav ? "Admin navigation" : "Primary navigation"}
+        >
+          {(showAdminNav ? ADMIN_LINKS : PUBLIC_LINKS).map((link) => (
+            <Link key={link.to} to={link.to}>
+              {link.label}
+            </Link>
+          ))}
+          {showAdminNav ? (
+            <>
+              <Link to="/admin/settings" className="mobile-nav-settings">
+                <GearSixIcon aria-hidden="true" />
+                Site settings
+              </Link>
+              <div className="mobile-nav-footer">
+                <span className="header-admin-chip">
+                  Admin{viewer?.authenticated && viewer.xUsername ? ` · @${viewer.xUsername}` : ""}
+                </span>
+                <button type="button" className="nav-signout" onClick={() => void signOut()}>
+                  Sign out
+                </button>
+              </div>
+            </>
+          ) : null}
+        </nav>
+      ) : null}
     </header>
   );
 }
