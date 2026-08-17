@@ -1,5 +1,22 @@
 # Task log
 
+## Completed — 2026-08-17 04:13 UTC (internal admin only boards)
+
+- [x] Groups can be marked internal: the pill renders only for signed in admins (with a lock icon), `listPublic` filters internal groups for visitors, `listLeaderboard` returns an empty board when a non admin passes an internal group id, and internal boards never enter llms.txt, sitemap.md, or sitemap.xml. PRD: prds/internal-admin-boards.md. `convex/schema.ts`, `convex/authz.ts` (new `isAdminViewer`), `convex/groups.ts`, `convex/profiles.ts`, `convex/siteFiles.ts`.
+- [x] Admin UI: Make internal / Make public toggle on each group card with lock icons, internal state in the card summary line, and an Internal option note in How pills work. `src/components/GroupsPanel.tsx`, `src/components/Leaderboard.tsx`.
+- [x] Existing groups stay public with no migration (missing flag means false). Docs updated: README groups and admin table, setup guide Part 6, files.md, changelog.
+- [x] Verified with `npm run check` (lint, typecheck, tests, build) and `npx convex dev --once`.
+
+## Completed — 2026-08-16 23:05 UTC (custom groups, fork toggle, site branding, X list import)
+
+- [x] Custom groups as leaderboard pills: new `groups` and `groupMemberships` tables, `convex/groups.ts` with admin CRUD, reorder, membership by handle, and a `syncFromXList` action that reuses the X List import path to create missing profiles and upsert memberships (idempotent, saved list id, manual button only because list member reads are rate limited to 75 per 15 minutes). `profiles.listLeaderboard` accepts a `groupId` and ranks group members with the standard Yappers comparator; deleting a profile cleans its memberships. PRD: prds/custom-groups-and-fork-toggle.md.
+- [x] Dynamic board pills: board state is `impressions | convex | slug`, synced to a `?board=` URL parameter so every pill is linkable. Group pills only render when the group is visible with at least one active member. The pill strip handles N lanes with the sliding thumb, label truncation, and horizontal scroll on phones. `src/components/Leaderboard.tsx`, `src/globals.css`.
+- [x] Fork toggle: `showConvexTab` on board display settings (missing means true, nothing changes on deploy) with a "Show the Convex mentions tab" checkbox in admin Board settings. `?board=convex` with the tab off falls back to Yappers.
+- [x] New `/admin/groups` page: create, rename, describe, show or hide, reorder, two step delete, member roster with add by handle, remove, and X List import or re-sync. `src/pages/AdminGroupsPage.tsx`, `src/components/GroupsPanel.tsx`.
+- [x] Site branding settings: `siteSettings` singleton with optional overrides merged over shipped defaults in `convex/brandingDefaults.ts`, public `getSiteBranding`, admin `setSiteBranding` / `generateLogoUploadUrl` / `resetSiteBranding` with storage cleanup for replaced logos. New `/admin/settings` page (gear icon in the admin nav) with live preview, text fields, PNG/SVG logo upload, and two step reset. Branding flows into the header lockup, board heading and share text, document title, join page, and the llms.txt / sitemap.md / robots.txt builders. `convex/siteSettings.ts`, `src/components/SiteSettingsPanel.tsx`, `src/components/SiteHeader.tsx`, `src/lib/usePageTitle.ts`, `src/components/JoinBoard.tsx`.
+- [x] Discovery files: visible groups with active members get a Groups section in llms.txt and sitemap.md (name, description, member handles, board link) and `/?board=slug` URLs in sitemap.xml; output is unchanged when no groups exist. `convex/siteDirectory.ts`, `convex/siteFiles.ts`.
+- [x] Docs: README Custom groups and three tier Fork this board sections plus the admin route table, setup guide Part 6 additions, files.md, changelog.
+
 ## Completed — 2026-08-16 21:42 UTC (hero eyebrow hidden)
 
 - [x] Commented out the hero eyebrow line "Friends of Convex · people edition / Top signal / 7 days" above the main board headline. The JSX stays in `src/components/Leaderboard.tsx` as a comment so it can come back with one edit; the `.hero-eyebrow` styles are untouched.

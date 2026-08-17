@@ -33,6 +33,8 @@
 - `prds/metric-definitions-and-tooltips.md` — Investigation of the "way off" metrics feedback: prod values verified against a live X API replay, the `exclude=replies` leak, and the definition, tooltip, and copy fixes.
 - `prds/sync-all-profiles-and-metric-honesty.md` — GitHub issue 2 fix: score-blind paginated sync with a continuation action, replies counted as posts, the widened Convex mention scan, engagement rank copy alignment, and the vitest test setup.
 - `prds/board-mode-switch-affordance.md` — Make the Yappers / Convex mentions ranking switch look like a clickable channel control.
+- `prds/custom-groups-and-fork-toggle.md` — Admin managed group pills with X List import, the Convex mentions tab fork toggle, and runtime site branding with shipped defaults.
+- `prds/internal-admin-boards.md` — Internal admin only group boards: admin gated pill, server side leaderboard guard, and discovery file exclusion.
 - `prds/lessons.md` — Durable project lessons from corrected implementation and environment assumptions.
 - `README.md` — Public repo introduction: what the board does, the stack, required and optional API / Convex env names (no secrets), Convex agent mode one prompt setup, admin route map, and Convex docs links.
 - `task.md` — Completed work and deferred production tasks.
@@ -48,6 +50,8 @@
 - `src/lib/browserEnvironment.ts` — X in-app browser and touch-device detection plus the sessionStorage sign-in attempt flag behind the mobile login guidance.
 - `src/pages/HomePage.tsx` — Public leaderboard route.
 - `src/pages/AdminPage.tsx` — Convex Auth protected admin route.
+- `src/pages/AdminGroupsPage.tsx` — Admin-only custom groups route.
+- `src/pages/AdminSettingsPage.tsx` — Admin-only site branding settings route.
 - `src/pages/JoinPage.tsx` — Public X sign-in and join-request route.
 - `src/pages/AboutPage.tsx` — Methodology with the exact measurement rules (what counts as a post, the engagement and impression formulas), the daily 8:17 AM Pacific refresh, and a link to Convex cron jobs.
 - `src/pages/AdminSetupPage.tsx` — Admin-only in-product guide with the verified current state and production routes.
@@ -58,11 +62,13 @@
 - `src/pages/GiftPassPage.tsx` — Private personalized gift-pass route.
 - `src/pages/GiftLabPassPage.tsx` — Named thank-you route for Gift lab links at `/gift/for/:token`.
 - `src/pages/GiftSharePage.tsx` — Safe public thank-you card route without claim credentials.
-- `src/components/Leaderboard.tsx` — Search, sortable ranking (both modes open on Rank), the compact board toolbar (kicker, freshness chip, How this is measured link, Yappers / Convex mentions channel switch with sliding thumb and live pip, Top N filter dropdown, share), per-column metric definitions rendered as header tooltips, admin-controlled column visibility with a dynamic grid, expandable Convex post rows, streak chips, avatar-anchored top 3 rank badges in both modes with a first place sparkle, an avatar bio peek card on every row, and a Load more footer that steps by the Top filter size until the whole board is visible.
+- `src/components/Leaderboard.tsx` — Search, sortable ranking (both modes open on Rank), the compact board toolbar (kicker, freshness chip, How this is measured link, Yappers / Convex mentions / custom group pills with sliding thumb, live pip, and a linkable `?board=` URL parameter, Top N filter dropdown, share), per-column metric definitions rendered as header tooltips, admin-controlled column visibility with a dynamic grid, expandable Convex post rows, streak chips, avatar-anchored top 3 rank badges in both modes with a first place sparkle, an avatar bio peek card on every row, and a Load more footer that steps by the Top filter size until the whole board is visible.
 - `src/components/MetricInfo.tsx` — Accessible metric definition popover used on leaderboard column headers; opens on hover and focus, toggles on tap, closes on Escape, blur, or outside press.
 - `src/components/ProfilePeek.tsx` — Avatar bio peek: hover, focus, or tap a board avatar to open a fixed-position call sheet card with the synced X bio (linkified @mentions and URLs), follower count, and an Open on X link; one card at a time, closes on Escape, blur, outside press, or scroll.
 - `src/components/FilterDropdown.tsx` — Shared themed listbox dropdown (trigger button plus floating menu) used for the board Top N filter and the gift count filter; closes on outside click, Escape, or selection.
-- `src/components/AdminPanel.tsx` — Add, archive, restore, rescan, and two step confirm permanent remove controls plus board settings for visible board columns, rank badges, and the Slack digest.
+- `src/components/AdminPanel.tsx` — Add, archive, restore, rescan, and two step confirm permanent remove controls plus board settings for visible board columns, the Convex mentions tab toggle, rank badges, and the Slack digest, with links to the groups and branding pages.
+- `src/components/GroupsPanel.tsx` — Custom groups admin: create, rename, describe, reorder, show or hide, the internal (admins only) toggle, two step delete, member roster with add by handle and remove, and X List import with saved list re-sync.
+- `src/components/SiteSettingsPanel.tsx` — Site branding admin: live header preview, title and name fields with shipped defaults as placeholders, PNG/SVG logo upload, and a two step reset to defaults.
 - `src/components/GiftAdminPanel.tsx` — Sender connection, repeat-recipient history with per-person gift and sent counts plus a gift count filter, the shared product shelf, campaign creation with pick-to-fill preset chips, an optional per-dispatch custom DM editor with placeholders and live preview, consent controls, DM delivery, a searchable recipient ledger with CSV export, and the Dispatches log showing every recipient chip with sent state, archive, restore, confirmed delete, and CSV export.
 - `src/components/GiftProductShelf.tsx` — Shared Gift inventory Product shelf of Fourthwall-verified saved products with thumbnails, used by the Gift studio and the Gift lab.
 - `src/components/GiftLabPanel.tsx` — Gift lab admin page: name plus product form with an expiry checkbox, the generated link with a copy button, and a log of every lab link with copy, open, Fourthwall check, close, and confirmed delete.
@@ -72,7 +78,7 @@
 - `src/components/AdminAccessNote.tsx` — Shared admin-only notice with the signed-in admin chip and steps for adding another admin to `ADMIN_X_USER_IDS`.
 - `src/components/ImportPanel.tsx` — Bulk handle and public X List preview and import controls.
 - `src/components/JoinBoard.tsx` — X sign-in, membership request, and review status, with X in-app browser instructions, a mobile stay-in-this-browser hint, and a failed sign-in retry message.
-- `src/components/SiteHeader.tsx` — Primary navigation, plus admin links, the Admin @handle chip, and Sign out on `/admin` routes for signed-in admins.
+- `src/components/SiteHeader.tsx` — Primary navigation with the brandable lockup (custom logo and header title from site settings), plus admin links, the settings gear icon, the Admin @handle chip, and Sign out on `/admin` routes for signed-in admins.
 - `src/components/ThemeSwitcher.tsx` — Icon-only round Convex/Studio theme toggle with persistence and an accessible name.
 - `src/components/BuiltWithFooter.tsx` — Cursor and Convex attribution, the open source board credit, `llms.txt` and `sitemap.md` links, and Convex social icons.
 - `src/components/formatters.ts` — Metric, date, and relative sync time formatting helpers.
@@ -81,14 +87,17 @@
 
 ## Convex backend
 
-- `convex/schema.ts` — Auth, leaderboard, Convex mention snapshot fields, rank badges, board display settings, gift product presets, numbered gift-delivery, Gift lab links, and X Account Activity tables with indexes plus the recipient handle search index.
-- `convex/boardSettings.ts` — Public query and admin mutation for which metric columns each leaderboard view shows.
+- `convex/schema.ts` — Auth, leaderboard, Convex mention snapshot fields, rank badges, board display settings, custom groups and memberships, the site branding singleton, gift product presets, numbered gift-delivery, Gift lab links, and X Account Activity tables with indexes plus the recipient handle search index.
+- `convex/boardSettings.ts` — Public query and admin mutation for which metric columns each leaderboard view shows plus the Convex mentions tab toggle.
+- `convex/groups.ts` — Custom group CRUD, ordering, memberships, the internal (admin only) flag, and the X List sync action that creates missing profiles and upserts members.
+- `convex/brandingDefaults.ts` — Shipped site branding constants shared by the backend and the frontend fallbacks.
+- `convex/siteSettings.ts` — Site branding singleton: public merged read, admin save with logo storage cleanup, upload URL, and reset.
 - `convex/auth.config.ts` — Convex Auth issuer configuration.
 - `convex/auth.ts` — X OAuth 2.0 provider and profile mapping.
 - `convex/http.ts` — Convex Auth, X DM sender, Fourthwall, and X Account Activity HTTP routes, Agent Ready routes, live discovery files, plus the static hosting catch-all registered last.
-- `convex/siteDirectory.ts` — Pure builders for live `llms.txt`, `sitemap.md`, `sitemap.xml`, and `robots.txt`.
-- `convex/siteFiles.ts` — Internal public-directory query and HTTP actions that serve the live discovery files from active profiles, sorted in the board's canonical engagement rank so sitemap numbering matches the homepage.
-- `convex/authz.ts` — X identity lookup and stable-ID admin allowlist checks.
+- `convex/siteDirectory.ts` — Pure builders for live `llms.txt`, `sitemap.md`, `sitemap.xml`, and `robots.txt`, branded from site settings with a Groups section when groups exist.
+- `convex/siteFiles.ts` — Internal public-directory query and HTTP actions that serve the live discovery files from active profiles and visible groups, sorted in the board's canonical engagement rank so sitemap numbering matches the homepage.
+- `convex/authz.ts` — X identity lookup, stable-ID admin allowlist checks, and the non-throwing `isAdminViewer` helper for admin-aware public queries.
 - `convex/imports.ts` — Bulk handle and public X List validation and import actions.
 - `convex/profiles.ts` — Leaderboard (default and Convex mentions modes) returning a public projection that strips internal profile fields, stored Convex posts, membership, import, and protected admin functions including permanent profile removal with snapshot cleanup. `listForSync` pages every active profile in join order through a cursor, never by score.
 - `convex/xSync.ts` — X lookup, seven-day aggregation, the Convex mention scan, and sync actions. Counts original posts, quote posts, and replies (reposts stay out via `referenced_tweets`), drains the whole board in batches, and schedules a continuation action when a run nears the action deadline so boards past 100 people still refresh everyone.
@@ -119,6 +128,7 @@
 - `vitest.config.ts` — Vitest setup: edge runtime environment for convex-test, tests kept in `tests/` outside the Convex bundler's reach.
 - `tests/xSyncParsing.test.ts` — Post classification, engagement field sum, and Convex mention matching fixtures (replies, long posts, expanded convex.dev links, no "convexity").
 - `tests/profilesListForSync.test.ts` — convex-test paging checks: a board past 100 active profiles is visited exactly once per refresh, score blind, with archived rows excluded.
+- `tests/groups.test.ts` — Group leaderboard comparator order, group name slugs, and the Groups sections plus branding headers in the generated discovery files.
 
 ## Build and hosting
 

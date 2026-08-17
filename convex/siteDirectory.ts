@@ -1,30 +1,33 @@
 // Pure builders for live discovery files. HTTP routes and the directory
 // query both import these. No Convex function registrations here.
 
+import { DEFAULT_BRANDING, type SiteBranding } from "./brandingDefaults";
+
 export const DIRECTORY_CAP = 250;
 
-export const SITE_PAGES: Array<{
+export function sitePages(branding: SiteBranding): Array<{
   title: string;
   path: string;
   description: string;
-}> = [
-  {
-    title: "Home",
-    path: "/",
-    description:
-      "People-only seven-day X leaderboard for Friends of Convex, ranked by public engagement.",
-  },
-  {
-    title: "About",
-    path: "/about",
-    description: "How the board scores a week of yaps and who it is for.",
-  },
-  {
-    title: "Join the board",
-    path: "/join",
-    description: "Sign in with X and ask to join the Friends of Convex board.",
-  },
-];
+}> {
+  return [
+    {
+      title: "Home",
+      path: "/",
+      description: `People-only seven-day X leaderboard for ${branding.communityName}, ranked by public engagement.`,
+    },
+    {
+      title: "About",
+      path: "/about",
+      description: "How the board scores a week of yaps and who it is for.",
+    },
+    {
+      title: "Join the board",
+      path: "/join",
+      description: `Sign in with X and ask to join the ${branding.communityName} board.`,
+    },
+  ];
+}
 
 export type PublicDirectoryPerson = {
   handle: string;
@@ -37,8 +40,16 @@ export type PublicDirectoryPerson = {
   updatedAt: number;
 };
 
+export type PublicDirectoryGroup = {
+  name: string;
+  slug: string;
+  description: string | null;
+  memberHandles: Array<string>;
+};
+
 export type PublicDirectory = {
   people: Array<PublicDirectoryPerson>;
+  groups: Array<PublicDirectoryGroup>;
   newestUpdatedAt: number | null;
 };
 
@@ -62,9 +73,12 @@ function xProfileUrl(handle: string): string {
   return `https://x.com/${handle}`;
 }
 
-export function buildRobotsTxt(baseUrl: string): string {
+export function buildRobotsTxt(
+  baseUrl: string,
+  branding: SiteBranding = DEFAULT_BRANDING,
+): string {
   const lines: Array<string> = [
-    "# Friends of Convex robots.txt",
+    `# ${branding.communityName} robots.txt`,
     "# Public discovery files: /llms.txt and /sitemap.md",
     "",
     "User-agent: *",
@@ -106,16 +120,17 @@ export function buildRobotsTxt(baseUrl: string): string {
 export function buildLlmsTxt(
   directory: PublicDirectory,
   baseUrl: string,
+  branding: SiteBranding = DEFAULT_BRANDING,
 ): string {
   const updated = directory.newestUpdatedAt
     ? formatDay(directory.newestUpdatedAt)
     : "unknown";
   const lines: Array<string> = [
-    "# Friends of Convex Yapper Board",
+    `# ${branding.siteTitle}`,
     "",
-    "> A people-only, seven-day X leaderboard for the Friends of Convex community.",
+    `> ${branding.siteDescription}`,
     "",
-    "Friends of Convex lists public community voices talking, teaching, and building in public. Pending join requests and archived handles are not included.",
+    `${branding.communityName} lists public community voices talking, teaching, and building in public. Pending join requests and archived handles are not included.`,
     "",
     `This file lists ${directory.people.length} public people on the board. Updated ${updated}.`,
     "",
@@ -131,10 +146,23 @@ export function buildLlmsTxt(
     "",
   ];
 
-  for (const page of SITE_PAGES) {
+  for (const page of sitePages(branding)) {
     lines.push(
       `- [${page.title}](${baseUrl}${page.path}): ${page.description}`,
     );
+  }
+
+  if (directory.groups.length > 0) {
+    lines.push("", "## Groups", "");
+    for (const group of directory.groups) {
+      const description = group.description ? ` ${group.description}` : "";
+      const members = group.memberHandles
+        .map((handle) => `@${handle}`)
+        .join(", ");
+      lines.push(
+        `- [${escapeMdLinkLabel(group.name)}](${baseUrl}/?board=${group.slug}): ${group.memberHandles.length} members.${description} Members: ${members}.`,
+      );
+    }
   }
 
   lines.push("", "## People", "");
@@ -157,14 +185,15 @@ export function buildLlmsTxt(
 export function buildSitemapMd(
   directory: PublicDirectory,
   baseUrl: string,
+  branding: SiteBranding = DEFAULT_BRANDING,
 ): string {
   const updated = directory.newestUpdatedAt
     ? formatDay(directory.newestUpdatedAt)
     : "unknown";
   const lines: Array<string> = [
-    "# Friends of Convex sitemap",
+    `# ${branding.communityName} sitemap`,
     "",
-    `A live catalog of public people on the [Friends of Convex yapper board](${baseUrl}). Pending join requests and archived handles are excluded.`,
+    `A live catalog of public people on the [${branding.siteTitle}](${baseUrl}). Pending join requests and archived handles are excluded.`,
     "",
     `${directory.people.length} people | Updated ${updated}`,
     "",
@@ -174,10 +203,30 @@ export function buildSitemapMd(
     "",
   ];
 
-  for (const page of SITE_PAGES) {
+  for (const page of sitePages(branding)) {
     lines.push(
       `- [${page.title}](${baseUrl}${page.path}): ${page.description}`,
     );
+  }
+
+  if (directory.groups.length > 0) {
+    lines.push("", "## Groups", "");
+    for (const group of directory.groups) {
+      lines.push(
+        `### [${escapeMdLinkLabel(group.name)}](${baseUrl}/?board=${group.slug})`,
+      );
+      lines.push("");
+      if (group.description) {
+        lines.push(`- About: ${group.description}`);
+      }
+      lines.push(`- Members: ${group.memberHandles.length}`);
+      for (const handle of group.memberHandles) {
+        lines.push(
+          `- [${escapeMdLinkLabel(`@${handle}`)}](${xProfileUrl(handle)})`,
+        );
+      }
+      lines.push("");
+    }
   }
 
   lines.push("", "## People", "");
@@ -252,6 +301,16 @@ export function buildSitemapXml(
       priority: "0.6",
     },
   ];
+
+  // Each public group pill is linkable via its board query param.
+  for (const group of directory.groups) {
+    urls.push({
+      loc: `${baseUrl}/?board=${group.slug}`,
+      lastmod: homepageLastmod,
+      changefreq: "daily",
+      priority: "0.7",
+    });
+  }
 
   const body = urls
     .map((entry) => {

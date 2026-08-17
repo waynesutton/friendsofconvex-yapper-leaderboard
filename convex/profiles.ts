@@ -5,9 +5,10 @@ import {
   internalQuery,
   mutation,
   query,
+  type MutationCtx,
   type QueryCtx,
 } from "./_generated/server";
-import { getXViewer, requireAdmin } from "./authz";
+import { getXViewer, isAdminViewer, requireAdmin } from "./authz";
 import {
   convexPostValidator,
   importEntryValidator,
@@ -19,7 +20,7 @@ import {
 
 const HANDLE_PATTERN = /^[A-Za-z0-9_]{1,50}$/;
 
-function normalizeHandle(value: string): string {
+export function normalizeHandle(value: string): string {
   const normalized = value.trim().replace(/^@+/, "").toLowerCase();
   if (!HANDLE_PATTERN.test(normalized)) {
     throw new Error(
@@ -106,6 +107,38 @@ function toPublicLeaderboardRow(row: LeaderboardRow): PublicLeaderboardRow {
     convexWeeklyChange: row.convexWeeklyChange,
     convexStreak: row.convexStreak,
   };
+}
+
+// Canonical Yappers ordering: synced rows first, then engagements with
+// impressions, posts, and join date as tie breakers. Shared by the default
+// board, group boards, and the discovery files so rankings always match.
+export function compareYapperRows(
+  left: Pick<
+    Doc<"profiles">,
+    | "syncStatus"
+    | "currentEngagements"
+    | "currentImpressions"
+    | "currentPosts"
+    | "addedAt"
+  >,
+  right: Pick<
+    Doc<"profiles">,
+    | "syncStatus"
+    | "currentEngagements"
+    | "currentImpressions"
+    | "currentPosts"
+    | "addedAt"
+  >,
+): number {
+  const leftGroup = left.syncStatus === "synced" ? 0 : 1;
+  const rightGroup = right.syncStatus === "synced" ? 0 : 1;
+  return (
+    leftGroup - rightGroup ||
+    right.currentEngagements - left.currentEngagements ||
+    right.currentImpressions - left.currentImpressions ||
+    right.currentPosts - left.currentPosts ||
+    left.addedAt - right.addedAt
+  );
 }
 
 // Builds the Convex mentions ranking from the same active profile index as the
@@ -196,10 +229,35 @@ export const listLeaderboard = query({
   args: {
     limit: v.optional(v.number()),
     mode: v.optional(v.union(v.literal("default"), v.literal("convex"))),
+    // When set, the board only shows active members of this group, ranked
+    // with the standard Yappers ordering. Takes precedence over mode.
+    groupId: v.optional(v.id("groups")),
   },
   returns: v.array(publicLeaderboardRowValidator),
   handler: async (ctx, args): Promise<Array<PublicLeaderboardRow>> => {
     const limit = Math.min(Math.max(Math.floor(args.limit ?? 200), 1), 250);
+    if (args.groupId !== undefined) {
+      // Internal boards are admin only. Visitors get an empty board, which
+      // the frontend never hits because listPublic hides the pill too.
+      const group = await ctx.db.get("groups", args.groupId);
+      if (!group) return [];
+      if ((group.internal ?? false) && !(await isAdminViewer(ctx))) {
+        return [];
+      }
+      const memberships = await ctx.db
+        .query("groupMemberships")
+        .withIndex("by_group_and_added_at", (q) =>
+          q.eq("groupId", args.groupId!),
+        )
+        .take(250);
+      const profiles: Array<Doc<"profiles">> = [];
+      for (const membership of memberships) {
+        const profile = await ctx.db.get("profiles", membership.profileId);
+        if (profile && profile.active) profiles.push(profile);
+      }
+      profiles.sort(compareYapperRows);
+      return profiles.slice(0, limit).map(toPublicLeaderboardRow);
+    }
     if (args.mode === "convex") {
       const rows = await buildConvexLeaderboard(ctx, limit);
       return rows.map(toPublicLeaderboardRow);
@@ -215,17 +273,7 @@ export const listLeaderboard = query({
     // assigns rank numbers and top 3 badges from this array's order, so the
     // sort here is what keeps badges correct after every sync or import.
     // Profiles awaiting their first X sync sort after rows with real metrics.
-    profiles.sort((left, right) => {
-      const leftGroup = left.syncStatus === "synced" ? 0 : 1;
-      const rightGroup = right.syncStatus === "synced" ? 0 : 1;
-      return (
-        leftGroup - rightGroup ||
-        right.currentEngagements - left.currentEngagements ||
-        right.currentImpressions - left.currentImpressions ||
-        right.currentPosts - left.currentPosts ||
-        left.addedAt - right.addedAt
-      );
-    });
+    profiles.sort(compareYapperRows);
     return profiles.map(toPublicLeaderboardRow);
   },
 });
@@ -409,6 +457,15 @@ export const remove = mutation({
     for (const snapshot of snapshots) {
       await ctx.db.delete("snapshots", snapshot._id);
     }
+    // Group memberships point at this profile; drop them so groups never
+    // hold orphaned rows.
+    const memberships = await ctx.db
+      .query("groupMemberships")
+      .withIndex("by_profile_id", (q) => q.eq("profileId", args.profileId))
+      .collect();
+    for (const membership of memberships) {
+      await ctx.db.delete("groupMemberships", membership._id);
+    }
     await ctx.db.delete("profiles", args.profileId);
     return null;
   },
@@ -582,6 +639,80 @@ export const findExistingForImport = internalQuery({
   },
 });
 
+// Fields needed to upsert one imported person from an X API lookup.
+export type PreparedImportPerson = {
+  handle: string;
+  xUserId: string;
+  displayName: string;
+  bio: string | null;
+  profileImageUrl: string | null;
+  followerCount: number;
+};
+
+// Upserts one imported profile as approved and active. Shared by the bulk
+// import commit and group list imports so both write profiles the same way.
+export async function upsertImportedProfile(
+  ctx: MutationCtx,
+  person: PreparedImportPerson,
+  source: "bulk" | "x-list",
+): Promise<{ profileId: Id<"profiles">; created: boolean }> {
+  const normalizedHandle = normalizeHandle(person.handle);
+  const byId = await ctx.db
+    .query("profiles")
+    .withIndex("by_x_user_id", (q) => q.eq("xUserId", person.xUserId))
+    .unique();
+  const existing =
+    byId ??
+    (await ctx.db
+      .query("profiles")
+      .withIndex("by_normalized_handle", (q) =>
+        q.eq("normalizedHandle", normalizedHandle),
+      )
+      .unique());
+  const now = Date.now();
+
+  if (existing) {
+    await ctx.db.patch("profiles", existing._id, {
+      handle: person.handle,
+      normalizedHandle,
+      displayName: person.displayName,
+      bio: person.bio,
+      profileImageUrl: person.profileImageUrl,
+      xUserId: person.xUserId,
+      currentFollowers: person.followerCount,
+      membershipStatus: "approved",
+      source,
+      active: true,
+      reviewedAt: now,
+      updatedAt: now,
+    });
+    return { profileId: existing._id, created: false };
+  }
+
+  const profileId = await ctx.db.insert("profiles", {
+    handle: person.handle,
+    normalizedHandle,
+    displayName: person.displayName,
+    bio: person.bio,
+    profileImageUrl: person.profileImageUrl,
+    xUserId: person.xUserId,
+    active: true,
+    syncStatus: "pending",
+    syncError: null,
+    currentImpressions: 0,
+    currentPosts: 0,
+    currentEngagements: 0,
+    currentFollowers: person.followerCount,
+    lastSyncedAt: null,
+    addedAt: now,
+    updatedAt: now,
+    membershipStatus: "approved",
+    source,
+    reviewedAt: now,
+  });
+  return { profileId, created: true };
+}
+
 export const importPrepared = internalMutation({
   args: {
     entries: v.array(importEntryValidator),
@@ -602,62 +733,16 @@ export const importPrepared = internalMutation({
         skipped += 1;
         continue;
       }
-      const normalizedHandle = normalizeHandle(entry.handle);
-      const byId = await ctx.db
-        .query("profiles")
-        .withIndex("by_x_user_id", (q) => q.eq("xUserId", entry.xUserId))
-        .unique();
-      const existing =
-        byId ??
-        (await ctx.db
-          .query("profiles")
-          .withIndex("by_normalized_handle", (q) =>
-            q.eq("normalizedHandle", normalizedHandle),
-          )
-          .unique());
-      const now = Date.now();
-
-      if (existing) {
-        await ctx.db.patch("profiles", existing._id, {
-          handle: entry.handle,
-          normalizedHandle,
-          displayName: entry.displayName,
-          bio: entry.bio,
-          profileImageUrl: entry.profileImageUrl,
-          xUserId: entry.xUserId,
-          currentFollowers: entry.followerCount,
-          membershipStatus: "approved",
-          source: args.source,
-          active: true,
-          reviewedAt: now,
-          updatedAt: now,
-        });
+      const result = await upsertImportedProfile(
+        ctx,
+        { ...entry, xUserId: entry.xUserId },
+        args.source,
+      );
+      if (result.created) {
+        created += 1;
+      } else {
         updated += 1;
-        continue;
       }
-
-      await ctx.db.insert("profiles", {
-        handle: entry.handle,
-        normalizedHandle,
-        displayName: entry.displayName,
-        bio: entry.bio,
-        profileImageUrl: entry.profileImageUrl,
-        xUserId: entry.xUserId,
-        active: true,
-        syncStatus: "pending",
-        syncError: null,
-        currentImpressions: 0,
-        currentPosts: 0,
-        currentEngagements: 0,
-        currentFollowers: entry.followerCount,
-        lastSyncedAt: null,
-        addedAt: now,
-        updatedAt: now,
-        membershipStatus: "approved",
-        source: args.source,
-        reviewedAt: now,
-      });
-      created += 1;
     }
     return { created, updated, skipped };
   },

@@ -25,6 +25,7 @@ const convexColumnsValidator = v.object({
 const displayValidator = v.object({
   yappersColumns: yappersColumnsValidator,
   convexColumns: convexColumnsValidator,
+  showConvexTab: v.boolean(),
 });
 
 export const DEFAULT_DISPLAY = {
@@ -36,6 +37,7 @@ export const DEFAULT_DISPLAY = {
     convexEngagements: true,
     weeklyChange: true,
   },
+  showConvexTab: true,
 };
 
 export const getBoardDisplay = query({
@@ -50,6 +52,8 @@ export const getBoardDisplay = query({
     return {
       yappersColumns: settings.yappersColumns,
       convexColumns: settings.convexColumns,
+      // Settings saved before the field existed keep the pill visible.
+      showConvexTab: settings.showConvexTab ?? true,
     };
   },
 });
@@ -58,6 +62,7 @@ export const setBoardDisplay = mutation({
   args: {
     yappersColumns: yappersColumnsValidator,
     convexColumns: convexColumnsValidator,
+    showConvexTab: v.optional(v.boolean()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -81,6 +86,7 @@ export const setBoardDisplay = mutation({
       key: SETTINGS_KEY,
       yappersColumns: args.yappersColumns,
       convexColumns: args.convexColumns,
+      showConvexTab: args.showConvexTab ?? existing?.showConvexTab ?? true,
       updatedAt: Date.now(),
     };
     if (existing) {

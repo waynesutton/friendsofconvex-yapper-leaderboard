@@ -6,7 +6,9 @@ import { AdminDocsPage } from "./pages/AdminDocsPage";
 import { AdminGiftLabPage } from "./pages/AdminGiftLabPage";
 import { AdminGiftsGuidePage } from "./pages/AdminGiftsGuidePage";
 import { AdminGiftsPage } from "./pages/AdminGiftsPage";
+import { AdminGroupsPage } from "./pages/AdminGroupsPage";
 import { AdminPage } from "./pages/AdminPage";
+import { AdminSettingsPage } from "./pages/AdminSettingsPage";
 import { AdminSetupPage } from "./pages/AdminSetupPage";
 import { GiftLabPassPage } from "./pages/GiftLabPassPage";
 import { GiftPassPage } from "./pages/GiftPassPage";
@@ -25,6 +27,8 @@ export function App() {
           <Route path="/about" element={<AboutPage />} />
           <Route path="/join" element={<JoinPage />} />
           <Route path="/admin" element={<AdminPage />} />
+          <Route path="/admin/groups" element={<AdminGroupsPage />} />
+          <Route path="/admin/settings" element={<AdminSettingsPage />} />
           <Route path="/admin/docs" element={<AdminDocsPage />} />
           <Route path="/admin/setup" element={<AdminSetupPage />} />
           <Route path="/admin/gifts" element={<AdminGiftsPage />} />

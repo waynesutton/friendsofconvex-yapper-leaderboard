@@ -119,7 +119,7 @@ function splitHandleInput(text: string): string[] {
     .slice(0, MAX_IMPORT_SIZE);
 }
 
-async function requireAdminAction(ctx: ActionCtx): Promise<void> {
+export async function requireAdminAction(ctx: ActionCtx): Promise<void> {
   const userId = await getAuthUserId(ctx);
   if (!userId) throw new Error("Sign in with X to continue.");
   const isAdmin: boolean = await ctx.runQuery(internal.authz.isAdminUser, {
@@ -269,6 +269,60 @@ export const previewHandles = action({
   },
 });
 
+export type XListPreview = {
+  listId: string;
+  name: string;
+  totalMembers: number;
+  fetchedCount: number;
+  truncated: boolean;
+  entries: ImportEntry[];
+};
+
+// Shared by the admin import panel and group list imports. Fetches list
+// metadata plus up to MAX_IMPORT_SIZE members and marks existing profiles.
+export async function fetchXListPreview(
+  ctx: ActionCtx,
+  urlOrId: string,
+): Promise<XListPreview> {
+  const token = bearerToken();
+  const listId = parseListId(urlOrId);
+
+  const listUrl = new URL(`/2/lists/${listId}`, X_API_ORIGIN);
+  listUrl.searchParams.set("list.fields", "name,member_count");
+  const listPayload = await requestX(listUrl, token);
+  const listData = isRecord(listPayload) && isRecord(listPayload.data)
+    ? listPayload.data
+    : {};
+  const name = typeof listData.name === "string" ? listData.name : `X List ${listId}`;
+  const totalMembers = numberOrZero(listData.member_count);
+
+  const membersUrl = new URL(`/2/lists/${listId}/members`, X_API_ORIGIN);
+  membersUrl.searchParams.set("max_results", String(MAX_IMPORT_SIZE));
+  membersUrl.searchParams.set(
+    "user.fields",
+    "description,profile_image_url,public_metrics",
+  );
+  const membersPayload = await requestX(membersUrl, token);
+  const memberData =
+    isRecord(membersPayload) && Array.isArray(membersPayload.data)
+      ? membersPayload.data
+      : [];
+  const entries = memberData
+    .map(parseXUser)
+    .filter((user): user is XUser => user !== null)
+    .map((user) => entryForUser(user));
+  const marked = await markExisting(ctx, entries);
+
+  return {
+    listId,
+    name,
+    totalMembers,
+    fetchedCount: marked.length,
+    truncated: totalMembers > marked.length,
+    entries: marked,
+  };
+}
+
 export const previewXList = action({
   args: { urlOrId: v.string() },
   returns: v.object({
@@ -281,43 +335,7 @@ export const previewXList = action({
   }),
   handler: async (ctx, args) => {
     await requireAdminAction(ctx);
-    const token = bearerToken();
-    const listId = parseListId(args.urlOrId);
-
-    const listUrl = new URL(`/2/lists/${listId}`, X_API_ORIGIN);
-    listUrl.searchParams.set("list.fields", "name,member_count");
-    const listPayload = await requestX(listUrl, token);
-    const listData = isRecord(listPayload) && isRecord(listPayload.data)
-      ? listPayload.data
-      : {};
-    const name = typeof listData.name === "string" ? listData.name : `X List ${listId}`;
-    const totalMembers = numberOrZero(listData.member_count);
-
-    const membersUrl = new URL(`/2/lists/${listId}/members`, X_API_ORIGIN);
-    membersUrl.searchParams.set("max_results", String(MAX_IMPORT_SIZE));
-    membersUrl.searchParams.set(
-      "user.fields",
-      "description,profile_image_url,public_metrics",
-    );
-    const membersPayload = await requestX(membersUrl, token);
-    const memberData =
-      isRecord(membersPayload) && Array.isArray(membersPayload.data)
-        ? membersPayload.data
-        : [];
-    const entries = memberData
-      .map(parseXUser)
-      .filter((user): user is XUser => user !== null)
-      .map((user) => entryForUser(user));
-    const marked = await markExisting(ctx, entries);
-
-    return {
-      listId,
-      name,
-      totalMembers,
-      fetchedCount: marked.length,
-      truncated: totalMembers > marked.length,
-      entries: marked,
-    };
+    return await fetchXListPreview(ctx, args.urlOrId);
   },
 });
 

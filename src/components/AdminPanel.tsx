@@ -10,6 +10,7 @@ import {
 import { useAction, useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { FormEvent, useState } from "react";
+import { Link } from "react-router-dom";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { formatSyncTime } from "./formatters";
@@ -205,6 +206,22 @@ function BoardColumnSettings() {
   return (
     <div className="board-column-settings">
       <fieldset>
+        <legend>Board tabs</legend>
+        <label title="Show or hide the Convex mentions pill on the public board. Forks that do not track Convex mentions can turn this off.">
+          <input
+            type="checkbox"
+            checked={display.showConvexTab}
+            onChange={(event) =>
+              void save({
+                ...display,
+                showConvexTab: event.target.checked,
+              })
+            }
+          />
+          <span>Show the Convex mentions tab</span>
+        </label>
+      </fieldset>
+      <fieldset>
         <legend>Yappers view columns</legend>
         {YAPPERS_COLUMN_LABELS.map(({ key, label }) => (
           <label key={key} title={`Show or hide the ${label} column on the public board`}>
@@ -287,10 +304,19 @@ function BoardSettings() {
         <p className="section-kicker">Board settings</p>
         <h2 id="board-settings-title">Leaderboard display</h2>
         <p>
-          Choose which columns each public view shows, customize the top 3
-          badges in Convex mentions mode, and post the digest to Slack. Slack
-          needs SLACK_BOT_TOKEN and SLACK_DIGEST_CHANNEL in this Convex
+          Choose which tabs and columns the public board shows, customize the
+          top 3 badges in Convex mentions mode, and post the digest to Slack.
+          Slack needs SLACK_BOT_TOKEN and SLACK_DIGEST_CHANNEL in this Convex
           deployment.
+        </p>
+        <p>
+          <Link className="text-link" to="/admin/groups">
+            Manage custom groups
+          </Link>{" "}
+          ·{" "}
+          <Link className="text-link" to="/admin/settings">
+            Site branding settings
+          </Link>
         </p>
       </div>
       <BoardColumnSettings />

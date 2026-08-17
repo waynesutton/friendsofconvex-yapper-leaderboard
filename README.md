@@ -13,6 +13,8 @@ The board tracks public X activity for an approved list of people over a rolling
 - Two board modes: a general Yappers ranking by public engagement, and a Convex mentions mode ranked by Convex post count. A post is an original, quote, or reply from the last seven days; reposts are out. Convex mentions match the whole word convex in the post text, long post text, or a convex.dev link
 - Expandable rows in Convex mentions mode that reveal the posts behind the numbers
 - Top filter (30 / 60 / 100 / 150 / All) plus Load more, a board freshness chip, streak chips, and avatar anchored rank badges for the top 3
+- Custom groups: admins can spotlight any circle (a team, a conference, a cohort) as its own leaderboard pill, with members added by handle or imported from a public X List. Each group gets a shareable `/?board=slug` link and shows up in `llms.txt` and `sitemap.md`
+- Site branding settings: change the site title, community name, board name, header title, and logo from `/admin/settings` in one pass. Forks can retitle everything without touching code
 - Sign in with X to request a spot; admins approve or reject from a review queue
 - Bulk imports from pasted handles or a public X List
 - A daily cron at 8:17 AM Pacific that refreshes every active profile in batches, so boards past 100 people never skip anyone
@@ -156,11 +158,48 @@ Useful scripts:
 
 | Path | What it is for |
 | --- | --- |
-| `/admin` | Board ops: add / archive / remove handles, imports, column and badge settings |
+| `/admin` | Board ops: add / archive / remove handles, imports, column and badge settings, the Convex mentions tab toggle |
+| `/admin/groups` | Custom groups: create, rename, reorder, show or hide, internal admin only boards, member management, X List import |
+| `/admin/settings` | Site branding: title, community name, board name, header title, logo, reset to defaults |
 | `/admin/gifts` | Gift studio: campaigns, product shelf, Dispatches log, X DM delivery |
 | `/admin/gift-lab` | Gift lab: named links for people off the board |
 | `/admin/gifts/guide` | Plain language Gift studio walkthrough |
 | `/admin/docs` | How admin access works and what each surface does |
+
+## Custom groups
+
+Groups are extra leaderboard pills next to Yappers and Convex mentions. Create one at `/admin/groups`, add people by X handle, or paste a public X List URL and import up to 100 members in one click. The list id is saved on the group, so re syncing later is one button.
+
+How the pills behave:
+
+- A group pill only renders on the public board when the group is visible and has at least one active member, so visitors never see a dead tab
+- Groups rank with the standard Yappers scoring (engagements, then impressions, then posts)
+- Every pill has its own link: `/?board=slug`. The slug comes from the group name and updates when you rename the group
+- One person can sit in several groups; removing someone from a group never removes them from the main board
+- Mark a board internal and only signed in admins see its pill (with a lock icon). Everyone else is blocked server side, and internal boards stay out of `llms.txt` and the sitemaps. Good for an internal team board
+- Handles imported through a group that are not on the board yet are added to it, approved and active, and picked up by the next metrics sync
+- Visible groups with members appear automatically in the live `llms.txt`, `sitemap.md`, and `sitemap.xml`
+
+## Fork this board
+
+Three tiers, from lightest to full removal.
+
+**1. Rebrand from admin (no code changes).** Open `/admin/settings` (the gear icon in the admin nav) and change the site title, community name, board name, header title, and logo. Every field defaults to the shipped Friends of Convex look, and one save updates the header, the board heading, the browser tab title, the share text, and the discovery files together. Reset to defaults undoes everything.
+
+**2. Hide the Convex mentions tab.** In `/admin` under Board settings, uncheck "Show the Convex mentions tab". The public board keeps the Yappers pill and any group pills; a direct `/?board=convex` link falls back to Yappers.
+
+**3. Remove the Convex parts entirely (code changes).** The runtime settings above cover most of a fork. What stays hardcoded:
+
+| Where | What to change |
+| --- | --- |
+| `index.html` | Page title, description, OpenGraph and JSON-LD meta tags |
+| `public/favicon.png`, `public/og-friends-of-convex.png` | Favicon and the social preview image |
+| `public/brand/` | Convex logo assets (the header logo is replaceable from admin; these files remain in the repo) |
+| `src/pages/AboutPage.tsx` | Long form methodology prose written for Friends of Convex |
+| `src/components/BuiltWithFooter.tsx` | Footer attribution and Convex social links |
+| `convex/xSyncParsing.ts` | The Convex mention scan (only matters if you keep the mentions tab on) |
+| `convex/slack.ts` | The Slack digest copy (optional feature, off unless configured) |
+| Gift studio / Gift lab copy | Thank you card prose mentions Convex |
 
 ## Learn more
 

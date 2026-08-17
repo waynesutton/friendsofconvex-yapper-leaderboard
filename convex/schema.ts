@@ -163,6 +163,54 @@ export default defineSchema({
       convexEngagements: v.boolean(),
       weeklyChange: v.boolean(),
     }),
+    // Whether the public board shows the Convex mentions pill. Optional so
+    // settings saved before the field existed stay valid; missing means true.
+    showConvexTab: v.optional(v.boolean()),
+    updatedAt: v.number(),
+  }).index("by_key", ["key"]),
+
+  // Admin-defined custom groups. Each visible group with at least one active
+  // member renders as an extra pill on the public leaderboard.
+  groups: defineTable({
+    name: v.string(),
+    slug: v.string(),
+    description: v.optional(v.string()),
+    visible: v.boolean(),
+    // Internal boards render their pill only for signed-in admins and stay
+    // out of the discovery files. Missing means false (public group).
+    internal: v.optional(v.boolean()),
+    order: v.number(),
+    // Optional X List id this group can re-import members from.
+    xListId: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_order", ["order"]),
+
+  // Many-to-many join between groups and profiles so one person can appear
+  // in several groups without duplicating profile rows.
+  groupMemberships: defineTable({
+    groupId: v.id("groups"),
+    profileId: v.id("profiles"),
+    addedAt: v.number(),
+  })
+    .index("by_group_and_profile", ["groupId", "profileId"])
+    .index("by_profile_id", ["profileId"])
+    .index("by_group_and_added_at", ["groupId", "addedAt"]),
+
+  // Singleton (key "site") for site branding overrides. Every field is
+  // optional; missing fields fall back to the shipped defaults so an
+  // untouched deploy renders exactly like production.
+  siteSettings: defineTable({
+    key: v.string(),
+    siteTitle: v.optional(v.string()),
+    siteDescription: v.optional(v.string()),
+    communityName: v.optional(v.string()),
+    boardName: v.optional(v.string()),
+    eyebrowText: v.optional(v.string()),
+    headerTitle: v.optional(v.string()),
+    logoStorageId: v.optional(v.id("_storage")),
     updatedAt: v.number(),
   }).index("by_key", ["key"]),
 

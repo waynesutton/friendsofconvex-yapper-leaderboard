@@ -6,17 +6,26 @@ import {
   CheckIcon,
   CopyIcon,
   FunnelSimpleIcon,
+  LockSimpleIcon,
   MagnifyingGlassIcon,
   ShareNetworkIcon,
   TrophyIcon,
+  UsersThreeIcon,
   XLogoIcon,
 } from "@phosphor-icons/react";
 import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { useMemo, useState, type CSSProperties, type KeyboardEvent } from "react";
-import { Link } from "react-router-dom";
+import {
+  useMemo,
+  useState,
+  type CSSProperties,
+  type KeyboardEvent,
+  type ReactNode,
+} from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
+import { DEFAULT_BRANDING } from "../../convex/brandingDefaults";
 import { FilterDropdown, type FilterDropdownOption } from "./FilterDropdown";
 import { compactNumber, formatSyncTime, initials, relativeSyncTime } from "./formatters";
 import { MetricInfo } from "./MetricInfo";
@@ -36,9 +45,23 @@ const TOP_FILTER_OPTIONS: Array<FilterDropdownOption<TopFilterValue>> = [
   { value: "all", label: "All yappers" },
 ];
 
-type BoardMode = "impressions" | "convex";
+// The active board: the default Yappers ranking, the Convex mentions
+// ranking, or a custom group's slug. Synced to the ?board= URL param so
+// every pill is linkable.
+type BoardSelection = string;
+const DEFAULT_BOARD = "impressions";
+
 type LeaderboardRow = FunctionReturnType<typeof api.profiles.listLeaderboard>[number];
 type RankBadge = FunctionReturnType<typeof api.badges.listRankBadges>[number];
+type PublicGroup = FunctionReturnType<typeof api.groups.listPublic>[number];
+
+// Branding fallback while the settings query loads, so there is no flash of
+// missing text. Matches the server-side defaults exactly.
+const BRANDING_FALLBACK = {
+  ...DEFAULT_BRANDING,
+  hasCustomLogo: false,
+  customized: false,
+};
 
 type SortKey =
   | "rank"
@@ -71,6 +94,7 @@ const ALL_VISIBLE: BoardDisplay = {
     convexEngagements: true,
     weeklyChange: true,
   },
+  showConvexTab: true,
 };
 
 // Grid column widths mirror the CSS defaults so hiding a column reflows the
@@ -226,7 +250,14 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
   });
   const rankBadges = useQuery(api.badges.listRankBadges, {});
   const display = useQuery(api.boardSettings.getBoardDisplay, {}) ?? ALL_VISIBLE;
-  const [mode, setMode] = useState<BoardMode>("impressions");
+  const groups = useQuery(api.groups.listPublic, {});
+  const branding = useQuery(api.siteSettings.getSiteBranding, {}) ?? BRANDING_FALLBACK;
+  const [searchParams, setSearchParams] = useSearchParams();
+  // The active pill lives in the URL so boards are shareable. An unknown or
+  // hidden board value falls back to the default Yappers ranking.
+  const [board, setBoard] = useState<BoardSelection>(
+    () => searchParams.get("board") ?? DEFAULT_BOARD,
+  );
   const [search, setSearch] = useState(initialSearch);
   // Board opens on Top 30; Load more extends past the filter until everyone
   // is visible.
@@ -242,8 +273,59 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
   // Which row's avatar bio peek is open; one card at a time across the board.
   const [peekId, setPeekId] = useState<Id<"profiles"> | null>(null);
 
-  const convexMode = mode === "convex";
-  const activeRows = convexMode ? convexProfiles : profiles;
+  // One pill per board: Yappers always, Convex mentions unless the admin
+  // hides it, then every visible group with at least one active member.
+  const pills: Array<{ id: BoardSelection; label: string; icon: ReactNode }> = [
+    {
+      id: DEFAULT_BOARD,
+      label: "Yappers",
+      icon: <ChatCircleTextIcon aria-hidden="true" />,
+    },
+    ...(display.showConvexTab
+      ? [
+          {
+            id: "convex",
+            label: "Convex mentions",
+            icon: <TrophyIcon aria-hidden="true" />,
+          },
+        ]
+      : []),
+    ...(groups ?? []).map((group) => ({
+      id: group.slug,
+      label: group.name,
+      // Internal boards only reach admins (listPublic filters them); the
+      // lock reminds the signed-in admin this pill is not public.
+      icon: group.internal ? (
+        <LockSimpleIcon aria-hidden="true" />
+      ) : (
+        <UsersThreeIcon aria-hidden="true" />
+      ),
+    })),
+  ];
+  const activeBoard: BoardSelection = pills.some((pill) => pill.id === board)
+    ? board
+    : DEFAULT_BOARD;
+  const activeIndex = Math.max(
+    pills.findIndex((pill) => pill.id === activeBoard),
+    0,
+  );
+  const activeGroup: PublicGroup | undefined = (groups ?? []).find(
+    (group) => group.slug === activeBoard,
+  );
+
+  // Group boards subscribe only while a group pill is active.
+  const groupProfiles = useQuery(
+    api.profiles.listLeaderboard,
+    activeGroup ? { limit: 250, groupId: activeGroup._id } : "skip",
+  );
+
+  const convexMode = activeBoard === "convex";
+  const groupMode = activeGroup !== undefined;
+  const activeRows = convexMode
+    ? convexProfiles
+    : groupMode
+      ? groupProfiles
+      : profiles;
   const yappersColumns = display.yappersColumns;
   const convexColumns = display.convexColumns;
 
@@ -377,10 +459,12 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
     window.setTimeout(() => setCopied(null), 1800);
   }
 
+  const shareText = `${branding.communityName} ${branding.boardName}`;
+
   async function handleShare() {
     const shareData = {
-      title: "Friends of Convex Yapper Board",
-      text: "Friends of Convex Yapper Leader Board",
+      title: branding.siteTitle,
+      text: shareText,
       url: window.location.href,
     };
     try {
@@ -397,9 +481,8 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
   }
 
   function postOnX() {
-    const text = "Friends of Convex Yapper Leader Board";
     const intent = new URL("https://x.com/intent/post");
-    intent.searchParams.set("text", text);
+    intent.searchParams.set("text", shareText);
     intent.searchParams.set("url", window.location.href);
     window.open(intent, "_blank", "noopener,noreferrer");
   }
@@ -409,18 +492,32 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
     setVisibleCount(filterStep(topFilter));
   }
 
-  function changeMode(nextMode: BoardMode) {
-    if (nextMode === mode) return;
-    setMode(nextMode);
+  function changeBoard(nextBoard: BoardSelection) {
+    if (nextBoard === activeBoard) return;
+    setBoard(nextBoard);
+    // Mirror the pill into the URL so the view is linkable. The default
+    // board keeps a clean URL with no param.
+    setSearchParams(
+      (params) => {
+        const next = new URLSearchParams(params);
+        if (nextBoard === DEFAULT_BOARD) {
+          next.delete("board");
+        } else {
+          next.set("board", nextBoard);
+        }
+        return next;
+      },
+      { replace: true },
+    );
     setVisibleCount(filterStep(topFilter));
     setExpandedId(null);
-    // Switching modes returns to the ranking view so both boards open the
+    // Switching boards returns to the ranking view so every board opens the
     // same way.
     setSortKey("rank");
     setSortDirection(defaultSortDirection("rank"));
   }
 
-  function handleModeKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+  function handleModeKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {
     if (
       event.key !== "ArrowLeft" &&
       event.key !== "ArrowRight" &&
@@ -430,12 +527,16 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
       return;
     }
     event.preventDefault();
-    const nextMode: BoardMode =
-      event.key === "ArrowLeft" || event.key === "Home" ? "impressions" : "convex";
-    changeMode(nextMode);
+    let nextIndex = index;
+    if (event.key === "ArrowLeft") nextIndex = Math.max(0, index - 1);
+    if (event.key === "ArrowRight") nextIndex = Math.min(pills.length - 1, index + 1);
+    if (event.key === "Home") nextIndex = 0;
+    if (event.key === "End") nextIndex = pills.length - 1;
+    const nextPill = pills[nextIndex];
+    if (!nextPill) return;
+    changeBoard(nextPill.id);
     const tabs = event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>("button");
-    const nextTab = nextMode === "impressions" ? tabs?.[0] : tabs?.[1];
-    nextTab?.focus();
+    tabs?.[nextIndex]?.focus();
   }
 
   function changeTopFilter(nextValue: TopFilterValue) {
@@ -489,7 +590,7 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
           </p> */}
           <p className="hero-deck">Who&rsquo;s yapping and who&rsquo;s posting about Convex.</p>
           <h1 id="hero-title">
-            Friends of Convex <span>Yapper Leader Board</span>
+            {branding.communityName} <span>{branding.boardName}</span>
           </h1>
           {/* <p className="hero-deck">Who's yapping and who's posting about Convex.</p> */}
         </div>
@@ -497,7 +598,7 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
           <div className="signal-pulse" aria-hidden="true" />
           <p className="signal-label">Rolling signal</p>
           <strong>{profiles?.length ?? "—"}</strong>
-          <span>Friends of Convex</span>
+          <span>{branding.communityName}</span>
           <div className="signal-meta">
             <span>{formatSyncTime(latestSync)}</span>
             <span>Daily at 8:17 AM Pacific</span>
@@ -509,7 +610,9 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
         <h2 id="board-title" className="sr-only">
           {convexMode
             ? "People, ranked by Convex mentions"
-            : "People, ranked by public engagement"}
+            : groupMode && activeGroup
+              ? `${activeGroup.name}, ranked by public engagement`
+              : "People, ranked by public engagement"}
         </h2>
         <div className="board-toolbar">
           <p className="eyebrow board-kicker">
@@ -542,26 +645,27 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
         <div className="board-controls">
           <div
             className="mode-tabs"
-            data-mode={mode}
             role="group"
-            aria-label="Switch ranking between Yappers and Convex mentions">
+            aria-label="Switch the board view"
+            style={
+              {
+                "--tab-count": pills.length,
+                "--tab-index": activeIndex,
+              } as CSSProperties
+            }>
             <span className="mode-tabs-thumb" aria-hidden="true" />
-            <button
-              type="button"
-              aria-pressed={mode === "impressions"}
-              onClick={() => changeMode("impressions")}
-              onKeyDown={handleModeKeyDown}>
-              <span className="mode-tabs-pip" aria-hidden="true" />
-              <ChatCircleTextIcon aria-hidden="true" /> Yappers
-            </button>
-            <button
-              type="button"
-              aria-pressed={mode === "convex"}
-              onClick={() => changeMode("convex")}
-              onKeyDown={handleModeKeyDown}>
-              <span className="mode-tabs-pip" aria-hidden="true" />
-              <TrophyIcon aria-hidden="true" /> Convex mentions
-            </button>
+            {pills.map((pill, index) => (
+              <button
+                key={pill.id}
+                type="button"
+                aria-pressed={activeBoard === pill.id}
+                onClick={() => changeBoard(pill.id)}
+                onKeyDown={(event) => handleModeKeyDown(event, index)}>
+                <span className="mode-tabs-pip" aria-hidden="true" />
+                {pill.icon}
+                <span className="mode-tab-label">{pill.label}</span>
+              </button>
+            ))}
           </div>
           <div className="share-toolbar" aria-label="Share leaderboard">
             <FilterDropdown
@@ -660,8 +764,8 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
         <div
           className="leaderboard-table"
           role="table"
-          aria-label="Friends of Convex leaderboard"
-          data-mode={mode}
+          aria-label={`${branding.communityName} leaderboard`}
+          data-mode={convexMode ? "convex" : "impressions"}
           style={
             {
               "--board-grid": gridTemplate,

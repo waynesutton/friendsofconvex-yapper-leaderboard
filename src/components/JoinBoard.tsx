@@ -4,6 +4,7 @@ import { useMutation, useQuery } from "convex/react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../../convex/_generated/api";
+import { DEFAULT_BRANDING } from "../../convex/brandingDefaults";
 import {
   consumeFailedSignInAttempt,
   isMobileDevice,
@@ -19,6 +20,10 @@ export function JoinBoard() {
   const { isAuthenticated, isLoading } = useConvexAuth();
   const { signIn, signOut } = useAuthActions();
   const viewer = useQuery(api.authz.viewer, {});
+  // Community name comes from admin site settings with the shipped default
+  // as the loading fallback, so the copy never flashes empty.
+  const branding = useQuery(api.siteSettings.getSiteBranding, {});
+  const communityName = branding?.communityName ?? DEFAULT_BRANDING.communityName;
   const membership = useQuery(api.profiles.getMyMembership, isAuthenticated ? {} : "skip");
   const requestToJoin = useMutation(api.profiles.requestToJoin);
   const [busy, setBusy] = useState(false);
@@ -57,8 +62,8 @@ export function JoinBoard() {
   return (
     <div className="join-page">
       <section className="join-copy">
-        <p className="eyebrow">Friends of Convex · Open call</p>
-        <h1>Request to join the Friends of Convex board.</h1>
+        <p className="eyebrow">{communityName} · Open call</p>
+        <h1>Request to join the {communityName} board.</h1>
         <p className="join-lede">
           Sign in with X, confirm your handle, and send one request. An admin reviews every request
           on a rolling basis. Joining is not automatic. Your last seven days of public metrics stay

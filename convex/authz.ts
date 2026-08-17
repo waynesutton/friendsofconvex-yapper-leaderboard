@@ -51,6 +51,13 @@ export async function getXViewer(ctx: AuthDbCtx) {
   };
 }
 
+// Non-throwing admin check for public queries that show extra rows to
+// admins (for example internal group pills) without failing for visitors.
+export async function isAdminViewer(ctx: AuthDbCtx): Promise<boolean> {
+  const viewer = await getXViewer(ctx);
+  return viewer !== null && adminIds().has(viewer.xUserId);
+}
+
 export async function requireAdmin(ctx: AuthDbCtx) {
   const viewer = await getXViewer(ctx);
   if (!viewer) throw new Error("Sign in with X to continue.");

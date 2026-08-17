@@ -1,6 +1,8 @@
 import { v } from "convex/values";
 import { httpAction, internalQuery, type ActionCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
+import type { SiteBranding } from "./brandingDefaults";
+import { compareYapperRows } from "./profiles";
 import {
   DIRECTORY_CAP,
   buildLlmsTxt,
@@ -21,8 +23,16 @@ const personValidator = v.object({
   updatedAt: v.number(),
 });
 
+const directoryGroupValidator = v.object({
+  name: v.string(),
+  slug: v.string(),
+  description: v.union(v.string(), v.null()),
+  memberHandles: v.array(v.string()),
+});
+
 const directoryValidator = v.object({
   people: v.array(personValidator),
+  groups: v.array(directoryGroupValidator),
   newestUpdatedAt: v.union(v.number(), v.null()),
 });
 
@@ -42,17 +52,7 @@ export const listPublicDirectory = internalQuery({
     // Canonical board order, mirroring profiles.listLeaderboard: synced rows
     // first, then engagements with impressions, posts, and join date as tie
     // breakers, so sitemap.md numbering matches the homepage ranking.
-    profiles.sort((left, right) => {
-      const leftGroup = left.syncStatus === "synced" ? 0 : 1;
-      const rightGroup = right.syncStatus === "synced" ? 0 : 1;
-      return (
-        leftGroup - rightGroup ||
-        right.currentEngagements - left.currentEngagements ||
-        right.currentImpressions - left.currentImpressions ||
-        right.currentPosts - left.currentPosts ||
-        left.addedAt - right.addedAt
-      );
-    });
+    profiles.sort(compareYapperRows);
 
     let newestUpdatedAt: number | null = null;
     const people = profiles.map((profile) => {
@@ -71,7 +71,33 @@ export const listPublicDirectory = internalQuery({
       };
     });
 
-    return { people, newestUpdatedAt };
+    // Visible public groups with at least one active member, matching the
+    // pills the board renders to visitors. Internal (admin only) boards
+    // never enter the discovery files. Members list in board rank order.
+    const groupDocs = await ctx.db.query("groups").withIndex("by_order").take(24);
+    const groups = [];
+    for (const group of groupDocs) {
+      if (!group.visible || group.internal) continue;
+      const memberships = await ctx.db
+        .query("groupMemberships")
+        .withIndex("by_group_and_added_at", (q) => q.eq("groupId", group._id))
+        .take(DIRECTORY_CAP);
+      const members = [];
+      for (const membership of memberships) {
+        const profile = await ctx.db.get("profiles", membership.profileId);
+        if (profile && profile.active) members.push(profile);
+      }
+      if (members.length === 0) continue;
+      members.sort(compareYapperRows);
+      groups.push({
+        name: group.name,
+        slug: group.slug,
+        description: group.description ?? null,
+        memberHandles: members.map((member) => member.handle),
+      });
+    }
+
+    return { people, groups, newestUpdatedAt };
   },
 });
 
@@ -107,21 +133,25 @@ async function serveLiveDirectoryFile(
     internal.siteFiles.listPublicDirectory,
     {},
   );
+  const branding: SiteBranding & {
+    hasCustomLogo: boolean;
+    customized: boolean;
+  } = await ctx.runQuery(internal.siteSettings.getSiteBrandingInternal, {});
 
   if (kind === "robots") {
-    return new Response(buildRobotsTxt(origin), {
+    return new Response(buildRobotsTxt(origin, branding), {
       status: 200,
       headers: discoveryHeaders("text/plain; charset=utf-8", origin),
     });
   }
   if (kind === "llms") {
-    return new Response(buildLlmsTxt(directory, origin), {
+    return new Response(buildLlmsTxt(directory, origin, branding), {
       status: 200,
       headers: discoveryHeaders("text/plain; charset=utf-8", origin),
     });
   }
   if (kind === "sitemapMd") {
-    return new Response(buildSitemapMd(directory, origin), {
+    return new Response(buildSitemapMd(directory, origin, branding), {
       status: 200,
       headers: discoveryHeaders("text/markdown; charset=utf-8", origin),
     });

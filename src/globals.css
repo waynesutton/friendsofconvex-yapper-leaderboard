@@ -527,12 +527,14 @@ button:disabled {
 
 /* Armed state for destructive admin actions: the Remove button turns red
    after the first click and only deletes on the second. */
-.icon-text-button.danger {
+.icon-text-button.danger,
+.secondary-button.danger {
   border-color: var(--signal-red);
   color: var(--signal-red);
 }
 
-.icon-text-button.danger:hover:not(:disabled) {
+.icon-text-button.danger:hover:not(:disabled),
+.secondary-button.danger:hover:not(:disabled) {
   background: var(--signal-red);
   border-color: var(--signal-red);
   color: #fff;
@@ -1790,13 +1792,17 @@ html[data-theme="convex"] .metric-info-trigger[aria-expanded="true"] {
   color: var(--studio-sheet);
 }
 
-/* Ranking channel switch: two equal lanes, sliding ink thumb, live pip. */
+/* Ranking channel switch: N equal lanes, sliding ink thumb, live pip. The
+   pill list sets --tab-count and --tab-index inline, so custom groups add
+   lanes without new CSS. */
 .mode-tabs {
+  --tab-count: 2;
+  --tab-index: 0;
   position: relative;
   isolation: isolate;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  width: min(100%, 440px);
+  grid-template-columns: repeat(var(--tab-count), 1fr);
+  width: min(100%, calc(220px * var(--tab-count)));
   margin-top: 0;
   padding: 4px;
   background: var(--studio-sheet);
@@ -1809,22 +1815,19 @@ html[data-theme="convex"] .metric-info-trigger[aria-expanded="true"] {
   top: 4px;
   left: 4px;
   z-index: 0;
-  width: calc(50% - 4px);
+  width: calc((100% - 8px) / var(--tab-count));
   height: calc(100% - 8px);
   background: var(--broadcast-ink);
   border-radius: 999px;
   pointer-events: none;
-  transform: translateX(0);
+  transform: translateX(calc(var(--tab-index) * 100%));
   transition: transform 200ms ease-out;
-}
-
-.mode-tabs[data-mode="convex"] .mode-tabs-thumb {
-  transform: translateX(100%);
 }
 
 .mode-tabs button {
   position: relative;
   z-index: 1;
+  min-width: 0;
   min-height: 48px;
   padding: 0 14px;
   display: inline-flex;
@@ -1846,6 +1849,13 @@ html[data-theme="convex"] .metric-info-trigger[aria-expanded="true"] {
   transition:
     color 160ms ease,
     background-color 160ms ease;
+}
+
+/* Long custom group names truncate instead of breaking the equal lanes. */
+.mode-tab-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .mode-tabs button svg {
@@ -1951,6 +1961,219 @@ html[data-theme="convex"] .metric-info-trigger[aria-expanded="true"] {
   width: 16px;
   height: 16px;
   accent-color: var(--signal-coral);
+}
+
+/* Custom groups admin: one expandable card per group. */
+.groups-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-top: 1px solid var(--line-emphasis);
+  padding-top: 16px;
+}
+
+.group-card {
+  padding: 20px 24px;
+  background: var(--studio-sheet);
+  border: 1px solid var(--line-standard);
+  border-radius: var(--radius-medium);
+}
+
+.group-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.group-card-toggle {
+  flex: 1;
+  min-width: 240px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  color: var(--broadcast-ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+.group-card-toggle > svg {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  color: var(--signal-coral-dark);
+}
+
+.group-card-name {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.group-card-name strong {
+  font-size: 17px;
+  font-weight: 680;
+}
+
+.group-card-name small {
+  color: var(--caption-ink);
+  font-size: 12px;
+}
+
+.group-card-body {
+  margin-top: 20px;
+  padding-top: 20px;
+  display: grid;
+  gap: 24px;
+  border-top: 1px solid var(--line-whisper);
+}
+
+.group-detail-form {
+  max-width: 560px;
+  display: grid;
+  gap: 8px;
+}
+
+.group-detail-form label,
+.group-member-add label,
+.group-list-sync label {
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.group-member-add label,
+.group-list-sync label {
+  display: block;
+  margin-bottom: 9px;
+}
+
+.group-detail-form input {
+  min-height: 44px;
+  padding: 0 14px;
+  background: var(--control-inset);
+  border: 1px solid transparent;
+  border-radius: var(--radius-small);
+  color: var(--broadcast-ink);
+  outline: 0;
+}
+
+.group-detail-form input:focus {
+  border-color: var(--control-focus);
+}
+
+.group-detail-form button {
+  margin-top: 4px;
+  width: fit-content;
+}
+
+.group-members {
+  display: grid;
+  gap: 20px;
+}
+
+/* Site branding admin: preview card, text fields, and the logo row. */
+.branding-preview {
+  margin-top: 20px;
+  padding: 24px;
+  display: grid;
+  gap: 12px;
+  background: var(--control-inset);
+  border-radius: var(--radius-small);
+}
+
+.branding-preview-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.branding-preview-logo {
+  height: 24px;
+  width: auto;
+  max-width: 160px;
+  object-fit: contain;
+}
+
+.branding-preview-heading {
+  margin: 0;
+  font-family: var(--font-display), ui-sans-serif, sans-serif;
+  font-size: clamp(22px, 3vw, 32px);
+  font-weight: 480;
+  letter-spacing: -0.04em;
+}
+
+.branding-preview-heading span {
+  color: var(--caption-ink);
+}
+
+.branding-preview small {
+  color: var(--caption-ink);
+  font-size: 12px;
+}
+
+.branding-form {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.branding-field {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.branding-field label {
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.branding-field input {
+  min-height: 44px;
+  padding: 0 14px;
+  background: var(--control-inset);
+  border: 1px solid transparent;
+  border-radius: var(--radius-small);
+  color: var(--broadcast-ink);
+  outline: 0;
+}
+
+.branding-field input:focus {
+  border-color: var(--control-focus);
+}
+
+.branding-field .field-help {
+  margin: 0;
+}
+
+.branding-form > .primary-button {
+  grid-column: 1 / -1;
+  width: fit-content;
+}
+
+.branding-logo-row {
+  margin-top: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Gear icon link in the admin header nav. */
+.nav-settings-link {
+  display: inline-flex;
+  align-items: center;
+}
+
+.nav-settings-link svg {
+  width: 18px;
+  height: 18px;
 }
 
 .badge-settings-grid {
