@@ -1527,6 +1527,13 @@ html[data-theme="convex"] .metric-info-trigger[aria-expanded="true"] {
   color: var(--broadcast-ink);
 }
 
+/* Repo link carries a GitHub mark to the left of its label. */
+.footer-source--repo {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
 .footer-socials .convex-mark {
   display: block;
   width: 16px;
@@ -1995,6 +2002,43 @@ html[data-theme="convex"] .metric-info-trigger[aria-expanded="true"] {
   animation: signal-pulse 2.2s ease-in-out infinite;
 }
 
+/* Five or more pills: the single-row channel switch would crush its equal
+   lanes, so the strip becomes self-bordered capsules that wrap onto new rows.
+   The sliding thumb is not rendered; the active pill carries the ink fill. */
+.mode-tabs--wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+
+.mode-tabs--wrap button {
+  flex: 0 1 auto;
+  min-height: 44px;
+  padding: 0 16px;
+  background: var(--studio-sheet);
+  border: 1.5px solid var(--broadcast-ink);
+}
+
+/* One very long group name should not claim an entire row. */
+.mode-tabs--wrap .mode-tab-label {
+  max-width: 180px;
+  white-space: nowrap;
+}
+
+.mode-tabs--wrap button:hover:not([aria-pressed="true"]) {
+  background: var(--studio-paper-deep);
+}
+
+.mode-tabs--wrap button[aria-pressed="true"] {
+  background: var(--broadcast-ink);
+  color: var(--studio-sheet);
+}
+
 .import-form {
   margin-top: 24px;
 }
@@ -2138,6 +2182,18 @@ html[data-theme="convex"] .metric-info-trigger[aria-expanded="true"] {
   display: grid;
   gap: 24px;
   border-top: 1px solid var(--line-whisper);
+}
+
+/* Per group column toggles reuse the board settings fieldset look but sit
+   flush inside the card body grid. */
+.group-column-settings {
+  margin-top: 0;
+  grid-template-columns: minmax(0, 420px);
+}
+
+.group-column-settings .secondary-button {
+  margin-top: 10px;
+  width: fit-content;
 }
 
 .group-detail-form {

@@ -182,6 +182,15 @@ export default defineSchema({
     order: v.number(),
     // Optional X List id this group can re-import members from.
     xListId: v.optional(v.string()),
+    // Per group column overrides for this board's table. Missing means
+    // inherit the global "Yappers view columns" from board settings.
+    columns: v.optional(
+      v.object({
+        posts: v.boolean(),
+        engagements: v.boolean(),
+        impressions: v.boolean(),
+      }),
+    ),
     createdAt: v.number(),
     updatedAt: v.number(),
   })

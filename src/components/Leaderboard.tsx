@@ -326,7 +326,10 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
     : groupMode
       ? groupProfiles
       : profiles;
-  const yappersColumns = display.yappersColumns;
+  // Group boards can override the yappers columns; missing means inherit
+  // the global board settings.
+  const yappersColumns =
+    (groupMode ? activeGroup?.columns : null) ?? display.yappersColumns;
   const convexColumns = display.convexColumns;
 
   // Admin hidden columns cannot stay sortable; fall back to rank order.
@@ -641,10 +644,14 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
           </label>
         </div>
 
-        {/* Channel switch plus the list and share actions, directly above the table. */}
+        {/* Channel switch plus the list and share actions, directly above the table.
+            Up to 4 pills keep the sliding-thumb channel switch; 5 or more wrap
+            into self-bordered capsules across as many rows as needed, because
+            the 1D thumb cannot slide across wrapped rows and equal lanes would
+            crush the labels. */}
         <div className="board-controls">
           <div
-            className="mode-tabs"
+            className={`mode-tabs${pills.length > 4 ? " mode-tabs--wrap" : ""}`}
             role="group"
             aria-label="Switch the board view"
             style={
@@ -653,7 +660,7 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
                 "--tab-index": activeIndex,
               } as CSSProperties
             }>
-            <span className="mode-tabs-thumb" aria-hidden="true" />
+            {pills.length > 4 ? null : <span className="mode-tabs-thumb" aria-hidden="true" />}
             {pills.map((pill, index) => (
               <button
                 key={pill.id}

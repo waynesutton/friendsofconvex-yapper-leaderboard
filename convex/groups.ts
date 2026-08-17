@@ -73,6 +73,14 @@ async function countMembers(
   return { total: memberships.length, active };
 }
 
+// Per group column overrides. Null means the board inherits the global
+// "Yappers view columns" from board settings.
+const groupColumnsValidator = v.object({
+  posts: v.boolean(),
+  engagements: v.boolean(),
+  impressions: v.boolean(),
+});
+
 const publicGroupValidator = v.object({
   _id: v.id("groups"),
   name: v.string(),
@@ -82,6 +90,7 @@ const publicGroupValidator = v.object({
   // True only in rows returned to admin viewers; visitors never receive
   // internal groups at all.
   internal: v.boolean(),
+  columns: v.union(groupColumnsValidator, v.null()),
 });
 
 const adminGroupValidator = v.object({
@@ -93,6 +102,7 @@ const adminGroupValidator = v.object({
   internal: v.boolean(),
   order: v.number(),
   xListId: v.union(v.string(), v.null()),
+  columns: v.union(groupColumnsValidator, v.null()),
   memberCount: v.number(),
   activeMemberCount: v.number(),
   createdAt: v.number(),
@@ -141,6 +151,7 @@ export const listPublic = query({
         description: group.description ?? null,
         memberCount: counts.active,
         internal,
+        columns: group.columns ?? null,
       });
     }
     return rows;
@@ -168,6 +179,7 @@ export const listAdmin = query({
         internal: group.internal ?? false,
         order: group.order,
         xListId: group.xListId ?? null,
+        columns: group.columns ?? null,
         memberCount: counts.total,
         activeMemberCount: counts.active,
         createdAt: group.createdAt,
@@ -254,6 +266,8 @@ export const update = mutation({
     visible: v.optional(v.boolean()),
     internal: v.optional(v.boolean()),
     xListId: v.optional(v.union(v.string(), v.null())),
+    // null clears the override so the board inherits the global columns.
+    columns: v.optional(v.union(groupColumnsValidator, v.null())),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -282,6 +296,13 @@ export const update = mutation({
     if (args.internal !== undefined) patch.internal = args.internal;
     if (args.xListId !== undefined) {
       patch.xListId = args.xListId === null ? undefined : args.xListId.trim() || undefined;
+    }
+    if (args.columns !== undefined) {
+      // Same rule as board settings: a board can never lose every column.
+      if (args.columns !== null && !Object.values(args.columns).some(Boolean)) {
+        throw new Error("Keep at least one column visible on this board.");
+      }
+      patch.columns = args.columns ?? undefined;
     }
     await ctx.db.patch("groups", args.groupId, patch);
     return null;

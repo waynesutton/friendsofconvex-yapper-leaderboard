@@ -25,6 +25,8 @@
 - `prds/admin-remove-handle.md` — Permanent admin remove for board profiles: two step confirm button, snapshot cleanup, and gift ledger safety.
 - `prds/gift-product-shelf-previews.md` — Product shelf in the Gift studio with Fourthwall-verified saves, product names, and thumbnail previews.
 - `prds/dispatch-log-archive-delete.md` — Dispatches log with archive, restore, confirmed delete, CSV export, and a self-scrolling sidebar kept in sync.
+- `prds/pill-strip-wrapping.md` — Board pill strip behavior past 4 pills: wrapped self-bordered capsules replace the sliding thumb channel switch so many groups stack into rows.
+- `prds/per-group-board-columns.md` — Per group column overrides: each group board can pick its own Posts / Engagements / Impressions columns or inherit the global Yappers view columns.
 - `agent-ready.config.json` — Agent Ready app settings and static page list used by `npx agent-ready sync`.
 - `llms.txt` — GitHub pointer to the live discovery files on the site origin.
 - `design/convex-dev-home-design.md` — Supplied Convex.dev homepage design specification used for the default theme.
@@ -67,7 +69,7 @@
 - `src/components/ProfilePeek.tsx` — Avatar bio peek: hover, focus, or tap a board avatar to open a fixed-position call sheet card with the synced X bio (linkified @mentions and URLs), follower count, and an Open on X link; one card at a time, closes on Escape, blur, outside press, or scroll.
 - `src/components/FilterDropdown.tsx` — Shared themed listbox dropdown (trigger button plus floating menu) used for the board Top N filter and the gift count filter; closes on outside click, Escape, or selection.
 - `src/components/AdminPanel.tsx` — Add, archive, restore, rescan, and two step confirm permanent remove controls plus board settings for visible board columns, the Convex mentions tab toggle, rank badges, and the Slack digest, with links to the groups and branding pages.
-- `src/components/GroupsPanel.tsx` — Custom groups admin: create, rename, describe, reorder, show or hide, the internal (admins only) toggle, two step delete, member roster with add by handle and remove, and X List import with saved list re-sync.
+- `src/components/GroupsPanel.tsx` — Custom groups admin: create, rename, describe, reorder, show or hide, the internal (admins only) toggle, per group board column toggles with a defaults reset, two step delete, member roster with add by handle and remove, and X List import with saved list re-sync.
 - `src/components/SiteSettingsPanel.tsx` — Site branding admin: live header preview, title and name fields with shipped defaults as placeholders, PNG/SVG logo upload, and a two step reset to defaults.
 - `src/components/GiftAdminPanel.tsx` — Sender connection, repeat-recipient history with per-person gift and sent counts plus a gift count filter, the shared product shelf, campaign creation with pick-to-fill preset chips, an optional per-dispatch custom DM editor with placeholders and live preview, consent controls, DM delivery, a searchable recipient ledger with CSV export, and the Dispatches log showing every recipient chip with sent state, archive, restore, confirmed delete, and CSV export.
 - `src/components/GiftProductShelf.tsx` — Shared Gift inventory Product shelf of Fourthwall-verified saved products with thumbnails, used by the Gift studio and the Gift lab.
@@ -80,7 +82,7 @@
 - `src/components/JoinBoard.tsx` — X sign-in, membership request, and review status, with X in-app browser instructions, a mobile stay-in-this-browser hint, and a failed sign-in retry message.
 - `src/components/SiteHeader.tsx` — Primary navigation with the brandable lockup (custom logo and header title from site settings), a Phosphor hamburger menu that replaces the inline nav on small screens, plus admin links, the settings gear icon, the Admin @handle chip, and Sign out on `/admin` routes for signed-in admins.
 - `src/components/ThemeSwitcher.tsx` — Icon-only round Convex/Studio theme toggle with persistence and an accessible name.
-- `src/components/BuiltWithFooter.tsx` — Cursor and Convex attribution, the open source board credit, `llms.txt` and `sitemap.md` links, and Convex social icons.
+- `src/components/BuiltWithFooter.tsx` — Cursor and Convex attribution, the open source board credit with a GitHub mark linking to the repo, `llms.txt` and `sitemap.md` links, and Convex social icons.
 - `src/components/formatters.ts` — Metric, date, and relative sync time formatting helpers.
 - `src/globals.css` — Responsive two-theme Friends of Convex visual system with Studio preserved as the base and Convex as the default override.
 - `src/vite-env.d.ts` — Vite client type references for `import.meta.env`.
@@ -89,7 +91,7 @@
 
 - `convex/schema.ts` — Auth, leaderboard, Convex mention snapshot fields, rank badges, board display settings, custom groups and memberships, the site branding singleton, gift product presets, numbered gift-delivery, Gift lab links, and X Account Activity tables with indexes plus the recipient handle search index.
 - `convex/boardSettings.ts` — Public query and admin mutation for which metric columns each leaderboard view shows plus the Convex mentions tab toggle.
-- `convex/groups.ts` — Custom group CRUD (new groups start hidden), ordering, memberships, the internal (admin only) flag, and the X List sync action that creates missing profiles and upserts members.
+- `convex/groups.ts` — Custom group CRUD (new groups start hidden), ordering, memberships, the internal (admin only) flag, per group column overrides, and the X List sync action that creates missing profiles and upserts members.
 - `convex/brandingDefaults.ts` — Shipped site branding constants shared by the backend and the frontend fallbacks.
 - `convex/siteSettings.ts` — Site branding singleton: public merged read, admin save with logo storage cleanup, upload URL, and reset.
 - `convex/auth.config.ts` — Convex Auth issuer configuration.

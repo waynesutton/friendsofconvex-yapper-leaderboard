@@ -1,5 +1,21 @@
 # Task log
 
+## Completed — 2026-08-17 05:55 UTC (footer GitHub mark)
+
+- [x] The footer's open source yapper board credit shows a Phosphor GitHub mark left of the label, inline-flex aligned at 13px; the link already pointed to the repo. `src/components/BuiltWithFooter.tsx`, `src/globals.css`.
+- [x] Verified with `npx tsc --noEmit` and footer screenshots in both themes.
+
+## Completed — 2026-08-17 05:58 UTC (per group board columns)
+
+- [x] Each group board can pick its own Posts / Engagements / Impressions columns. Optional `columns` object on the group doc; missing means inherit the global Yappers view columns, so existing groups change nothing and no migration runs. `groups.update` accepts the override (null clears it, at least one column must stay on) and both list queries return it. PRD: prds/per-group-board-columns.md. `convex/schema.ts`, `convex/groups.ts`.
+- [x] Admin UI: Board columns fieldset on each group card (same look as Board settings) with the effective columns, a custom / board defaults tag in the legend, and a Use board defaults reset. Public board resolves `activeGroup.columns ?? display.yappersColumns` so grid templates and sort fallbacks follow per group. `src/components/GroupsPanel.tsx`, `src/components/Leaderboard.tsx`, `src/globals.css`, `src/pages/AdminDocsPage.tsx`.
+- [x] Verified with `npx tsc --noEmit`, `npx vitest run` (27 tests), and a clean `Convex functions ready!` push. Admin card visual check needs a signed in session.
+
+## Completed — 2026-08-17 05:47 UTC (pill strip wraps past 4 boards)
+
+- [x] The leaderboard pill strip switches from the sliding thumb channel switch to wrapping capsules when it holds 5 or more pills, so 6 or even 14 boards stack into readable rows instead of crushing into one grid line. Active pill gets the ink fill and coral pip directly; labels cap at 180px. PRD: prds/pill-strip-wrapping.md. `src/components/Leaderboard.tsx`, `src/globals.css`.
+- [x] Verified with `npx tsc --noEmit`, `npx vitest run` (27 tests), and browser screenshots with the DOM padded to 14 pills at 1024px and narrow widths in the Convex theme.
+
 ## Completed — 2026-08-17 05:26 UTC (mobile header menu, admin docs refresh, groups start hidden)
 
 - [x] Mobile header menu: a Phosphor hamburger (ListIcon / XIcon) replaces the inline nav below 760px (public) and 1200px (admin, which carries seven links plus the chip and sign out). Dropdown panel styled for both themes with 50px touch targets, admin chip and Sign out in a footer row, closes on navigation. Nav links moved to shared arrays so desktop and mobile can't drift. `src/components/SiteHeader.tsx`, `src/globals.css` (removed the old 12px link shrink and the About-hiding rule at 520px).

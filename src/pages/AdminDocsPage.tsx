@@ -70,6 +70,14 @@ export function AdminDocsPage() {
                 re-running the import is safe because it only adds what
                 changed.
               </p>
+              <p>
+                Each group card also has a Board columns fieldset. By default
+                a group board shows the same Posts, Engagements, and
+                Impressions columns as the Yappers view in Board settings.
+                Toggle any column on the card and that board keeps its own
+                set; press Use board defaults to follow the global setting
+                again. At least one column must stay visible.
+              </p>
             </div>
           </section>
 

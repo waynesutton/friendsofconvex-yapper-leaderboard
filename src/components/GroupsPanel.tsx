@@ -22,6 +22,15 @@ import type { Id } from "../../convex/_generated/dataModel";
 
 type Feedback = { tone: "success" | "error" | "info"; message: string } | null;
 type AdminGroup = FunctionReturnType<typeof api.groups.listAdmin>[number];
+type GroupColumnKey = "posts" | "engagements" | "impressions";
+
+// Mirrors the Yappers view columns in Board settings so both screens use
+// the same names for the same table columns.
+const GROUP_COLUMN_LABELS: Array<{ key: GroupColumnKey; label: string }> = [
+  { key: "posts", label: "Posts" },
+  { key: "engagements", label: "Engagements" },
+  { key: "impressions", label: "Impressions (7D)" },
+];
 
 // Matches the sanitizer on the main admin page so pasted profile links work.
 function sanitizeHandleInput(value: string): string {
@@ -236,6 +245,9 @@ function GroupCard({
   const updateGroup = useMutation(api.groups.update);
   const moveGroup = useMutation(api.groups.move);
   const removeGroup = useMutation(api.groups.remove);
+  // Global board settings supply the inherited columns while this group has
+  // no override of its own.
+  const boardDisplay = useQuery(api.boardSettings.getBoardDisplay, {});
   const [name, setName] = useState(group.name);
   const [description, setDescription] = useState(group.description ?? "");
   const [busy, setBusy] = useState<string | null>(null);
@@ -294,6 +306,60 @@ function GroupCard({
       setNote({
         tone: "error",
         message: error instanceof Error ? error.message : "Could not update the internal flag.",
+      });
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  // The columns this board actually shows right now: the group override if
+  // one exists, otherwise the global Yappers view columns.
+  const inheritedColumns = boardDisplay?.yappersColumns ?? {
+    posts: true,
+    engagements: true,
+    impressions: true,
+  };
+  const effectiveColumns = group.columns ?? inheritedColumns;
+  const hasColumnOverride = group.columns !== null;
+
+  async function toggleColumn(key: GroupColumnKey) {
+    const next = { ...effectiveColumns, [key]: !effectiveColumns[key] };
+    if (!Object.values(next).some(Boolean)) {
+      setNote({
+        tone: "error",
+        message: "Keep at least one column visible on this board.",
+      });
+      return;
+    }
+    setBusy("columns");
+    setNote(null);
+    try {
+      // Any toggle materializes the override, even if it matches the
+      // defaults, so later global changes stop affecting this board.
+      await updateGroup({ groupId: group._id, columns: next });
+    } catch (error) {
+      setNote({
+        tone: "error",
+        message: error instanceof Error ? error.message : "Could not update the columns.",
+      });
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function resetColumns() {
+    setBusy("columns");
+    setNote(null);
+    try {
+      await updateGroup({ groupId: group._id, columns: null });
+      setNote({
+        tone: "success",
+        message: "This board follows the Yappers view columns from Board settings again.",
+      });
+    } catch (error) {
+      setNote({
+        tone: "error",
+        message: error instanceof Error ? error.message : "Could not reset the columns.",
       });
     } finally {
       setBusy(null);
@@ -461,6 +527,37 @@ function GroupCard({
               <CheckCircleIcon aria-hidden="true" /> {busy === "save" ? "Saving" : "Save details"}
             </button>
           </form>
+          <div className="board-column-settings group-column-settings">
+            <fieldset disabled={busy === "columns"}>
+              <legend>
+                Board columns · {hasColumnOverride ? "custom" : "board defaults"}
+              </legend>
+              {GROUP_COLUMN_LABELS.map(({ key, label }) => (
+                <label
+                  key={key}
+                  title={`Show or hide the ${label} column on this group's board`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={effectiveColumns[key]}
+                    onChange={() => void toggleColumn(key)}
+                  />
+                  <span>{label}</span>
+                </label>
+              ))}
+              {hasColumnOverride ? (
+                <button
+                  type="button"
+                  className="secondary-button"
+                  disabled={busy === "columns"}
+                  title="Drop this board's custom columns and follow the Yappers view columns from Board settings"
+                  onClick={() => void resetColumns()}
+                >
+                  Use board defaults
+                </button>
+              ) : null}
+            </fieldset>
+          </div>
           <GroupMembers group={group} />
         </div>
       ) : null}

@@ -88,10 +88,11 @@ export function BuiltWithFooter() {
           </div>
           <div className="footer-credits">
             <a
-              className="footer-source"
+              className="footer-source footer-source--repo"
               href="https://github.com/waynesutton/friendsofconvex-yapper-leaderboard"
               target="_blank"
               rel="noreferrer noopener">
+              <GithubLogoIcon aria-hidden="true" size={13} />
               open source yapper board
             </a>
             <a className="footer-source" href="/llms.txt">
