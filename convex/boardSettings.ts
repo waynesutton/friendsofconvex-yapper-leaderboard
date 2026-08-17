@@ -26,6 +26,7 @@ const displayValidator = v.object({
   yappersColumns: yappersColumnsValidator,
   convexColumns: convexColumnsValidator,
   showConvexTab: v.boolean(),
+  showYappersTab: v.boolean(),
 });
 
 export const DEFAULT_DISPLAY = {
@@ -38,6 +39,7 @@ export const DEFAULT_DISPLAY = {
     weeklyChange: true,
   },
   showConvexTab: true,
+  showYappersTab: true,
 };
 
 export const getBoardDisplay = query({
@@ -52,8 +54,9 @@ export const getBoardDisplay = query({
     return {
       yappersColumns: settings.yappersColumns,
       convexColumns: settings.convexColumns,
-      // Settings saved before the field existed keep the pill visible.
+      // Settings saved before the fields existed keep both pills visible.
       showConvexTab: settings.showConvexTab ?? true,
+      showYappersTab: settings.showYappersTab ?? true,
     };
   },
 });
@@ -63,6 +66,7 @@ export const setBoardDisplay = mutation({
     yappersColumns: yappersColumnsValidator,
     convexColumns: convexColumnsValidator,
     showConvexTab: v.optional(v.boolean()),
+    showYappersTab: v.optional(v.boolean()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -82,11 +86,26 @@ export const setBoardDisplay = mutation({
       .query("boardDisplaySettings")
       .withIndex("by_key", (q) => q.eq("key", SETTINGS_KEY))
       .unique();
+
+    // With both built-in tabs hidden the board only has group pills, so a
+    // visible group must exist or the public board would go blank.
+    const showConvexTab = args.showConvexTab ?? existing?.showConvexTab ?? true;
+    const showYappersTab = args.showYappersTab ?? existing?.showYappersTab ?? true;
+    if (!showConvexTab && !showYappersTab) {
+      const groups = await ctx.db.query("groups").withIndex("by_order").take(24);
+      if (!groups.some((group) => group.visible)) {
+        throw new Error(
+          "Keep at least one board visible: show a custom group before hiding both tabs.",
+        );
+      }
+    }
+
     const doc = {
       key: SETTINGS_KEY,
       yappersColumns: args.yappersColumns,
       convexColumns: args.convexColumns,
-      showConvexTab: args.showConvexTab ?? existing?.showConvexTab ?? true,
+      showConvexTab,
+      showYappersTab,
       updatedAt: Date.now(),
     };
     if (existing) {

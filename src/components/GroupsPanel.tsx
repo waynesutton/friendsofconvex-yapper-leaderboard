@@ -53,6 +53,9 @@ function GroupMembers({ group }: { group: AdminGroup }) {
   const [listUrl, setListUrl] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [note, setNote] = useState<Feedback>(null);
+  // Removing a member arms on the first click and removes on the second,
+  // same pattern as group delete.
+  const [confirmRemove, setConfirmRemove] = useState<Id<"groupMemberships"> | null>(null);
 
   async function addMember(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -80,6 +83,14 @@ function GroupMembers({ group }: { group: AdminGroup }) {
   }
 
   async function drop(membershipId: Id<"groupMemberships">, memberHandle: string) {
+    if (confirmRemove !== membershipId) {
+      setConfirmRemove(membershipId);
+      setNote({
+        tone: "info",
+        message: `Press Confirm remove to take @${memberHandle} out of this group. They stay on the main board.`,
+      });
+      return;
+    }
     setBusy(membershipId);
     setNote(null);
     try {
@@ -95,6 +106,7 @@ function GroupMembers({ group }: { group: AdminGroup }) {
       });
     } finally {
       setBusy(null);
+      setConfirmRemove(null);
     }
   }
 
@@ -147,31 +159,31 @@ function GroupMembers({ group }: { group: AdminGroup }) {
 
       <div className="group-list-sync">
         <label htmlFor={`list-${group._id}`}>Import members from an X List</label>
-        <div className="handle-input-row">
-          <input
-            id={`list-${group._id}`}
-            value={listUrl}
-            onChange={(event) => setListUrl(event.target.value)}
-            placeholder={
-              group.xListId
-                ? `Saved list ${group.xListId}; paste a URL to switch lists`
-                : "https://x.com/i/lists/1234567890"
-            }
-          />
-          <button
-            type="button"
-            className="secondary-button"
-            disabled={busy === "sync" || (!listUrl.trim() && !group.xListId)}
-            title="Fetches up to 100 list members, adds missing people to the board, and puts everyone in this group. Safe to run again."
-            onClick={() => void syncList()}
-          >
-            <ListBulletsIcon aria-hidden="true" />{" "}
-            {busy === "sync" ? "Syncing" : group.xListId ? "Re-sync list" : "Import list"}
-          </button>
-        </div>
+        <input
+          id={`list-${group._id}`}
+          value={listUrl}
+          onChange={(event) => setListUrl(event.target.value)}
+          placeholder={
+            group.xListId
+              ? `Saved list ${group.xListId}; paste a URL to switch lists`
+              : "https://x.com/i/lists/1234567890"
+          }
+        />
+        <button
+          type="button"
+          className="secondary-button"
+          disabled={busy === "sync" || (!listUrl.trim() && !group.xListId)}
+          title="Fetches up to 100 list members, adds missing people to the board, and puts everyone in this group. Safe to run again."
+          onClick={() => void syncList()}
+        >
+          <ListBulletsIcon aria-hidden="true" />{" "}
+          {busy === "sync" ? "Syncing" : group.xListId ? "Re-sync list" : "Import list"}
+        </button>
         <p className="field-help">
-          Needs X_BEARER_TOKEN on this deployment. The list id is saved on the group, so one
-          click re-syncs later.
+          The import reads list members from the X API, which needs the X_BEARER_TOKEN
+          environment variable set on this Convex deployment. The first import saves the
+          list id on this group, so pressing Re-sync list later pulls fresh members
+          without pasting the URL again.
         </p>
       </div>
 
@@ -211,12 +223,19 @@ function GroupMembers({ group }: { group: AdminGroup }) {
               <div className="admin-actions">
                 <button
                   type="button"
-                  className="icon-text-button"
+                  className={`icon-text-button${
+                    confirmRemove === member.membershipId ? " danger" : ""
+                  }`}
                   disabled={busy === member.membershipId}
-                  title="Remove from this group only; they stay on the main board"
+                  title={
+                    confirmRemove === member.membershipId
+                      ? "Confirm: remove them from this group. They stay on the main board."
+                      : "Remove from this group only; they stay on the main board"
+                  }
                   onClick={() => void drop(member.membershipId, member.handle)}
                 >
-                  <TrashIcon aria-hidden="true" /> Remove from group
+                  <TrashIcon aria-hidden="true" />{" "}
+                  {confirmRemove === member.membershipId ? "Confirm remove" : "Remove from group"}
                 </button>
               </div>
             </article>

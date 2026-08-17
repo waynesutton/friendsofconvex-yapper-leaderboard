@@ -1,5 +1,16 @@
 # Task log
 
+## Completed — 2026-08-17 06:11 UTC (hide the main Yappers tab for forks)
+
+- [x] Board settings now has "Show the main Yappers tab" next to the Convex mentions toggle. `showYappersTab` on the board display singleton, missing means true so deploys change nothing. Hiding it removes the Yappers pill; unknown or hidden board URLs fall back to the first visible pill (Convex mentions or the first group). Hiding both tabs is rejected unless at least one visible group exists, so the board never goes blank. PRD: prds/hide-main-yappers-tab.md. `convex/schema.ts`, `convex/boardSettings.ts`, `src/components/AdminPanel.tsx`, `src/components/Leaderboard.tsx`, `src/pages/AdminDocsPage.tsx`.
+- [x] Verified with `npx tsc --noEmit`, `npx vitest run` (27 tests), and a clean Convex push. Toggle behavior needs a signed in admin check.
+
+## Completed — 2026-08-17 06:06 UTC (group member remove confirm, X List import layout)
+
+- [x] Removing a member from a group now takes two clicks: the first arms the button (Confirm remove, danger style, info note naming the handle), the second removes. Same pattern as group delete. `src/components/GroupsPanel.tsx`.
+- [x] Fixed the Import members from an X List row: the sync button lived in the add-member grid (`auto 1fr auto`), and with no leading @ span the input collapsed into the auto column while the button stretched across the card. The input now stands alone with the button on its own row below, and the helper copy explains what X_BEARER_TOKEN is and how the saved list id makes re-sync one click. `src/components/GroupsPanel.tsx`, `src/globals.css`.
+- [x] Verified with `npx tsc --noEmit`; visual check needs a signed in admin session.
+
 ## Completed — 2026-08-17 05:55 UTC (footer GitHub mark)
 
 - [x] The footer's open source yapper board credit shows a Phosphor GitHub mark left of the label, inline-flex aligned at 13px; the link already pointed to the repo. `src/components/BuiltWithFooter.tsx`, `src/globals.css`.

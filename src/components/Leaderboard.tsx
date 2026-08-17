@@ -95,6 +95,7 @@ const ALL_VISIBLE: BoardDisplay = {
     weeklyChange: true,
   },
   showConvexTab: true,
+  showYappersTab: true,
 };
 
 // Grid column widths mirror the CSS defaults so hiding a column reflows the
@@ -254,7 +255,7 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
   const branding = useQuery(api.siteSettings.getSiteBranding, {}) ?? BRANDING_FALLBACK;
   const [searchParams, setSearchParams] = useSearchParams();
   // The active pill lives in the URL so boards are shareable. An unknown or
-  // hidden board value falls back to the default Yappers ranking.
+  // hidden board value falls back to the first visible pill.
   const [board, setBoard] = useState<BoardSelection>(
     () => searchParams.get("board") ?? DEFAULT_BOARD,
   );
@@ -273,14 +274,19 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
   // Which row's avatar bio peek is open; one card at a time across the board.
   const [peekId, setPeekId] = useState<Id<"profiles"> | null>(null);
 
-  // One pill per board: Yappers always, Convex mentions unless the admin
-  // hides it, then every visible group with at least one active member.
+  // One pill per board: Yappers and Convex mentions unless the admin hides
+  // them (forks may run group boards only), then every visible group with at
+  // least one active member.
   const pills: Array<{ id: BoardSelection; label: string; icon: ReactNode }> = [
-    {
-      id: DEFAULT_BOARD,
-      label: "Yappers",
-      icon: <ChatCircleTextIcon aria-hidden="true" />,
-    },
+    ...(display.showYappersTab
+      ? [
+          {
+            id: DEFAULT_BOARD,
+            label: "Yappers",
+            icon: <ChatCircleTextIcon aria-hidden="true" />,
+          },
+        ]
+      : []),
     ...(display.showConvexTab
       ? [
           {
@@ -302,9 +308,11 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
       ),
     })),
   ];
+  // Unknown or hidden board values fall back to the first pill; with no
+  // pills at all the plain Yappers table still renders so the page works.
   const activeBoard: BoardSelection = pills.some((pill) => pill.id === board)
     ? board
-    : DEFAULT_BOARD;
+    : (pills[0]?.id ?? DEFAULT_BOARD);
   const activeIndex = Math.max(
     pills.findIndex((pill) => pill.id === activeBoard),
     0,

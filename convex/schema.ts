@@ -166,6 +166,9 @@ export default defineSchema({
     // Whether the public board shows the Convex mentions pill. Optional so
     // settings saved before the field existed stay valid; missing means true.
     showConvexTab: v.optional(v.boolean()),
+    // Whether the public board shows the main Yappers pill. Forks that only
+    // run custom group boards can turn it off. Missing means true.
+    showYappersTab: v.optional(v.boolean()),
     updatedAt: v.number(),
   }).index("by_key", ["key"]),
 

@@ -2215,6 +2215,28 @@ html[data-theme="convex"] .metric-info-trigger[aria-expanded="true"] {
   margin-bottom: 9px;
 }
 
+/* The list URL input sits alone with the sync button on its own row below,
+   so a stray column never inflates the button. */
+.group-list-sync input {
+  width: 100%;
+  min-height: 56px;
+  padding: 0 16px;
+  background: var(--control-inset);
+  border: 1px solid transparent;
+  border-radius: var(--radius-small);
+  color: var(--broadcast-ink);
+  outline: 0;
+}
+
+.group-list-sync input:focus {
+  border-color: var(--control-focus);
+}
+
+.group-list-sync .secondary-button {
+  margin-top: 10px;
+  width: fit-content;
+}
+
 .group-detail-form input {
   min-height: 44px;
   padding: 0 14px;

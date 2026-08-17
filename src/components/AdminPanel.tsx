@@ -207,6 +207,19 @@ function BoardColumnSettings() {
     <div className="board-column-settings">
       <fieldset>
         <legend>Board tabs</legend>
+        <label title="Show or hide the main Yappers pill. Forks that only run custom group boards can turn this off; the board opens on the first remaining pill. At least one visible group must exist before both tabs can be hidden.">
+          <input
+            type="checkbox"
+            checked={display.showYappersTab}
+            onChange={(event) =>
+              void save({
+                ...display,
+                showYappersTab: event.target.checked,
+              })
+            }
+          />
+          <span>Show the main Yappers tab</span>
+        </label>
         <label title="Show or hide the Convex mentions pill on the public board. Forks that do not track Convex mentions can turn this off.">
           <input
             type="checkbox"

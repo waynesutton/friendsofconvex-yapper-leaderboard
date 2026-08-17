@@ -38,11 +38,14 @@ export function AdminDocsPage() {
                 <Link className="text-link" to="/admin">/admin</Link> is where
                 you add people by X handle, approve join requests, pause or
                 restore profiles, run X syncs, pick which columns the public
-                leaderboard shows, and customize the top 3 badges. Board
-                settings also has a &quot;Show the Convex mentions tab&quot;
-                toggle. Turn it off and the Convex mentions pill disappears
-                from the public board; a direct ?board=convex link falls back
-                to the default Yappers view.
+                leaderboard shows, and customize the top 3 badges. The Board
+                tabs fieldset has two fork toggles: &quot;Show the main Yappers
+                tab&quot; and &quot;Show the Convex mentions tab&quot;. Turning
+                one off removes that pill from the public board, and direct
+                links to a hidden board fall back to the first visible pill. A
+                fork running only custom group boards can hide both, but at
+                least one visible group must exist first so the board never
+                goes blank.
               </p>
             </div>
           </section>
