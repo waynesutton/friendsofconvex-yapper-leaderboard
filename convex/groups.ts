@@ -65,10 +65,15 @@ async function countMembers(
     .query("groupMemberships")
     .withIndex("by_group_and_added_at", (q) => q.eq("groupId", groupId))
     .take(MAX_GROUP_MEMBERS);
+  // "Active" here means "renders on this group's board", which drives the
+  // pill visibility rule. Muted members still render (below the divider) so
+  // they count; retired champions leave every board so they do not.
   let active = 0;
   for (const membership of memberships) {
     const profile = await ctx.db.get("profiles", membership.profileId);
-    if (profile && profile.active) active += 1;
+    if (profile && profile.active && profile.retiredAt === undefined) {
+      active += 1;
+    }
   }
   return { total: memberships.length, active };
 }
@@ -116,6 +121,10 @@ const groupMemberValidator = v.object({
   displayName: v.string(),
   profileImageUrl: v.union(v.string(), v.null()),
   active: v.boolean(),
+  // Muted members keep their spot in the roster and the public list, but
+  // drop below the divider with no rank number.
+  muted: v.boolean(),
+  retired: v.boolean(),
   syncStatus: v.union(
     v.literal("pending"),
     v.literal("synced"),
@@ -210,6 +219,8 @@ export const listMembers = query({
         displayName: profile.displayName,
         profileImageUrl: profile.profileImageUrl,
         active: profile.active,
+        muted: membership.muted ?? false,
+        retired: profile.retiredAt !== undefined,
         syncStatus: profile.syncStatus,
         addedAt: membership.addedAt,
       });
@@ -454,6 +465,28 @@ export const addMemberProfile = mutation({
     if (!profile) throw new Error("Profile not found.");
     const added = await upsertMembership(ctx, args.groupId, args.profileId);
     return { added };
+  },
+});
+
+// Mutes or unmutes one member of one group. Muted people stay in the group,
+// still count toward its pill, and still render on its board, but below the
+// divider with no rank. Mute is per group, so the same person can stay
+// ranked on every other board.
+export const setMemberMuted = mutation({
+  args: {
+    membershipId: v.id("groupMemberships"),
+    muted: v.boolean(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    const membership = await ctx.db.get("groupMemberships", args.membershipId);
+    if (!membership) throw new Error("This person is not in the group.");
+    if ((membership.muted ?? false) === args.muted) return null;
+    await ctx.db.patch("groupMemberships", args.membershipId, {
+      muted: args.muted,
+    });
+    return null;
   },
 });
 

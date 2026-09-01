@@ -15,6 +15,7 @@ import { GiftPassPage } from "./pages/GiftPassPage";
 import { GiftSharePage } from "./pages/GiftSharePage";
 import { HomePage } from "./pages/HomePage";
 import { JoinPage } from "./pages/JoinPage";
+import { RetiredPage } from "./pages/RetiredPage";
 import { Providers } from "./providers";
 
 export function App() {
@@ -26,6 +27,7 @@ export function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/join" element={<JoinPage />} />
+          <Route path="/retired/:handle" element={<RetiredPage />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/admin/groups" element={<AdminGroupsPage />} />
           <Route path="/admin/settings" element={<AdminSettingsPage />} />

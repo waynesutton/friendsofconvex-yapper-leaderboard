@@ -74,6 +74,7 @@ export type PublicLeaderboardRow = {
   lastSyncedAt: number | null;
   addedAt: number;
   updatedAt: number;
+  muted?: boolean;
   convexPostCount?: number;
   convexImpressions?: number;
   convexEngagements?: number;
@@ -83,7 +84,10 @@ export type PublicLeaderboardRow = {
   convexStreak?: number;
 };
 
-function toPublicLeaderboardRow(row: LeaderboardRow): PublicLeaderboardRow {
+function toPublicLeaderboardRow(
+  row: LeaderboardRow,
+  muted?: boolean,
+): PublicLeaderboardRow {
   return {
     _id: row._id,
     handle: row.handle,
@@ -99,6 +103,7 @@ function toPublicLeaderboardRow(row: LeaderboardRow): PublicLeaderboardRow {
     lastSyncedAt: row.lastSyncedAt,
     addedAt: row.addedAt,
     updatedAt: row.updatedAt,
+    muted,
     convexPostCount: row.convexPostCount,
     convexImpressions: row.convexImpressions,
     convexEngagements: row.convexEngagements,
@@ -159,6 +164,8 @@ async function buildConvexLeaderboard(
 
   const rows: Array<ConvexLeaderboardRow> = [];
   for (const profile of profiles) {
+    // Retired champions leave every ranking, including Convex mentions.
+    if (profile.retiredAt !== undefined) continue;
     const history = await ctx.db
       .query("snapshots")
       .withIndex("by_profile_id_and_window_end", (q) =>
@@ -250,17 +257,30 @@ export const listLeaderboard = query({
           q.eq("groupId", args.groupId!),
         )
         .take(250);
-      const profiles: Array<Doc<"profiles">> = [];
+      // Ranked and muted members are sorted apart so muted rows always land
+      // after the divider, whatever their metrics say.
+      const ranked: Array<Doc<"profiles">> = [];
+      const muted: Array<Doc<"profiles">> = [];
       for (const membership of memberships) {
         const profile = await ctx.db.get("profiles", membership.profileId);
-        if (profile && profile.active) profiles.push(profile);
+        if (!profile || !profile.active) continue;
+        if (profile.retiredAt !== undefined) continue;
+        if (membership.muted) {
+          muted.push(profile);
+        } else {
+          ranked.push(profile);
+        }
       }
-      profiles.sort(compareYapperRows);
-      return profiles.slice(0, limit).map(toPublicLeaderboardRow);
+      ranked.sort(compareYapperRows);
+      muted.sort(compareYapperRows);
+      return [
+        ...ranked.map((profile) => toPublicLeaderboardRow(profile)),
+        ...muted.map((profile) => toPublicLeaderboardRow(profile, true)),
+      ].slice(0, limit);
     }
     if (args.mode === "convex") {
       const rows = await buildConvexLeaderboard(ctx, limit);
-      return rows.map(toPublicLeaderboardRow);
+      return rows.map((row) => toPublicLeaderboardRow(row));
     }
     const profiles = await ctx.db
       .query("profiles")
@@ -274,7 +294,9 @@ export const listLeaderboard = query({
     // sort here is what keeps badges correct after every sync or import.
     // Profiles awaiting their first X sync sort after rows with real metrics.
     profiles.sort(compareYapperRows);
-    return profiles.map(toPublicLeaderboardRow);
+    return profiles
+      .filter((profile) => profile.retiredAt === undefined)
+      .map((profile) => toPublicLeaderboardRow(profile));
   },
 });
 
@@ -435,6 +457,100 @@ export const setActive = mutation({
       updatedAt: Date.now(),
     });
     return null;
+  },
+});
+
+const RETIRED_NOTE_LIMIT = 400;
+
+// Retire mode: an undefeated champion leaves every ranking and gets a public
+// champion page at /retired/<handle>. Different from Archive, which hides
+// someone completely. Retiring keeps them visible, just out of the race.
+export const setRetired = mutation({
+  args: {
+    profileId: v.id("profiles"),
+    retired: v.boolean(),
+    note: v.optional(v.string()),
+  },
+  returns: v.object({
+    retired: v.boolean(),
+    handle: v.string(),
+    pagePath: v.string(),
+  }),
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    const profile = await ctx.db.get("profiles", args.profileId);
+    if (!profile) throw new Error("Profile not found.");
+
+    if (args.retired) {
+      const note = args.note?.trim().slice(0, RETIRED_NOTE_LIMIT);
+      await ctx.db.patch("profiles", args.profileId, {
+        // Keep the original retirement date when only the note changes.
+        retiredAt: profile.retiredAt ?? Date.now(),
+        retiredNote: note || undefined,
+        updatedAt: Date.now(),
+      });
+    } else {
+      await ctx.db.patch("profiles", args.profileId, {
+        retiredAt: undefined,
+        retiredNote: undefined,
+        updatedAt: Date.now(),
+      });
+    }
+
+    return {
+      retired: args.retired,
+      handle: profile.handle,
+      pagePath: `/retired/${profile.normalizedHandle}`,
+    };
+  },
+});
+
+// Public champion page data. Returns null unless the handle belongs to an
+// active, retired profile, so the page never leaks archived people.
+export const getRetired = query({
+  args: { handle: v.string() },
+  returns: v.union(
+    v.object({
+      handle: v.string(),
+      displayName: v.string(),
+      bio: v.union(v.string(), v.null()),
+      profileImageUrl: v.union(v.string(), v.null()),
+      retiredAt: v.number(),
+      retiredNote: v.union(v.string(), v.null()),
+      currentPosts: v.number(),
+      currentEngagements: v.number(),
+      currentImpressions: v.number(),
+      currentFollowers: v.number(),
+    }),
+    v.null(),
+  ),
+  handler: async (ctx, args) => {
+    const normalizedHandle = args.handle
+      .trim()
+      .replace(/^@+/, "")
+      .toLowerCase();
+    if (!normalizedHandle) return null;
+    const profile = await ctx.db
+      .query("profiles")
+      .withIndex("by_normalized_handle", (q) =>
+        q.eq("normalizedHandle", normalizedHandle),
+      )
+      .unique();
+    if (!profile || !profile.active || profile.retiredAt === undefined) {
+      return null;
+    }
+    return {
+      handle: profile.handle,
+      displayName: profile.displayName,
+      bio: profile.bio,
+      profileImageUrl: profile.profileImageUrl,
+      retiredAt: profile.retiredAt,
+      retiredNote: profile.retiredNote ?? null,
+      currentPosts: profile.currentPosts,
+      currentEngagements: profile.currentEngagements,
+      currentImpressions: profile.currentImpressions,
+      currentFollowers: profile.currentFollowers,
+    };
   },
 });
 

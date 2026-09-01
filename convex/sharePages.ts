@@ -92,6 +92,53 @@ export const giftSharePage = httpAction(async (ctx, request) => {
   });
 });
 
+// GET /retired/:handle — the champion page with per person meta tags so the
+// X card names them instead of repeating the generic board title. The image
+// stays the shipped site OpenGraph art; no per person PNG is rendered.
+export const retiredSharePage = httpAction(async (ctx, request) => {
+  const url = new URL(request.url);
+  const origin = url.origin;
+  const handle = tokenFromPath(url.pathname, "/retired/");
+
+  const shellUrl = (process.env.CONVEX_SITE_URL ?? origin).replace(/\/$/, "");
+  const shellResponse = await fetch(`${shellUrl}/`);
+  if (!shellResponse.ok) {
+    return new Response("The site shell is not available yet.", { status: 503 });
+  }
+  let html = await shellResponse.text();
+
+  const champion = handle
+    ? await ctx.runQuery(api.profiles.getRetired, { handle })
+    : null;
+
+  if (champion) {
+    const title = `@${champion.handle} retired undefeated`;
+    const description =
+      champion.retiredNote ??
+      `@${champion.handle} is leaving the board on top. Nobody could catch them.`;
+    const pageUrl = `${origin}/retired/${encodeURIComponent(champion.handle.toLowerCase())}`;
+    const imageUrl = `${origin}/og-friends-of-convex.png`;
+
+    html = setTitle(html, title);
+    html = setMetaTag(html, "name", "description", description);
+    html = setMetaTag(html, "property", "og:title", title);
+    html = setMetaTag(html, "property", "og:description", description);
+    html = setMetaTag(html, "property", "og:url", pageUrl);
+    html = setMetaTag(html, "property", "og:image", imageUrl);
+    html = setMetaTag(html, "name", "twitter:title", title);
+    html = setMetaTag(html, "name", "twitter:description", description);
+    html = setMetaTag(html, "name", "twitter:image", imageUrl);
+  }
+
+  return new Response(html, {
+    status: 200,
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "public, max-age=300",
+    },
+  });
+});
+
 // GET /og/gift/:token.png — the personalized 1200x630 share image.
 export const giftShareImage = httpAction(async (ctx, request) => {
   const url = new URL(request.url);

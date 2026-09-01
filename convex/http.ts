@@ -4,7 +4,11 @@ import { httpRouter } from "convex/server";
 import { components } from "./_generated/api";
 import { auth } from "./auth";
 import { fourthwallWebhook, xDmCallback } from "./giftWebhooks";
-import { giftShareImage, giftSharePage } from "./sharePages";
+import {
+  giftShareImage,
+  giftSharePage,
+  retiredSharePage,
+} from "./sharePages";
 import {
   serveLlmsTxt,
   serveRobotsTxt,
@@ -57,6 +61,14 @@ http.route({
   pathPrefix: "/og/gift/",
   method: "GET",
   handler: giftShareImage,
+});
+
+// Retired champion pages get their own title and description so the X card
+// names the person instead of repeating the board headline.
+http.route({
+  pathPrefix: "/retired/",
+  method: "GET",
+  handler: retiredSharePage,
 });
 
 // Agent Ready: agents.md, llms-full.txt, status, readiness, RSS, agent-skills.

@@ -377,10 +377,18 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
     ? `56px minmax(170px, 1fr) repeat(${visibleMetricCount}, minmax(82px, 0.45fr)) 128px`
     : `56px minmax(220px, 1fr) repeat(${visibleMetricCount}, minmax(90px, 0.45fr)) 76px`;
 
-  const canonicalRanks = useMemo(
-    () => new Map((activeRows ?? []).map((profile, index) => [profile._id, index + 1])),
-    [activeRows]
-  );
+  // Muted members are listed but unranked, so rank numbers skip them and the
+  // people below a muted row keep their real position.
+  const canonicalRanks = useMemo(() => {
+    const ranks = new Map<Id<"profiles">, number>();
+    let rank = 0;
+    for (const profile of activeRows ?? []) {
+      if (profile.muted) continue;
+      rank += 1;
+      ranks.set(profile._id, rank);
+    }
+    return ranks;
+  }, [activeRows]);
 
   const badgeByRank = useMemo(
     () => new Map((rankBadges ?? []).map((badge) => [badge.rank, badge])),
@@ -399,6 +407,12 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
       : activeRows;
 
     return [...matches].sort((left, right) => {
+      // Muted rows stay in their own section under the divider, so column
+      // sorts and search never let them cross back into the ranking.
+      if (Boolean(left.muted) !== Boolean(right.muted)) {
+        return left.muted ? 1 : -1;
+      }
+
       const leftRank = canonicalRanks.get(left._id) ?? Number.MAX_SAFE_INTEGER;
       const rightRank = canonicalRanks.get(right._id) ?? Number.MAX_SAFE_INTEGER;
       const isMetricSort = activeSortKey !== "rank" && activeSortKey !== "name";
@@ -831,7 +845,7 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
               </div>
             ))
           ) : visibleProfiles.length > 0 ? (
-            visibleProfiles.map((profile) => {
+            visibleProfiles.map((profile, index) => {
               const rank = canonicalRanks.get(profile._id) ?? 0;
               const profileUrl = `https://x.com/${profile.handle}`;
               // Top 3 badges show in both ranking modes.
@@ -840,15 +854,27 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
                 convexMode && (!profile.convexScanned || (profile.convexPostCount ?? 0) === 0);
               const expandable = convexMode && (profile.convexPostsStored ?? 0) > 0;
               const expanded = expandedId === profile._id;
+              // The divider goes in front of the first muted row, so the
+              // unranked section reads as a deliberate group, not a bug.
+              const startsMutedSection =
+                Boolean(profile.muted) && !visibleProfiles[index - 1]?.muted;
               return (
                 <div key={profile._id} className="table-row-group">
+                  {/* .table-row-group is display:contents, so this divider
+                      lays out as a plain full width row of the table. */}
+                  {startsMutedSection ? (
+                    <div className="board-divider" role="row">
+                      <span role="cell">In the group, off the ranking</span>
+                    </div>
+                  ) : null}
                   <div
                     className="table-row"
                     role="row"
                     data-dimmed={dimmed || undefined}
+                    data-muted={profile.muted || undefined}
                     id={`yapper-${profile.normalizedHandle}`}>
                     <span className="rank-cell" role="cell">
-                      {String(rank).padStart(2, "0")}
+                      {profile.muted ? "—" : String(rank).padStart(2, "0")}
                     </span>
                     <div className="person-cell" role="cell">
                       <span className="avatar-stack">

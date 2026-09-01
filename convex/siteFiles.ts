@@ -55,21 +55,25 @@ export const listPublicDirectory = internalQuery({
     profiles.sort(compareYapperRows);
 
     let newestUpdatedAt: number | null = null;
-    const people = profiles.map((profile) => {
-      if (newestUpdatedAt === null || profile.updatedAt > newestUpdatedAt) {
-        newestUpdatedAt = profile.updatedAt;
-      }
-      return {
-        handle: profile.handle,
-        displayName: profile.displayName,
-        currentImpressions: profile.currentImpressions,
-        currentPosts: profile.currentPosts,
-        currentEngagements: profile.currentEngagements,
-        currentConvexPosts: profile.currentConvexPosts ?? null,
-        addedAt: profile.addedAt,
-        updatedAt: profile.updatedAt,
-      };
-    });
+    const people = profiles
+      // Retired champions are off every board, so they stay out of the
+      // discovery files too.
+      .filter((profile) => profile.retiredAt === undefined)
+      .map((profile) => {
+        if (newestUpdatedAt === null || profile.updatedAt > newestUpdatedAt) {
+          newestUpdatedAt = profile.updatedAt;
+        }
+        return {
+          handle: profile.handle,
+          displayName: profile.displayName,
+          currentImpressions: profile.currentImpressions,
+          currentPosts: profile.currentPosts,
+          currentEngagements: profile.currentEngagements,
+          currentConvexPosts: profile.currentConvexPosts ?? null,
+          addedAt: profile.addedAt,
+          updatedAt: profile.updatedAt,
+        };
+      });
 
     // Visible public groups with at least one active member, matching the
     // pills the board renders to visitors. Internal (admin only) boards
@@ -85,7 +89,9 @@ export const listPublicDirectory = internalQuery({
       const members = [];
       for (const membership of memberships) {
         const profile = await ctx.db.get("profiles", membership.profileId);
-        if (profile && profile.active) members.push(profile);
+        if (profile && profile.active && profile.retiredAt === undefined) {
+          members.push(profile);
+        }
       }
       if (members.length === 0) continue;
       members.sort(compareYapperRows);

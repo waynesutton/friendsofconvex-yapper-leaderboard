@@ -10,6 +10,8 @@ import {
   LockSimpleIcon,
   LockSimpleOpenIcon,
   PlusIcon,
+  SpeakerHighIcon,
+  SpeakerSlashIcon,
   TrashIcon,
   UsersThreeIcon,
 } from "@phosphor-icons/react";
@@ -48,6 +50,7 @@ function GroupMembers({ group }: { group: AdminGroup }) {
   const members = useQuery(api.groups.listMembers, { groupId: group._id });
   const addMemberByHandle = useMutation(api.groups.addMemberByHandle);
   const removeMember = useMutation(api.groups.removeMember);
+  const setMemberMuted = useMutation(api.groups.setMemberMuted);
   const syncFromXList = useAction(api.groups.syncFromXList);
   const [handle, setHandle] = useState("");
   const [listUrl, setListUrl] = useState("");
@@ -76,6 +79,34 @@ function GroupMembers({ group }: { group: AdminGroup }) {
       setNote({
         tone: "error",
         message: error instanceof Error ? error.message : "Could not add this handle.",
+      });
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  // Mute keeps them in the group and in the public list; they just lose
+  // their rank and drop below the divider on this board only.
+  async function toggleMuted(
+    membershipId: Id<"groupMemberships">,
+    memberHandle: string,
+    muted: boolean,
+  ) {
+    setBusy(membershipId);
+    setNote(null);
+    setConfirmRemove(null);
+    try {
+      await setMemberMuted({ membershipId, muted });
+      setNote({
+        tone: "success",
+        message: muted
+          ? `@${memberHandle} is muted on this board. They stay in the list, below the divider, with no rank.`
+          : `@${memberHandle} is ranked on this board again.`,
+      });
+    } catch (error) {
+      setNote({
+        tone: "error",
+        message: error instanceof Error ? error.message : "Could not update the mute.",
       });
     } finally {
       setBusy(null);
@@ -217,10 +248,41 @@ function GroupMembers({ group }: { group: AdminGroup }) {
                 </span>
               </div>
               <div className="admin-sync-meta">
-                <strong>{member.active ? "active" : "archived"}</strong>
-                <span>{member.active ? "Counts toward this group's pill" : "Hidden until restored on the main board"}</span>
+                <strong>
+                  {member.active ? "active" : "archived"}
+                  {member.retired ? " · retired" : member.muted ? " · muted" : ""}
+                </strong>
+                <span>
+                  {!member.active
+                    ? "Hidden until restored on the main board"
+                    : member.retired
+                      ? "Retired undefeated, so they are off every board"
+                      : member.muted
+                        ? "Listed below the divider on this board with no rank"
+                        : "Ranked on this board"}
+                </span>
               </div>
               <div className="admin-actions">
+                <button
+                  type="button"
+                  className="icon-text-button"
+                  disabled={busy === member.membershipId}
+                  title={
+                    member.muted
+                      ? "Rank them on this board again"
+                      : "Keep them in this group and in the list, but with no rank on this board"
+                  }
+                  onClick={() =>
+                    void toggleMuted(member.membershipId, member.handle, !member.muted)
+                  }
+                >
+                  {member.muted ? (
+                    <SpeakerHighIcon aria-hidden="true" />
+                  ) : (
+                    <SpeakerSlashIcon aria-hidden="true" />
+                  )}{" "}
+                  {member.muted ? "Unmute" : "Mute"}
+                </button>
                 <button
                   type="button"
                   className={`icon-text-button${
@@ -680,6 +742,13 @@ export function GroupsPanel() {
             <span>
               <strong>Internal option</strong>Mark a board internal and only signed in admins see
               its pill. Everyone else is blocked and it stays out of llms.txt and the sitemaps.
+            </span>
+          </div>
+          <div className="readiness-row">
+            <CheckCircleIcon aria-hidden="true" />
+            <span>
+              <strong>Mute</strong>Mute a member to keep them in the group and in the public list
+              while taking their rank away. They render below a divider on this board only.
             </span>
           </div>
         </div>

@@ -112,6 +112,11 @@ export default defineSchema({
     authUserId: v.optional(v.id("users")),
     requestedAt: v.optional(v.number()),
     reviewedAt: v.optional(v.number()),
+    // Retire mode: an undefeated champion pulled out of every ranking and
+    // given a public champion page. Separate from `active`, which hides
+    // someone entirely. Missing means they are still competing.
+    retiredAt: v.optional(v.number()),
+    retiredNote: v.optional(v.string()),
   })
     .index("by_normalized_handle", ["normalizedHandle"])
     .index("by_x_user_id", ["xUserId"])
@@ -205,6 +210,9 @@ export default defineSchema({
   groupMemberships: defineTable({
     groupId: v.id("groups"),
     profileId: v.id("profiles"),
+    // Muted members stay in the group and still render on its board, but
+    // below the divider with no rank. Missing means ranked as usual.
+    muted: v.optional(v.boolean()),
     addedAt: v.number(),
   })
     .index("by_group_and_profile", ["groupId", "profileId"])

@@ -1,10 +1,12 @@
 import {
   ArrowClockwiseIcon,
+  ArrowUUpLeftIcon,
   CheckCircleIcon,
   PaperPlaneTiltIcon,
   PauseCircleIcon,
   PlusIcon,
   TrashIcon,
+  TrophyIcon,
   WarningCircleIcon,
 } from "@phosphor-icons/react";
 import { useAction, useMutation, useQuery } from "convex/react";
@@ -384,6 +386,7 @@ export function AdminPanel() {
   const setup = useQuery(api.profiles.getSetupStatus, {});
   const addProfile = useMutation(api.profiles.add);
   const setActive = useMutation(api.profiles.setActive);
+  const setRetired = useMutation(api.profiles.setRetired);
   const removeProfile = useMutation(api.profiles.remove);
   const reviewMembership = useMutation(api.profiles.reviewMembership);
   const refreshOne = useAction(api.xSync.refreshOne);
@@ -394,6 +397,10 @@ export function AdminPanel() {
   // Remove is destructive, so the button arms on the first click and only
   // deletes on the second. Any other row action disarms it.
   const [confirmRemoveId, setConfirmRemoveId] = useState<Id<"profiles"> | null>(null);
+  // Retiring opens an inline note field on that row; the note becomes the
+  // "why we retired them" copy on the public champion page.
+  const [retireDraftId, setRetireDraftId] = useState<Id<"profiles"> | null>(null);
+  const [retireNote, setRetireNote] = useState("");
 
   async function submitHandle(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -441,6 +448,56 @@ export function AdminPanel() {
       });
     } catch (error) {
       setFeedback({ tone: "error", message: error instanceof Error ? error.message : "Update failed." });
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  // Retire mode takes an undefeated champion out of every ranking and opens
+  // their public champion page. Archive hides someone; retire celebrates them.
+  async function retireProfile(profileId: Id<"profiles">, profileHandle: string) {
+    setBusy(profileId);
+    setFeedback(null);
+    setConfirmRemoveId(null);
+    try {
+      const result = await setRetired({
+        profileId,
+        retired: true,
+        note: retireNote.trim() || undefined,
+      });
+      setRetireDraftId(null);
+      setRetireNote("");
+      setFeedback({
+        tone: "success",
+        message: `@${profileHandle} is retired undefeated. Their champion page is live at ${result.pagePath}.`,
+      });
+    } catch (error) {
+      setFeedback({
+        tone: "error",
+        message: error instanceof Error ? error.message : "Could not retire this person.",
+      });
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function unretireProfile(profileId: Id<"profiles">, profileHandle: string) {
+    setBusy(profileId);
+    setFeedback(null);
+    setConfirmRemoveId(null);
+    try {
+      await setRetired({ profileId, retired: false });
+      setRetireDraftId(null);
+      setRetireNote("");
+      setFeedback({
+        tone: "success",
+        message: `@${profileHandle} is back in the running. Their champion page is closed.`,
+      });
+    } catch (error) {
+      setFeedback({
+        tone: "error",
+        message: error instanceof Error ? error.message : "Could not bring them back.",
+      });
     } finally {
       setBusy(null);
     }
@@ -629,7 +686,10 @@ export function AdminPanel() {
                   </span>
                 </div>
                 <div className="admin-sync-meta">
-                  <strong>{profile.membershipStatus ?? "approved"} · {profile.syncStatus}</strong>
+                  <strong>
+                    {profile.membershipStatus ?? "approved"} · {profile.syncStatus}
+                    {profile.retiredAt !== undefined ? " · retired" : ""}
+                  </strong>
                   <span>{profile.syncError ?? formatSyncTime(profile.lastSyncedAt)}</span>
                 </div>
                 <div className="admin-actions">
@@ -678,6 +738,49 @@ export function AdminPanel() {
                     {profile.active ? <PauseCircleIcon aria-hidden="true" /> : <CheckCircleIcon aria-hidden="true" />}
                     {profile.active ? "Archive" : "Restore"}
                   </button>
+                  {profile.retiredAt !== undefined ? (
+                    <>
+                      <a
+                        className="icon-text-button"
+                        href={`/retired/${profile.normalizedHandle}`}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        title="Open the public champion page for this person"
+                      >
+                        <TrophyIcon aria-hidden="true" /> Champion page
+                      </a>
+                      <button
+                        type="button"
+                        className="icon-text-button"
+                        disabled={busy === profile._id}
+                        title="Put them back in the rankings and close their champion page"
+                        onClick={() => void unretireProfile(profile._id, profile.handle)}
+                      >
+                        <ArrowUUpLeftIcon aria-hidden="true" /> Unretire
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      className="icon-text-button"
+                      disabled={!profile.active || busy === profile._id}
+                      title={
+                        profile.active
+                          ? "Retire them undefeated: out of every ranking, with a public champion page to share"
+                          : "Restore them to the board before retiring them"
+                      }
+                      onClick={() => {
+                        setConfirmRemoveId(null);
+                        setRetireNote(profile.retiredNote ?? "");
+                        setRetireDraftId(
+                          retireDraftId === profile._id ? null : profile._id,
+                        );
+                      }}
+                    >
+                      <TrophyIcon aria-hidden="true" />{" "}
+                      {retireDraftId === profile._id ? "Cancel retire" : "Retire"}
+                    </button>
+                  )}
                   <button
                     type="button"
                     className={`icon-text-button${confirmRemoveId === profile._id ? " danger" : ""}`}
@@ -693,6 +796,41 @@ export function AdminPanel() {
                     {confirmRemoveId === profile._id ? "Confirm" : "Remove"}
                   </button>
                 </div>
+                {retireDraftId === profile._id ? (
+                  <form
+                    className="admin-retire-form"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      void retireProfile(profile._id, profile.handle);
+                    }}
+                  >
+                    <label htmlFor={`retire-note-${profile._id}`}>
+                      Why are we retiring @{profile.handle}?
+                    </label>
+                    <div className="handle-input-row">
+                      <input
+                        id={`retire-note-${profile._id}`}
+                        value={retireNote}
+                        maxLength={400}
+                        placeholder="Held number one so long we had to hang the jersey."
+                        onChange={(event) => setRetireNote(event.target.value)}
+                      />
+                      <button
+                        type="submit"
+                        disabled={busy === profile._id}
+                        title="Retire them and publish the champion page"
+                      >
+                        <TrophyIcon aria-hidden="true" />{" "}
+                        {busy === profile._id ? "Retiring" : "Retire and publish"}
+                      </button>
+                    </div>
+                    <p className="field-help">
+                      This line goes on the public page at /retired/{profile.normalizedHandle},
+                      which is built to share on X. They leave every ranking but keep their
+                      profile and history.
+                    </p>
+                  </form>
+                ) : null}
               </article>
             ))
           )}

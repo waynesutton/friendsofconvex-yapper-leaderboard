@@ -22,8 +22,8 @@ export function AdminDocsPage() {
           <p>
             Everything under /admin is protected by Convex Auth and an X user
             ID allowlist. This page explains who gets in, how to add someone,
-            and what each admin surface does: board operations, groups, site
-            settings, and gifts.
+            and what each admin surface does: board operations, groups, retire
+            mode, site settings, and gifts.
           </p>
         </header>
 
@@ -81,6 +81,15 @@ export function AdminDocsPage() {
                 set; press Use board defaults to follow the global setting
                 again. At least one column must stay visible.
               </p>
+              <p>
+                Every member row has a Mute button. Muting keeps that person
+                in the group and in the public list but takes their rank away:
+                they render below a divider with a dash instead of a number
+                and no medal, and no column sort or search moves them back up.
+                Mute is per group, so the same person stays ranked on every
+                other board, and they still count toward this group&apos;s
+                member count and pill.
+              </p>
             </div>
           </section>
 
@@ -105,6 +114,30 @@ export function AdminDocsPage() {
           <section>
             <span className="method-number">04</span>
             <div>
+              <h2>Retire mode</h2>
+              <p>
+                When someone holds number one long enough that the race stops
+                being interesting, the Retire button on their{" "}
+                <Link className="text-link" to="/admin">/admin</Link> row
+                retires them undefeated. Write a short line about why, press
+                Retire and publish, and they leave every ranking (Yappers,
+                Convex mentions, and group boards) while a public champion
+                page goes live at /retired/handle with your note, their final
+                numbers, and a Post on X button.
+              </p>
+              <p>
+                Retire is not Archive. Archived people disappear from the site
+                entirely; retired people keep their profile, keep syncing, and
+                get a page built to celebrate them. Unretire puts them back in
+                the running and closes the page. Archive a person first and
+                the Retire button turns off until you restore them.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <span className="method-number">05</span>
+            <div>
               <h2>Site settings</h2>
               <p>
                 <Link className="text-link" to="/admin/settings">/admin/settings</Link>{" "}
@@ -120,7 +153,7 @@ export function AdminDocsPage() {
           </section>
 
           <section>
-            <span className="method-number">05</span>
+            <span className="method-number">06</span>
             <div>
               <h2>Gift studio</h2>
               <p>
@@ -137,7 +170,7 @@ export function AdminDocsPage() {
           </section>
 
           <section>
-            <span className="method-number">06</span>
+            <span className="method-number">07</span>
             <div>
               <h2>Revoking access</h2>
               <p>

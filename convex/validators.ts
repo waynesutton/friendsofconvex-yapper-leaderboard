@@ -47,6 +47,8 @@ export const profileValidator = v.object({
   authUserId: v.optional(v.id("users")),
   requestedAt: v.optional(v.number()),
   reviewedAt: v.optional(v.number()),
+  retiredAt: v.optional(v.number()),
+  retiredNote: v.optional(v.string()),
 });
 
 export const importStatusValidator = v.union(
@@ -113,6 +115,9 @@ export const publicLeaderboardRowValidator = v.object({
   lastSyncedAt: v.union(v.number(), v.null()),
   addedAt: v.number(),
   updatedAt: v.number(),
+  // Group boards only: muted rows render below the divider with no rank.
+  // Missing means the row is ranked normally.
+  muted: v.optional(v.boolean()),
   // Convex mode extras, optional so the default mode can omit them.
   convexPostCount: v.optional(v.number()),
   convexImpressions: v.optional(v.number()),
