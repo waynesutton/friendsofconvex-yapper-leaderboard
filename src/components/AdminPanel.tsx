@@ -2,6 +2,7 @@ import {
   ArrowClockwiseIcon,
   ArrowUUpLeftIcon,
   CheckCircleIcon,
+  MagnifyingGlassIcon,
   PaperPlaneTiltIcon,
   PauseCircleIcon,
   PlusIcon,
@@ -11,10 +12,11 @@ import {
 } from "@phosphor-icons/react";
 import { useAction, useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { FormEvent, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
+import { matchesYapperSearch } from "../lib/yapperSearch";
 import { formatSyncTime } from "./formatters";
 import { ImportPanel } from "./ImportPanel";
 
@@ -382,7 +384,7 @@ function sanitizeHandleInput(value: string): string {
 }
 
 export function AdminPanel() {
-  const profiles = useQuery(api.profiles.listAdmin, { limit: 200 });
+  const profiles = useQuery(api.profiles.listAdmin, { limit: 250 });
   const setup = useQuery(api.profiles.getSetupStatus, {});
   const addProfile = useMutation(api.profiles.add);
   const setActive = useMutation(api.profiles.setActive);
@@ -392,8 +394,15 @@ export function AdminPanel() {
   const refreshOne = useAction(api.xSync.refreshOne);
   const refreshAll = useAction(api.xSync.refreshAll);
   const [handle, setHandle] = useState("");
+  const [search, setSearch] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<Feedback>(null);
+
+  const shownProfiles = useMemo(
+    () => (profiles ?? []).filter((profile) => matchesYapperSearch(search, profile)),
+    [profiles, search],
+  );
+  const searching = search.trim().length > 0;
   // Remove is destructive, so the button arms on the first click and only
   // deletes on the second. Any other row action disarms it.
   const [confirmRemoveId, setConfirmRemoveId] = useState<Id<"profiles"> | null>(null);
@@ -657,17 +666,36 @@ export function AdminPanel() {
         <div className="admin-list-heading">
           <div>
             <p className="eyebrow">Friends on the board</p>
-            <h2 id="managed-people-title">{profiles?.length ?? "—"} profiles</h2>
+            <h2 id="managed-people-title">
+              {profiles === undefined
+                ? "— profiles"
+                : searching
+                  ? `${shownProfiles.length} of ${profiles.length} profiles`
+                  : `${profiles.length} profiles`}
+            </h2>
           </div>
-          <button
-            type="button"
-            className="secondary-button"
-            disabled={!setup?.xApiConfigured || busy === "all" || !profiles?.some((profile) => profile.active)}
-            title="Re-pulls every active account's recent posts and rescans them for Convex mentions."
-            onClick={syncEveryone}
-          >
-            <ArrowClockwiseIcon aria-hidden="true" /> {busy === "all" ? "Syncing" : "Sync everyone"}
-          </button>
+          <div className="admin-list-heading-actions">
+            <div className="gift-ledger-search">
+              <MagnifyingGlassIcon aria-hidden="true" />
+              <input
+                type="search"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search a person or @handle"
+                aria-label="Search friends on the board by name or X handle"
+                title="Type a name or handle to filter this list"
+              />
+            </div>
+            <button
+              type="button"
+              className="secondary-button"
+              disabled={!setup?.xApiConfigured || busy === "all" || !profiles?.some((profile) => profile.active)}
+              title="Re-pulls every active account's recent posts and rescans them for Convex mentions."
+              onClick={syncEveryone}
+            >
+              <ArrowClockwiseIcon aria-hidden="true" /> {busy === "all" ? "Syncing" : "Sync everyone"}
+            </button>
+          </div>
         </div>
 
         <div className="admin-rows">
@@ -675,8 +703,10 @@ export function AdminPanel() {
             <div className="admin-empty">Loading Convex data…</div>
           ) : profiles.length === 0 ? (
             <div className="admin-empty">Add the first real X handle above. The public board will update in realtime.</div>
+          ) : shownProfiles.length === 0 ? (
+            <div className="admin-empty">No yappers match that search.</div>
           ) : (
-            profiles.map((profile) => (
+            shownProfiles.map((profile) => (
               <article className="admin-row" key={profile._id}>
                 <div className="admin-identity">
                   <span className={`status-dot status-${profile.syncStatus}`} aria-hidden="true" />

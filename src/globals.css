@@ -568,6 +568,23 @@ button:disabled {
   gap: 32px;
 }
 
+.admin-list-heading-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.admin-list-heading-actions .gift-ledger-search {
+  flex: 1 1 220px;
+  min-width: min(280px, 100%);
+}
+
+.admin-list-heading-actions .gift-ledger-search input {
+  width: 100%;
+}
+
 .board-heading h2,
 .admin-list-heading h2,
 .editorial-note h2 {
@@ -2306,6 +2323,29 @@ html[data-theme="convex"] .metric-info-trigger[aria-expanded="true"] {
   gap: 20px;
 }
 
+.group-member-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.group-member-toolbar .gift-ledger-search {
+  flex: 1 1 220px;
+  min-width: min(280px, 100%);
+}
+
+.group-member-toolbar .gift-ledger-search input {
+  width: 100%;
+}
+
+.group-member-count {
+  color: var(--caption-ink);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 12px;
+}
+
 /* Site branding admin: preview card, text fields, and the logo row. */
 .branding-preview {
   margin-top: 20px;
@@ -3021,6 +3061,10 @@ html[data-theme="convex"] .metric-info-trigger[aria-expanded="true"] {
   .admin-list-heading {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .admin-list-heading-actions {
+    width: 100%;
   }
 
   .board-controls .share-toolbar {

@@ -1,7 +1,7 @@
 # Group mute and retire mode
 
 Created: 2026-08-17 06:24 UTC
-Last Updated: 2026-08-17 06:41 UTC
+Last Updated: 2026-08-31 20:05 UTC
 Status: Done
 
 ## Problem
@@ -89,3 +89,8 @@ and puts them straight back in the running.
 - 2026-08-17 06:41 UTC — Schema, mute and retire backends, admin controls,
   board divider, champion page, and crawler meta tags done. Typecheck, lint,
   tests, build, and Convex push all clean.
+- 2026-08-31 20:05 UTC — Retire was only on the main `/admin` row, so an admin
+  inside a group could mute but not retire. Added the same Retire control, note
+  field, Champion page link, and Unretire to every group member row, disabled
+  Mute on retired rows, and said in both the panel and `/admin/docs` that retire
+  from a group is still profile wide. Typecheck, lint, tests, and build clean.

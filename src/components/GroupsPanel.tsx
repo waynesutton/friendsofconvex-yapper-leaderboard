@@ -1,6 +1,7 @@
 import {
   ArrowDownIcon,
   ArrowUpIcon,
+  ArrowUUpLeftIcon,
   CaretDownIcon,
   CaretUpIcon,
   CheckCircleIcon,
@@ -9,18 +10,21 @@ import {
   ListBulletsIcon,
   LockSimpleIcon,
   LockSimpleOpenIcon,
+  MagnifyingGlassIcon,
   PlusIcon,
   SpeakerHighIcon,
   SpeakerSlashIcon,
   TrashIcon,
+  TrophyIcon,
   UsersThreeIcon,
 } from "@phosphor-icons/react";
 import { useAction, useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
-import { FormEvent, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
+import { matchesYapperSearch } from "../lib/yapperSearch";
 
 type Feedback = { tone: "success" | "error" | "info"; message: string } | null;
 type AdminGroup = FunctionReturnType<typeof api.groups.listAdmin>[number];
@@ -51,14 +55,26 @@ function GroupMembers({ group }: { group: AdminGroup }) {
   const addMemberByHandle = useMutation(api.groups.addMemberByHandle);
   const removeMember = useMutation(api.groups.removeMember);
   const setMemberMuted = useMutation(api.groups.setMemberMuted);
+  const setRetired = useMutation(api.profiles.setRetired);
   const syncFromXList = useAction(api.groups.syncFromXList);
   const [handle, setHandle] = useState("");
+  const [search, setSearch] = useState("");
   const [listUrl, setListUrl] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [note, setNote] = useState<Feedback>(null);
+
+  const shownMembers = useMemo(
+    () => (members ?? []).filter((member) => matchesYapperSearch(search, member)),
+    [members, search],
+  );
+  const searching = search.trim().length > 0;
   // Removing a member arms on the first click and removes on the second,
   // same pattern as group delete.
   const [confirmRemove, setConfirmRemove] = useState<Id<"groupMemberships"> | null>(null);
+  // Retire opens an inline note field on that row, same as the main admin page.
+  // The note becomes the copy on the public champion page.
+  const [retireDraftId, setRetireDraftId] = useState<Id<"profiles"> | null>(null);
+  const [retireNote, setRetireNote] = useState("");
 
   async function addMember(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -107,6 +123,62 @@ function GroupMembers({ group }: { group: AdminGroup }) {
       setNote({
         tone: "error",
         message: error instanceof Error ? error.message : "Could not update the mute.",
+      });
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  // Mute keys off the membership and retire off the profile, so a row counts as
+  // busy while either one is in flight.
+  function rowIsBusy(member: { membershipId: string; profileId: string }): boolean {
+    return busy === member.membershipId || busy === member.profileId;
+  }
+
+  // Retire is profile wide, not per group: it takes an undefeated champion out
+  // of every board and opens their champion page. Mute only affects this board.
+  async function retireMember(profileId: Id<"profiles">, memberHandle: string) {
+    setBusy(profileId);
+    setNote(null);
+    setConfirmRemove(null);
+    try {
+      const result = await setRetired({
+        profileId,
+        retired: true,
+        note: retireNote.trim() || undefined,
+      });
+      setRetireDraftId(null);
+      setRetireNote("");
+      setNote({
+        tone: "success",
+        message: `@${memberHandle} is retired undefeated and off every board, including this one. Their champion page is live at ${result.pagePath}.`,
+      });
+    } catch (error) {
+      setNote({
+        tone: "error",
+        message: error instanceof Error ? error.message : "Could not retire this person.",
+      });
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function unretireMember(profileId: Id<"profiles">, memberHandle: string) {
+    setBusy(profileId);
+    setNote(null);
+    setConfirmRemove(null);
+    try {
+      await setRetired({ profileId, retired: false });
+      setRetireDraftId(null);
+      setRetireNote("");
+      setNote({
+        tone: "success",
+        message: `@${memberHandle} is back in the running on every board. Their champion page is closed.`,
+      });
+    } catch (error) {
+      setNote({
+        tone: "error",
+        message: error instanceof Error ? error.message : "Could not bring them back.",
       });
     } finally {
       setBusy(null);
@@ -224,6 +296,27 @@ function GroupMembers({ group }: { group: AdminGroup }) {
         </p>
       ) : null}
 
+      {members && members.length > 0 ? (
+        <div className="group-member-toolbar">
+          <div className="gift-ledger-search">
+            <MagnifyingGlassIcon aria-hidden="true" />
+            <input
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search this group"
+              aria-label={`Search ${group.name} members by name or X handle`}
+              title="Type a name or handle to filter this group"
+            />
+          </div>
+          <span className="group-member-count">
+            {searching
+              ? `${shownMembers.length} of ${members.length} members`
+              : `${members.length} members`}
+          </span>
+        </div>
+      ) : null}
+
       <div className="admin-rows">
         {members === undefined ? (
           <div className="admin-empty">Loading members…</div>
@@ -231,8 +324,10 @@ function GroupMembers({ group }: { group: AdminGroup }) {
           <div className="admin-empty">
             No members yet. Add a handle above or import an X list.
           </div>
+        ) : shownMembers.length === 0 ? (
+          <div className="admin-empty">No yappers match that search.</div>
         ) : (
-          members.map((member) => (
+          shownMembers.map((member) => (
             <article className="admin-row" key={member.membershipId}>
               <div className="admin-identity">
                 <span className={`status-dot status-${member.syncStatus}`} aria-hidden="true" />
@@ -266,11 +361,13 @@ function GroupMembers({ group }: { group: AdminGroup }) {
                 <button
                   type="button"
                   className="icon-text-button"
-                  disabled={busy === member.membershipId}
+                  disabled={rowIsBusy(member) || member.retired}
                   title={
-                    member.muted
-                      ? "Rank them on this board again"
-                      : "Keep them in this group and in the list, but with no rank on this board"
+                    member.retired
+                      ? "They are retired, so they are already off this board"
+                      : member.muted
+                        ? "Rank them on this board again"
+                        : "Keep them in this group and in the list, but with no rank on this board"
                   }
                   onClick={() =>
                     void toggleMuted(member.membershipId, member.handle, !member.muted)
@@ -283,12 +380,55 @@ function GroupMembers({ group }: { group: AdminGroup }) {
                   )}{" "}
                   {member.muted ? "Unmute" : "Mute"}
                 </button>
+                {member.retired ? (
+                  <>
+                    <a
+                      className="icon-text-button"
+                      href={`/retired/${member.handle.toLowerCase()}`}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      title="Open the public champion page for this person"
+                    >
+                      <TrophyIcon aria-hidden="true" /> Champion page
+                    </a>
+                    <button
+                      type="button"
+                      className="icon-text-button"
+                      disabled={rowIsBusy(member)}
+                      title="Put them back in the rankings on every board and close their champion page"
+                      onClick={() => void unretireMember(member.profileId, member.handle)}
+                    >
+                      <ArrowUUpLeftIcon aria-hidden="true" /> Unretire
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    className="icon-text-button"
+                    disabled={!member.active || rowIsBusy(member)}
+                    title={
+                      member.active
+                        ? "Retire them undefeated: off every board, with a public champion page to share"
+                        : "Restore them on the main board before retiring them"
+                    }
+                    onClick={() => {
+                      setConfirmRemove(null);
+                      setRetireNote("");
+                      setRetireDraftId(
+                        retireDraftId === member.profileId ? null : member.profileId,
+                      );
+                    }}
+                  >
+                    <TrophyIcon aria-hidden="true" />{" "}
+                    {retireDraftId === member.profileId ? "Cancel retire" : "Retire"}
+                  </button>
+                )}
                 <button
                   type="button"
                   className={`icon-text-button${
                     confirmRemove === member.membershipId ? " danger" : ""
                   }`}
-                  disabled={busy === member.membershipId}
+                  disabled={rowIsBusy(member)}
                   title={
                     confirmRemove === member.membershipId
                       ? "Confirm: remove them from this group. They stay on the main board."
@@ -300,6 +440,42 @@ function GroupMembers({ group }: { group: AdminGroup }) {
                   {confirmRemove === member.membershipId ? "Confirm remove" : "Remove from group"}
                 </button>
               </div>
+              {retireDraftId === member.profileId ? (
+                <form
+                  className="admin-retire-form"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void retireMember(member.profileId, member.handle);
+                  }}
+                >
+                  <label htmlFor={`group-retire-note-${member.membershipId}`}>
+                    Why are we retiring @{member.handle}?
+                  </label>
+                  <div className="handle-input-row">
+                    <input
+                      id={`group-retire-note-${member.membershipId}`}
+                      value={retireNote}
+                      maxLength={400}
+                      placeholder="Held number one so long we had to hang the jersey."
+                      onChange={(event) => setRetireNote(event.target.value)}
+                    />
+                    <button
+                      type="submit"
+                      disabled={rowIsBusy(member)}
+                      title="Retire them and publish the champion page"
+                    >
+                      <TrophyIcon aria-hidden="true" />{" "}
+                      {rowIsBusy(member) ? "Retiring" : "Retire and publish"}
+                    </button>
+                  </div>
+                  <p className="field-help">
+                    Retire is profile wide, not just this group: they leave this board, the
+                    main board, and every other group, and their page goes live at
+                    /retired/{member.handle.toLowerCase()} to share on X. Use Mute instead
+                    to unrank them on this board only.
+                  </p>
+                </form>
+              ) : null}
             </article>
           ))
         )}
@@ -749,6 +925,14 @@ export function GroupsPanel() {
             <span>
               <strong>Mute</strong>Mute a member to keep them in the group and in the public list
               while taking their rank away. They render below a divider on this board only.
+            </span>
+          </div>
+          <div className="readiness-row">
+            <CheckCircleIcon aria-hidden="true" />
+            <span>
+              <strong>Retire</strong>Retire is profile wide. It pulls an undefeated champion off
+              every board and publishes their page at /retired/handle. Mute for one board, retire
+              for all of them.
             </span>
           </div>
         </div>

@@ -1,5 +1,19 @@
 # Task log
 
+## Completed — 2026-09-01 04:25 UTC (admin yapper search)
+
+- [x] Friends on the board (`/admin`) now has a name and @handle search. The heading reads N of M while a term is active, the list filters in place, and a miss shows "No yappers match that search." Roster query bumped to 250 so it matches the public board cap. PRD: prds/admin-yapper-search.md. `src/components/AdminPanel.tsx`.
+- [x] Each group member roster on `/admin/groups` has the same search. Filter is display only; mute, retire, remove, and Sync everyone still act on the real records. `src/components/GroupsPanel.tsx`.
+- [x] Shared matcher plus unit tests; `/admin/docs` notes the search on both surfaces. `src/lib/yapperSearch.ts`, `tests/yapperSearch.test.ts`, `src/pages/AdminDocsPage.tsx`.
+- [x] Verified with `npx tsc --noEmit`, `npx eslint` on the touched files, and `npx vitest run` (29 tests). Public board search still filters (typed "wayne", only Wayne Sutton remained). Signed in roster search on `/admin` and `/admin/groups` needs an admin X session.
+
+## Completed — 2026-08-31 20:05 UTC (retire from the group roster)
+
+- [x] Retire only lived on the main `/admin` row, so an admin looking at a group in `/admin/groups` had Mute but no way to retire that person. Every group member row now carries the same Retire control: an inline note field, Retire and publish, and once retired a Champion page link plus Unretire. Same `profiles.setRetired` mutation, so it stays profile wide. PRD: prds/group-mute-and-retire-mode.md. `src/components/GroupsPanel.tsx`.
+- [x] Mute is disabled on a retired row (they are already off every board) with a title saying so, and the row's busy state now covers both the membership id used by mute and the profile id used by retire, so one in-flight action disables the whole row. `src/components/GroupsPanel.tsx`.
+- [x] Retire copy in How pills work and in `/admin/docs`: retire is profile wide even when pressed from inside a group, and mute is the one-board version. `src/components/GroupsPanel.tsx`, `src/pages/AdminDocsPage.tsx`.
+- [x] Verified with `npx tsc --noEmit`, `npx eslint`, `npx vitest run` (27 tests), and `vite build`, all clean. The retire and unretire round trip needs a signed in admin session on `/admin/groups`.
+
 ## Completed — 2026-08-17 06:41 UTC (per group mute and retire mode)
 
 - [x] Per group mute: optional `muted` on `groupMemberships`, a `groups.setMemberMuted` admin mutation, and `muted` plus `retired` on `listMembers` rows. The group leaderboard path sorts ranked and muted members separately and tags muted rows, so they always land under the divider. Muted people still count toward the group's active member count and pill. PRD: prds/group-mute-and-retire-mode.md. `convex/schema.ts`, `convex/groups.ts`, `convex/profiles.ts`, `convex/validators.ts`.

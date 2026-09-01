@@ -38,7 +38,9 @@ export function AdminDocsPage() {
                 <Link className="text-link" to="/admin">/admin</Link> is where
                 you add people by X handle, approve join requests, pause or
                 restore profiles, run X syncs, pick which columns the public
-                leaderboard shows, and customize the top 3 badges. The Board
+                leaderboard shows, and customize the top 3 badges. The Friends
+                on the board list has a name and @handle search so you can find
+                one person without scrolling the whole roster. The Board
                 tabs fieldset has two fork toggles: &quot;Show the main Yappers
                 tab&quot; and &quot;Show the Convex mentions tab&quot;. Turning
                 one off removes that pill from the public board, and direct
@@ -71,7 +73,8 @@ export function AdminDocsPage() {
                 List URL on the group card and import the whole list: missing
                 profiles get created and picked up by the normal X sync, and
                 re-running the import is safe because it only adds what
-                changed.
+                changed. Each roster has a name and @handle search, same as
+                the main board list.
               </p>
               <p>
                 Each group card also has a Board columns fieldset. By default
@@ -117,13 +120,22 @@ export function AdminDocsPage() {
               <h2>Retire mode</h2>
               <p>
                 When someone holds number one long enough that the race stops
-                being interesting, the Retire button on their{" "}
-                <Link className="text-link" to="/admin">/admin</Link> row
-                retires them undefeated. Write a short line about why, press
+                being interesting, the Retire button retires them undefeated.
+                It sits on their{" "}
+                <Link className="text-link" to="/admin">/admin</Link> row and
+                on every group member row in{" "}
+                <Link className="text-link" to="/admin/groups">/admin/groups</Link>,
+                and both do the same thing. Write a short line about why, press
                 Retire and publish, and they leave every ranking (Yappers,
                 Convex mentions, and group boards) while a public champion
                 page goes live at /retired/handle with your note, their final
                 numbers, and a Post on X button.
+              </p>
+              <p>
+                Retiring from inside a group is still profile wide, so it pulls
+                them off the main board and every other group too. Mute is the
+                one-board version of the same idea. Muting a retired person does
+                nothing, so that button turns off until you unretire them.
               </p>
               <p>
                 Retire is not Archive. Archived people disappear from the site
