@@ -5,6 +5,7 @@ import {
   CaretDownIcon,
   CaretUpIcon,
   CheckCircleIcon,
+  CrownSimpleIcon,
   EyeIcon,
   EyeSlashIcon,
   ListBulletsIcon,
@@ -15,7 +16,6 @@ import {
   SpeakerHighIcon,
   SpeakerSlashIcon,
   TrashIcon,
-  TrophyIcon,
   UsersThreeIcon,
 } from "@phosphor-icons/react";
 import { useAction, useMutation, useQuery } from "convex/react";
@@ -55,7 +55,7 @@ function GroupMembers({ group }: { group: AdminGroup }) {
   const addMemberByHandle = useMutation(api.groups.addMemberByHandle);
   const removeMember = useMutation(api.groups.removeMember);
   const setMemberMuted = useMutation(api.groups.setMemberMuted);
-  const setRetired = useMutation(api.profiles.setRetired);
+  const setLegend = useMutation(api.profiles.setLegend);
   const syncFromXList = useAction(api.groups.syncFromXList);
   const [handle, setHandle] = useState("");
   const [search, setSearch] = useState("");
@@ -71,10 +71,10 @@ function GroupMembers({ group }: { group: AdminGroup }) {
   // Removing a member arms on the first click and removes on the second,
   // same pattern as group delete.
   const [confirmRemove, setConfirmRemove] = useState<Id<"groupMemberships"> | null>(null);
-  // Retire opens an inline note field on that row, same as the main admin page.
-  // The note becomes the copy on the public champion page.
-  const [retireDraftId, setRetireDraftId] = useState<Id<"profiles"> | null>(null);
-  const [retireNote, setRetireNote] = useState("");
+  // Make legend opens an inline note field on that row, same as the main admin
+  // page. The note becomes the copy on their public legend page.
+  const [legendDraftId, setLegendDraftId] = useState<Id<"profiles"> | null>(null);
+  const [legendNote, setLegendNote] = useState("");
 
   async function addMember(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -129,51 +129,51 @@ function GroupMembers({ group }: { group: AdminGroup }) {
     }
   }
 
-  // Mute keys off the membership and retire off the profile, so a row counts as
+  // Mute keys off the membership and legend off the profile, so a row counts as
   // busy while either one is in flight.
   function rowIsBusy(member: { membershipId: string; profileId: string }): boolean {
     return busy === member.membershipId || busy === member.profileId;
   }
 
-  // Retire is profile wide, not per group: it takes an undefeated champion out
-  // of every board and opens their champion page. Mute only affects this board.
-  async function retireMember(profileId: Id<"profiles">, memberHandle: string) {
+  // Legend status is profile wide, not per group: it takes an undefeated
+  // champion out of every ranking and opens their page. Mute is board only.
+  async function promoteLegend(profileId: Id<"profiles">, memberHandle: string) {
     setBusy(profileId);
     setNote(null);
     setConfirmRemove(null);
     try {
-      const result = await setRetired({
+      const result = await setLegend({
         profileId,
-        retired: true,
-        note: retireNote.trim() || undefined,
+        legend: true,
+        note: legendNote.trim() || undefined,
       });
-      setRetireDraftId(null);
-      setRetireNote("");
+      setLegendDraftId(null);
+      setLegendNote("");
       setNote({
         tone: "success",
-        message: `@${memberHandle} is retired undefeated and off every board, including this one. Their champion page is live at ${result.pagePath}.`,
+        message: `@${memberHandle} is a legend, off every ranking including this one. Their page is live at ${result.pagePath}, and searching this board still finds them.`,
       });
     } catch (error) {
       setNote({
         tone: "error",
-        message: error instanceof Error ? error.message : "Could not retire this person.",
+        message: error instanceof Error ? error.message : "Could not make them a legend.",
       });
     } finally {
       setBusy(null);
     }
   }
 
-  async function unretireMember(profileId: Id<"profiles">, memberHandle: string) {
+  async function demoteLegend(profileId: Id<"profiles">, memberHandle: string) {
     setBusy(profileId);
     setNote(null);
     setConfirmRemove(null);
     try {
-      await setRetired({ profileId, retired: false });
-      setRetireDraftId(null);
-      setRetireNote("");
+      await setLegend({ profileId, legend: false });
+      setLegendDraftId(null);
+      setLegendNote("");
       setNote({
         tone: "success",
-        message: `@${memberHandle} is back in the running on every board. Their champion page is closed.`,
+        message: `@${memberHandle} is back in the running on every board. Their legend page is closed.`,
       });
     } catch (error) {
       setNote({
@@ -345,13 +345,13 @@ function GroupMembers({ group }: { group: AdminGroup }) {
               <div className="admin-sync-meta">
                 <strong>
                   {member.active ? "active" : "archived"}
-                  {member.retired ? " · retired" : member.muted ? " · muted" : ""}
+                  {member.legend ? " · legend" : member.muted ? " · muted" : ""}
                 </strong>
                 <span>
                   {!member.active
                     ? "Hidden until restored on the main board"
-                    : member.retired
-                      ? "Retired undefeated, so they are off every board"
+                    : member.legend
+                      ? "A legend, so they are off every ranking but still findable in search"
                       : member.muted
                         ? "Listed below the divider on this board with no rank"
                         : "Ranked on this board"}
@@ -361,10 +361,10 @@ function GroupMembers({ group }: { group: AdminGroup }) {
                 <button
                   type="button"
                   className="icon-text-button"
-                  disabled={rowIsBusy(member) || member.retired}
+                  disabled={rowIsBusy(member) || member.legend}
                   title={
-                    member.retired
-                      ? "They are retired, so they are already off this board"
+                    member.legend
+                      ? "They are a legend, so they are already off this board"
                       : member.muted
                         ? "Rank them on this board again"
                         : "Keep them in this group and in the list, but with no rank on this board"
@@ -380,25 +380,25 @@ function GroupMembers({ group }: { group: AdminGroup }) {
                   )}{" "}
                   {member.muted ? "Unmute" : "Mute"}
                 </button>
-                {member.retired ? (
+                {member.legend ? (
                   <>
                     <a
                       className="icon-text-button"
-                      href={`/retired/${member.handle.toLowerCase()}`}
+                      href={`/legends/${member.handle.toLowerCase()}`}
                       target="_blank"
                       rel="noreferrer noopener"
-                      title="Open the public champion page for this person"
+                      title="Open the public legend page for this person"
                     >
-                      <TrophyIcon aria-hidden="true" /> Champion page
+                      <CrownSimpleIcon aria-hidden="true" /> Legend page
                     </a>
                     <button
                       type="button"
                       className="icon-text-button"
                       disabled={rowIsBusy(member)}
-                      title="Put them back in the rankings on every board and close their champion page"
-                      onClick={() => void unretireMember(member.profileId, member.handle)}
+                      title="Put them back in the rankings on every board and close their legend page"
+                      onClick={() => void demoteLegend(member.profileId, member.handle)}
                     >
-                      <ArrowUUpLeftIcon aria-hidden="true" /> Unretire
+                      <ArrowUUpLeftIcon aria-hidden="true" /> Back to the board
                     </button>
                   </>
                 ) : (
@@ -408,19 +408,19 @@ function GroupMembers({ group }: { group: AdminGroup }) {
                     disabled={!member.active || rowIsBusy(member)}
                     title={
                       member.active
-                        ? "Retire them undefeated: off every board, with a public champion page to share"
-                        : "Restore them on the main board before retiring them"
+                        ? "Retire them undefeated: off every ranking, with a public legend page to share"
+                        : "Restore them on the main board before making them a legend"
                     }
                     onClick={() => {
                       setConfirmRemove(null);
-                      setRetireNote("");
-                      setRetireDraftId(
-                        retireDraftId === member.profileId ? null : member.profileId,
+                      setLegendNote("");
+                      setLegendDraftId(
+                        legendDraftId === member.profileId ? null : member.profileId,
                       );
                     }}
                   >
-                    <TrophyIcon aria-hidden="true" />{" "}
-                    {retireDraftId === member.profileId ? "Cancel retire" : "Retire"}
+                    <CrownSimpleIcon aria-hidden="true" />{" "}
+                    {legendDraftId === member.profileId ? "Cancel" : "Make legend"}
                   </button>
                 )}
                 <button
@@ -440,39 +440,40 @@ function GroupMembers({ group }: { group: AdminGroup }) {
                   {confirmRemove === member.membershipId ? "Confirm remove" : "Remove from group"}
                 </button>
               </div>
-              {retireDraftId === member.profileId ? (
+              {legendDraftId === member.profileId ? (
                 <form
-                  className="admin-retire-form"
+                  className="admin-legend-form"
                   onSubmit={(event) => {
                     event.preventDefault();
-                    void retireMember(member.profileId, member.handle);
+                    void promoteLegend(member.profileId, member.handle);
                   }}
                 >
-                  <label htmlFor={`group-retire-note-${member.membershipId}`}>
-                    Why are we retiring @{member.handle}?
+                  <label htmlFor={`group-legend-note-${member.membershipId}`}>
+                    Why is @{member.handle} a legend?
                   </label>
                   <div className="handle-input-row">
                     <input
-                      id={`group-retire-note-${member.membershipId}`}
-                      value={retireNote}
+                      id={`group-legend-note-${member.membershipId}`}
+                      value={legendNote}
                       maxLength={400}
                       placeholder="Held number one so long we had to hang the jersey."
-                      onChange={(event) => setRetireNote(event.target.value)}
+                      onChange={(event) => setLegendNote(event.target.value)}
                     />
                     <button
                       type="submit"
                       disabled={rowIsBusy(member)}
-                      title="Retire them and publish the champion page"
+                      title="Make them a legend and publish the page"
                     >
-                      <TrophyIcon aria-hidden="true" />{" "}
-                      {rowIsBusy(member) ? "Retiring" : "Retire and publish"}
+                      <CrownSimpleIcon aria-hidden="true" />{" "}
+                      {rowIsBusy(member) ? "Publishing" : "Make legend and publish"}
                     </button>
                   </div>
                   <p className="field-help">
-                    Retire is profile wide, not just this group: they leave this board, the
-                    main board, and every other group, and their page goes live at
-                    /retired/{member.handle.toLowerCase()} to share on X. Use Mute instead
-                    to unrank them on this board only.
+                    Legend status is profile wide, not just this group: they leave the
+                    ranking here, on the main board, and in every other group, they show up
+                    on the Legends pill, and their page goes live at /legends/
+                    {member.handle.toLowerCase()} to share on X. A search on this board
+                    still finds them. Use Mute instead to unrank them on this board only.
                   </p>
                 </form>
               ) : null}
@@ -930,9 +931,10 @@ export function GroupsPanel() {
           <div className="readiness-row">
             <CheckCircleIcon aria-hidden="true" />
             <span>
-              <strong>Retire</strong>Retire is profile wide. It pulls an undefeated champion off
-              every board and publishes their page at /retired/handle. Mute for one board, retire
-              for all of them.
+              <strong>Make legend</strong>Legend status is profile wide. It pulls an undefeated
+              champion off every ranking, adds them to the Legends pill, and publishes their page
+              at /legends/handle. Searching a board they belong to still finds them. Mute for one
+              board, legend for all of them.
             </span>
           </div>
         </div>

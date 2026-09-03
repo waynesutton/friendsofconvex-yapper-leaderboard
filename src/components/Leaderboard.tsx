@@ -5,6 +5,7 @@ import {
   ChatCircleTextIcon,
   CheckIcon,
   CopyIcon,
+  CrownSimpleIcon,
   FunnelSimpleIcon,
   LockSimpleIcon,
   MagnifyingGlassIcon,
@@ -50,6 +51,7 @@ const TOP_FILTER_OPTIONS: Array<FilterDropdownOption<TopFilterValue>> = [
 // every pill is linkable.
 type BoardSelection = string;
 const DEFAULT_BOARD = "impressions";
+const LEGENDS_BOARD = "legends";
 
 type LeaderboardRow = FunctionReturnType<typeof api.profiles.listLeaderboard>[number];
 type RankBadge = FunctionReturnType<typeof api.badges.listRankBadges>[number];
@@ -249,6 +251,12 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
     limit: 250,
     mode: "convex",
   });
+  // Always subscribed, because its length is what decides whether the Legends
+  // pill exists at all. Empty on a board where nobody has been retired.
+  const legendProfiles = useQuery(api.profiles.listLeaderboard, {
+    limit: 250,
+    mode: "legends",
+  });
   const rankBadges = useQuery(api.badges.listRankBadges, {});
   const display = useQuery(api.boardSettings.getBoardDisplay, {}) ?? ALL_VISIBLE;
   const groups = useQuery(api.groups.listPublic, {});
@@ -307,6 +315,17 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
         <UsersThreeIcon aria-hidden="true" />
       ),
     })),
+    // Legends sits last, an epilogue to the boards, and only exists once
+    // somebody has actually been retired undefeated.
+    ...((legendProfiles?.length ?? 0) > 0
+      ? [
+          {
+            id: LEGENDS_BOARD,
+            label: "Legends",
+            icon: <CrownSimpleIcon aria-hidden="true" />,
+          },
+        ]
+      : []),
   ];
   // Unknown or hidden board values fall back to the first pill; with no
   // pills at all the plain Yappers table still renders so the page works.
@@ -328,12 +347,15 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
   );
 
   const convexMode = activeBoard === "convex";
+  const legendsMode = activeBoard === LEGENDS_BOARD;
   const groupMode = activeGroup !== undefined;
   const activeRows = convexMode
     ? convexProfiles
-    : groupMode
-      ? groupProfiles
-      : profiles;
+    : legendsMode
+      ? legendProfiles
+      : groupMode
+        ? groupProfiles
+        : profiles;
   // Group boards can override the yappers columns; missing means inherit
   // the global board settings.
   const yappersColumns =
@@ -377,13 +399,13 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
     ? `56px minmax(170px, 1fr) repeat(${visibleMetricCount}, minmax(82px, 0.45fr)) 128px`
     : `56px minmax(220px, 1fr) repeat(${visibleMetricCount}, minmax(90px, 0.45fr)) 76px`;
 
-  // Muted members are listed but unranked, so rank numbers skip them and the
-  // people below a muted row keep their real position.
+  // Muted members and legends are listed but unranked, so rank numbers skip
+  // them and the people below them keep their real position.
   const canonicalRanks = useMemo(() => {
     const ranks = new Map<Id<"profiles">, number>();
     let rank = 0;
     for (const profile of activeRows ?? []) {
-      if (profile.muted) continue;
+      if (profile.muted || profile.legend) continue;
       rank += 1;
       ranks.set(profile._id, rank);
     }
@@ -398,17 +420,27 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
   const sortedProfiles = useMemo(() => {
     if (!activeRows) return [];
     const term = search.trim().replace(/^@/, "").toLowerCase();
+    // A group board carries its legend members so they stay findable, but they
+    // are off the ranking, so they only surface once someone searches. The
+    // Legends board is all legends, so it never hides them.
+    const inScope =
+      legendsMode || term
+        ? activeRows
+        : activeRows.filter((profile) => !profile.legend);
     const matches = term
-      ? activeRows.filter(
+      ? inScope.filter(
           (profile) =>
             profile.normalizedHandle.includes(term) ||
             profile.displayName.toLowerCase().includes(term)
         )
-      : activeRows;
+      : inScope;
 
     return [...matches].sort((left, right) => {
-      // Muted rows stay in their own section under the divider, so column
-      // sorts and search never let them cross back into the ranking.
+      // Ranked rows, then muted, then legends. Each section is sealed, so no
+      // column sort or search can lift a row out of its own group.
+      if (Boolean(left.legend) !== Boolean(right.legend)) {
+        return left.legend ? 1 : -1;
+      }
       if (Boolean(left.muted) !== Boolean(right.muted)) {
         return left.muted ? 1 : -1;
       }
@@ -453,7 +485,7 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
 
       return leftRank - rightRank;
     });
-  }, [activeRows, activeSortKey, canonicalRanks, search, sortDirection]);
+  }, [activeRows, activeSortKey, canonicalRanks, legendsMode, search, sortDirection]);
 
   // The dropdown drives the starting list length: Top 30 opens with 30 rows,
   // Top 60 with 60, and so on. Load more always appears while more rows exist,
@@ -854,10 +886,13 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
                 convexMode && (!profile.convexScanned || (profile.convexPostCount ?? 0) === 0);
               const expandable = convexMode && (profile.convexPostsStored ?? 0) > 0;
               const expanded = expandedId === profile._id;
-              // The divider goes in front of the first muted row, so the
-              // unranked section reads as a deliberate group, not a bug.
+              // Dividers go in front of the first row of each unranked
+              // section, so those rows read as a deliberate group, not a bug.
+              const previous = visibleProfiles[index - 1];
               const startsMutedSection =
-                Boolean(profile.muted) && !visibleProfiles[index - 1]?.muted;
+                Boolean(profile.muted) && !previous?.muted;
+              const startsLegendSection =
+                Boolean(profile.legend) && !previous?.legend;
               return (
                 <div key={profile._id} className="table-row-group">
                   {/* .table-row-group is display:contents, so this divider
@@ -867,14 +902,29 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
                       <span role="cell">In the group, off the ranking</span>
                     </div>
                   ) : null}
+                  {startsLegendSection && !legendsMode ? (
+                    <div className="board-divider" role="row">
+                      <span role="cell">Legends, retired undefeated</span>
+                    </div>
+                  ) : null}
                   <div
                     className="table-row"
                     role="row"
                     data-dimmed={dimmed || undefined}
                     data-muted={profile.muted || undefined}
+                    data-legend={profile.legend || undefined}
                     id={`yapper-${profile.normalizedHandle}`}>
                     <span className="rank-cell" role="cell">
-                      {profile.muted ? "—" : String(rank).padStart(2, "0")}
+                      {profile.legend ? (
+                        <CrownSimpleIcon
+                          aria-label="Undefeated legend"
+                          className="rank-crown"
+                        />
+                      ) : profile.muted ? (
+                        "—"
+                      ) : (
+                        String(rank).padStart(2, "0")
+                      )}
                     </span>
                     <div className="person-cell" role="cell">
                       <span className="avatar-stack">
@@ -891,6 +941,13 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
                         <a href={profileUrl} target="_blank" rel="noreferrer noopener">
                           @{profile.handle}
                         </a>
+                        {profile.legend ? (
+                          <Link
+                            className="legend-row-link"
+                            to={`/legends/${profile.normalizedHandle}`}>
+                            <CrownSimpleIcon aria-hidden="true" /> Undefeated legend
+                          </Link>
+                        ) : null}
                       </span>
                     </div>
                     {convexMode ? (

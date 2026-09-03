@@ -112,9 +112,13 @@ export default defineSchema({
     authUserId: v.optional(v.id("users")),
     requestedAt: v.optional(v.number()),
     reviewedAt: v.optional(v.number()),
-    // Retire mode: an undefeated champion pulled out of every ranking and
-    // given a public champion page. Separate from `active`, which hides
-    // someone entirely. Missing means they are still competing.
+    // Legend status: an undefeated champion pulled out of every ranking and
+    // given a public legend page. Separate from `active`, which hides someone
+    // entirely. Missing means they are still competing. `retiredAt` and
+    // `retiredNote` are the pre-rename names, kept readable only so the
+    // backfill in migrations.ts can move them; nothing else reads them.
+    legendAt: v.optional(v.number()),
+    legendNote: v.optional(v.string()),
     retiredAt: v.optional(v.number()),
     retiredNote: v.optional(v.string()),
   })

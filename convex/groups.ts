@@ -67,11 +67,11 @@ async function countMembers(
     .take(MAX_GROUP_MEMBERS);
   // "Active" here means "renders on this group's board", which drives the
   // pill visibility rule. Muted members still render (below the divider) so
-  // they count; retired champions leave every board so they do not.
+  // they count; legends leave every board so they do not.
   let active = 0;
   for (const membership of memberships) {
     const profile = await ctx.db.get("profiles", membership.profileId);
-    if (profile && profile.active && profile.retiredAt === undefined) {
+    if (profile && profile.active && profile.legendAt === undefined) {
       active += 1;
     }
   }
@@ -124,7 +124,7 @@ const groupMemberValidator = v.object({
   // Muted members keep their spot in the roster and the public list, but
   // drop below the divider with no rank number.
   muted: v.boolean(),
-  retired: v.boolean(),
+  legend: v.boolean(),
   syncStatus: v.union(
     v.literal("pending"),
     v.literal("synced"),
@@ -220,7 +220,7 @@ export const listMembers = query({
         profileImageUrl: profile.profileImageUrl,
         active: profile.active,
         muted: membership.muted ?? false,
-        retired: profile.retiredAt !== undefined,
+        legend: profile.legendAt !== undefined,
         syncStatus: profile.syncStatus,
         addedAt: membership.addedAt,
       });

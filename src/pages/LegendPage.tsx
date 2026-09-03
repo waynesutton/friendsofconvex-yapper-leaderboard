@@ -1,7 +1,7 @@
 import {
   CheckIcon,
   CopyIcon,
-  TrophyIcon,
+  CrownSimpleIcon,
   WarningCircleIcon,
   XLogoIcon,
 } from "@phosphor-icons/react";
@@ -14,7 +14,7 @@ import { GiftRotor } from "../components/GiftPortal";
 import { compactNumber } from "../components/formatters";
 import { usePageTitle } from "../lib/usePageTitle";
 
-function formatRetiredDate(timestamp: number): string {
+function formatLegendDate(timestamp: number): string {
   return new Intl.DateTimeFormat("en-US", {
     month: "long",
     day: "numeric",
@@ -37,28 +37,30 @@ async function copyText(value: string): Promise<void> {
   textarea.remove();
 }
 
-// Public champion page for someone retired undefeated. Simple on purpose:
-// a stripe card with their face, the reason we hung the jersey, their final
-// numbers, and one button to post it on X.
-export function RetiredPage() {
+// Public page for a legend: someone who held number one long enough that we
+// took them out of the race. Simple on purpose: a stripe card with their face,
+// the reason, their career numbers, and one button to post it on X. Only posts
+// and followers show here; engagements and impressions are race metrics and
+// this page is the opposite of a race.
+export function LegendPage() {
   const { handle } = useParams<{ handle: string }>();
-  const champion = useQuery(api.profiles.getRetired, { handle: handle ?? "" });
+  const legend = useQuery(api.profiles.getLegend, { handle: handle ?? "" });
   const branding = useQuery(api.siteSettings.getSiteBranding, {});
   const communityName = branding?.communityName ?? DEFAULT_BRANDING.communityName;
   const [copied, setCopied] = useState(false);
 
-  usePageTitle(champion ? `@${champion.handle} retired undefeated` : "Hall of fame");
+  usePageTitle(legend ? `@${legend.handle}, undefeated legend` : "Legends");
 
-  if (champion === undefined) {
-    return <div className="gift-portal-state">Loading the hall of fame…</div>;
+  if (legend === undefined) {
+    return <div className="gift-portal-state">Loading the legend…</div>;
   }
 
-  if (champion === null) {
+  if (legend === null) {
     return (
       <section className="gift-portal gift-portal-closed">
         <div className="gift-closed-card">
           <WarningCircleIcon aria-hidden="true" />
-          <h1>Nobody has been retired under that handle.</h1>
+          <h1>No legend under that handle.</h1>
           <p>They are either still yapping or never made the board.</p>
           <Link className="text-link" to="/">
             Back to the board
@@ -68,7 +70,7 @@ export function RetiredPage() {
     );
   }
 
-  const shareText = `@${champion.handle} is retiring from the ${communityName} board undefeated. Nobody could catch them.`;
+  const shareText = `@${legend.handle} is leaving the ${communityName} board undefeated. Legend status. Nobody could catch them.`;
 
   function postOnX() {
     const intent = new URL("https://x.com/intent/post");
@@ -84,73 +86,65 @@ export function RetiredPage() {
   }
 
   return (
-    <section className="retired-page">
-      <div className="retired-heading">
+    <section className="legend-page">
+      <div className="legend-heading">
         <p className="eyebrow">
-          <span>{communityName} · hall of fame</span>
+          <span>{communityName} · legends</span>
         </p>
         <h1>
-          Retired undefeated:
-          <span className="retired-handle">@{champion.handle}</span>
+          Undefeated legend:
+          <span className="legend-handle">@{legend.handle}</span>
         </h1>
-        <p className="retired-note">
-          {champion.retiredNote ??
+        <p className="legend-note">
+          {legend.legendNote ??
             "Held the top spot so long that the only fair move was to hang the jersey."}
         </p>
-        <p className="retired-date">
-          Off the board since {formatRetiredDate(champion.retiredAt)}. Their numbers stay
-          exactly where they left them.
+        <p className="legend-date">
+          A legend since {formatLegendDate(legend.legendAt)}. Off the board, in the
+          record books.
         </p>
       </div>
 
-      <div className="retired-card-column">
-        <article className="gift-signal-card retired-card">
+      <div className="legend-card-column">
+        <article className="gift-signal-card legend-card">
           <header>
             <div className="gift-card-brand">
               <GiftRotor />
               <span>{communityName}</span>
             </div>
-            <span className="retired-card-flag">
-              <TrophyIcon aria-hidden="true" /> Undefeated
+            <span className="legend-card-flag">
+              <CrownSimpleIcon aria-hidden="true" /> Undefeated
             </span>
           </header>
           <div className="gift-card-center">
             <div className="gift-portal-identity">
-              {champion.profileImageUrl ? (
-                <img src={champion.profileImageUrl} alt="" width={52} height={52} />
+              {legend.profileImageUrl ? (
+                <img src={legend.profileImageUrl} alt="" width={52} height={52} />
               ) : (
                 <span aria-hidden="true">@</span>
               )}
               <div>
-                <strong>{champion.displayName}</strong>
-                <span>@{champion.handle}</span>
+                <strong>{legend.displayName}</strong>
+                <span>@{legend.handle}</span>
               </div>
             </div>
-            <h2>@{champion.handle}</h2>
-            <p>Number one, retired, unbeaten</p>
+            <h2>@{legend.handle}</h2>
+            <p>Number one, unbeaten, legend</p>
           </div>
         </article>
 
-        <dl className="retired-stats">
+        <dl className="legend-stats">
           <div>
             <dt>Posts</dt>
-            <dd>{compactNumber(champion.currentPosts)}</dd>
-          </div>
-          <div>
-            <dt>Engagements</dt>
-            <dd>{compactNumber(champion.currentEngagements)}</dd>
-          </div>
-          <div>
-            <dt>Impressions</dt>
-            <dd>{compactNumber(champion.currentImpressions)}</dd>
+            <dd>{compactNumber(legend.currentPosts)}</dd>
           </div>
           <div>
             <dt>Followers</dt>
-            <dd>{compactNumber(champion.currentFollowers)}</dd>
+            <dd>{compactNumber(legend.currentFollowers)}</dd>
           </div>
         </dl>
 
-        <div className="retired-actions">
+        <div className="legend-actions">
           <button type="button" className="gift-primary-action" onClick={postOnX}>
             <XLogoIcon aria-hidden="true" /> Post this on X
           </button>
@@ -160,9 +154,9 @@ export function RetiredPage() {
           </button>
         </div>
 
-        <p className="retired-footer-line">
-          <a href={`https://x.com/${champion.handle}`} target="_blank" rel="noreferrer noopener">
-            Follow @{champion.handle} on X
+        <p className="legend-footer-line">
+          <a href={`https://x.com/${legend.handle}`} target="_blank" rel="noreferrer noopener">
+            Follow @{legend.handle} on X
           </a>{" "}
           ·{" "}
           <Link className="text-link" to="/">

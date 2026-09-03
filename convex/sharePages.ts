@@ -92,13 +92,16 @@ export const giftSharePage = httpAction(async (ctx, request) => {
   });
 });
 
-// GET /retired/:handle — the champion page with per person meta tags so the
-// X card names them instead of repeating the generic board title. The image
+// GET /legends/:handle — the legend page with per person meta tags so the X
+// card names them instead of repeating the generic board title. The image
 // stays the shipped site OpenGraph art; no per person PNG is rendered.
-export const retiredSharePage = httpAction(async (ctx, request) => {
+// Also answers on the pre-rename /retired/ prefix so links already posted on
+// X keep their card; the app redirects those to /legends/ in the browser.
+export const legendSharePage = httpAction(async (ctx, request) => {
   const url = new URL(request.url);
   const origin = url.origin;
-  const handle = tokenFromPath(url.pathname, "/retired/");
+  const prefix = url.pathname.startsWith("/retired/") ? "/retired/" : "/legends/";
+  const handle = tokenFromPath(url.pathname, prefix);
 
   const shellUrl = (process.env.CONVEX_SITE_URL ?? origin).replace(/\/$/, "");
   const shellResponse = await fetch(`${shellUrl}/`);
@@ -107,16 +110,16 @@ export const retiredSharePage = httpAction(async (ctx, request) => {
   }
   let html = await shellResponse.text();
 
-  const champion = handle
-    ? await ctx.runQuery(api.profiles.getRetired, { handle })
+  const legend = handle
+    ? await ctx.runQuery(api.profiles.getLegend, { handle })
     : null;
 
-  if (champion) {
-    const title = `@${champion.handle} retired undefeated`;
+  if (legend) {
+    const title = `@${legend.handle}, undefeated legend`;
     const description =
-      champion.retiredNote ??
-      `@${champion.handle} is leaving the board on top. Nobody could catch them.`;
-    const pageUrl = `${origin}/retired/${encodeURIComponent(champion.handle.toLowerCase())}`;
+      legend.legendNote ??
+      `@${legend.handle} left the board on top. Nobody could catch them.`;
+    const pageUrl = `${origin}/legends/${encodeURIComponent(legend.handle.toLowerCase())}`;
     const imageUrl = `${origin}/og-friends-of-convex.png`;
 
     html = setTitle(html, title);

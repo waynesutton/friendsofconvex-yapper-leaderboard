@@ -47,8 +47,8 @@ export const profileValidator = v.object({
   authUserId: v.optional(v.id("users")),
   requestedAt: v.optional(v.number()),
   reviewedAt: v.optional(v.number()),
-  retiredAt: v.optional(v.number()),
-  retiredNote: v.optional(v.string()),
+  legendAt: v.optional(v.number()),
+  legendNote: v.optional(v.string()),
 });
 
 export const importStatusValidator = v.union(
@@ -118,6 +118,9 @@ export const publicLeaderboardRowValidator = v.object({
   // Group boards only: muted rows render below the divider with no rank.
   // Missing means the row is ranked normally.
   muted: v.optional(v.boolean()),
+  // Legends are unranked everywhere. On the Legends board every row carries
+  // this; on a group board legends ship along so search can find them.
+  legend: v.optional(v.boolean()),
   // Convex mode extras, optional so the default mode can omit them.
   convexPostCount: v.optional(v.number()),
   convexImpressions: v.optional(v.number()),

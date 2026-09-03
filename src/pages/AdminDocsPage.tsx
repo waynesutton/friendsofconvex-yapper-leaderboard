@@ -117,32 +117,41 @@ export function AdminDocsPage() {
           <section>
             <span className="method-number">04</span>
             <div>
-              <h2>Retire mode</h2>
+              <h2>Legends</h2>
               <p>
                 When someone holds number one long enough that the race stops
-                being interesting, the Retire button retires them undefeated.
-                It sits on their{" "}
+                being interesting, Make legend retires them undefeated. The
+                button sits on their{" "}
                 <Link className="text-link" to="/admin">/admin</Link> row and
                 on every group member row in{" "}
                 <Link className="text-link" to="/admin/groups">/admin/groups</Link>,
                 and both do the same thing. Write a short line about why, press
-                Retire and publish, and they leave every ranking (Yappers,
-                Convex mentions, and group boards) while a public champion
-                page goes live at /retired/handle with your note, their final
-                numbers, and a Post on X button.
+                Make legend and publish, and they leave every ranking (Yappers,
+                Convex mentions, and group boards) while a public page goes
+                live at /legends/handle with your note, their career numbers,
+                and a Post on X button.
               </p>
               <p>
-                Retiring from inside a group is still profile wide, so it pulls
-                them off the main board and every other group too. Mute is the
-                one-board version of the same idea. Muting a retired person does
-                nothing, so that button turns off until you unretire them.
+                A Legends pill appears on the board as soon as one person has
+                the status, and disappears again if nobody does. Nobody on that
+                board gets a rank number: every row carries a crown instead,
+                newest legend first. On a group board, legends drop out of the
+                ranking but stay findable, so searching a handle still turns
+                them up under a divider with a link to their page.
               </p>
               <p>
-                Retire is not Archive. Archived people disappear from the site
-                entirely; retired people keep their profile, keep syncing, and
-                get a page built to celebrate them. Unretire puts them back in
-                the running and closes the page. Archive a person first and
-                the Retire button turns off until you restore them.
+                Legend status is profile wide even when set from inside a
+                group, so it pulls them off the main board and every other
+                group too. Mute is the one-board version of the same idea.
+                Muting a legend does nothing, so that button turns off.
+              </p>
+              <p>
+                This is not Archive. Archived people disappear from the site
+                entirely; legends keep their profile, keep syncing, and get a
+                page built to celebrate them. Back to the board puts them in
+                the running again and closes the page. Archive a person first
+                and Make legend turns off until you restore them. Links shared
+                from the old /retired/handle URL still work.
               </p>
             </div>
           </section>

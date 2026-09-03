@@ -2,12 +2,12 @@ import {
   ArrowClockwiseIcon,
   ArrowUUpLeftIcon,
   CheckCircleIcon,
+  CrownSimpleIcon,
   MagnifyingGlassIcon,
   PaperPlaneTiltIcon,
   PauseCircleIcon,
   PlusIcon,
   TrashIcon,
-  TrophyIcon,
   WarningCircleIcon,
 } from "@phosphor-icons/react";
 import { useAction, useMutation, useQuery } from "convex/react";
@@ -388,7 +388,7 @@ export function AdminPanel() {
   const setup = useQuery(api.profiles.getSetupStatus, {});
   const addProfile = useMutation(api.profiles.add);
   const setActive = useMutation(api.profiles.setActive);
-  const setRetired = useMutation(api.profiles.setRetired);
+  const setLegend = useMutation(api.profiles.setLegend);
   const removeProfile = useMutation(api.profiles.remove);
   const reviewMembership = useMutation(api.profiles.reviewMembership);
   const refreshOne = useAction(api.xSync.refreshOne);
@@ -406,10 +406,10 @@ export function AdminPanel() {
   // Remove is destructive, so the button arms on the first click and only
   // deletes on the second. Any other row action disarms it.
   const [confirmRemoveId, setConfirmRemoveId] = useState<Id<"profiles"> | null>(null);
-  // Retiring opens an inline note field on that row; the note becomes the
-  // "why we retired them" copy on the public champion page.
-  const [retireDraftId, setRetireDraftId] = useState<Id<"profiles"> | null>(null);
-  const [retireNote, setRetireNote] = useState("");
+  // Make legend opens an inline note field on that row; the note becomes the
+  // "why they are a legend" copy on their public page.
+  const [legendDraftId, setLegendDraftId] = useState<Id<"profiles"> | null>(null);
+  const [legendNote, setLegendNote] = useState("");
 
   async function submitHandle(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -462,45 +462,45 @@ export function AdminPanel() {
     }
   }
 
-  // Retire mode takes an undefeated champion out of every ranking and opens
-  // their public champion page. Archive hides someone; retire celebrates them.
-  async function retireProfile(profileId: Id<"profiles">, profileHandle: string) {
+  // Legend status takes an undefeated champion out of every ranking and opens
+  // their public page. Archive hides someone; this celebrates them.
+  async function promoteLegend(profileId: Id<"profiles">, profileHandle: string) {
     setBusy(profileId);
     setFeedback(null);
     setConfirmRemoveId(null);
     try {
-      const result = await setRetired({
+      const result = await setLegend({
         profileId,
-        retired: true,
-        note: retireNote.trim() || undefined,
+        legend: true,
+        note: legendNote.trim() || undefined,
       });
-      setRetireDraftId(null);
-      setRetireNote("");
+      setLegendDraftId(null);
+      setLegendNote("");
       setFeedback({
         tone: "success",
-        message: `@${profileHandle} is retired undefeated. Their champion page is live at ${result.pagePath}.`,
+        message: `@${profileHandle} is a legend, retired undefeated. Their page is live at ${result.pagePath}.`,
       });
     } catch (error) {
       setFeedback({
         tone: "error",
-        message: error instanceof Error ? error.message : "Could not retire this person.",
+        message: error instanceof Error ? error.message : "Could not make them a legend.",
       });
     } finally {
       setBusy(null);
     }
   }
 
-  async function unretireProfile(profileId: Id<"profiles">, profileHandle: string) {
+  async function demoteLegend(profileId: Id<"profiles">, profileHandle: string) {
     setBusy(profileId);
     setFeedback(null);
     setConfirmRemoveId(null);
     try {
-      await setRetired({ profileId, retired: false });
-      setRetireDraftId(null);
-      setRetireNote("");
+      await setLegend({ profileId, legend: false });
+      setLegendDraftId(null);
+      setLegendNote("");
       setFeedback({
         tone: "success",
-        message: `@${profileHandle} is back in the running. Their champion page is closed.`,
+        message: `@${profileHandle} is back in the running. Their legend page is closed.`,
       });
     } catch (error) {
       setFeedback({
@@ -718,7 +718,7 @@ export function AdminPanel() {
                 <div className="admin-sync-meta">
                   <strong>
                     {profile.membershipStatus ?? "approved"} · {profile.syncStatus}
-                    {profile.retiredAt !== undefined ? " · retired" : ""}
+                    {profile.legendAt !== undefined ? " · legend" : ""}
                   </strong>
                   <span>{profile.syncError ?? formatSyncTime(profile.lastSyncedAt)}</span>
                 </div>
@@ -768,25 +768,25 @@ export function AdminPanel() {
                     {profile.active ? <PauseCircleIcon aria-hidden="true" /> : <CheckCircleIcon aria-hidden="true" />}
                     {profile.active ? "Archive" : "Restore"}
                   </button>
-                  {profile.retiredAt !== undefined ? (
+                  {profile.legendAt !== undefined ? (
                     <>
                       <a
                         className="icon-text-button"
-                        href={`/retired/${profile.normalizedHandle}`}
+                        href={`/legends/${profile.normalizedHandle}`}
                         target="_blank"
                         rel="noreferrer noopener"
-                        title="Open the public champion page for this person"
+                        title="Open the public legend page for this person"
                       >
-                        <TrophyIcon aria-hidden="true" /> Champion page
+                        <CrownSimpleIcon aria-hidden="true" /> Legend page
                       </a>
                       <button
                         type="button"
                         className="icon-text-button"
                         disabled={busy === profile._id}
-                        title="Put them back in the rankings and close their champion page"
-                        onClick={() => void unretireProfile(profile._id, profile.handle)}
+                        title="Put them back in the rankings and close their legend page"
+                        onClick={() => void demoteLegend(profile._id, profile.handle)}
                       >
-                        <ArrowUUpLeftIcon aria-hidden="true" /> Unretire
+                        <ArrowUUpLeftIcon aria-hidden="true" /> Back to the board
                       </button>
                     </>
                   ) : (
@@ -796,19 +796,19 @@ export function AdminPanel() {
                       disabled={!profile.active || busy === profile._id}
                       title={
                         profile.active
-                          ? "Retire them undefeated: out of every ranking, with a public champion page to share"
-                          : "Restore them to the board before retiring them"
+                          ? "Retire them undefeated: out of every ranking, with a public legend page to share"
+                          : "Restore them to the board before making them a legend"
                       }
                       onClick={() => {
                         setConfirmRemoveId(null);
-                        setRetireNote(profile.retiredNote ?? "");
-                        setRetireDraftId(
-                          retireDraftId === profile._id ? null : profile._id,
+                        setLegendNote(profile.legendNote ?? "");
+                        setLegendDraftId(
+                          legendDraftId === profile._id ? null : profile._id,
                         );
                       }}
                     >
-                      <TrophyIcon aria-hidden="true" />{" "}
-                      {retireDraftId === profile._id ? "Cancel retire" : "Retire"}
+                      <CrownSimpleIcon aria-hidden="true" />{" "}
+                      {legendDraftId === profile._id ? "Cancel" : "Make legend"}
                     </button>
                   )}
                   <button
@@ -826,38 +826,38 @@ export function AdminPanel() {
                     {confirmRemoveId === profile._id ? "Confirm" : "Remove"}
                   </button>
                 </div>
-                {retireDraftId === profile._id ? (
+                {legendDraftId === profile._id ? (
                   <form
-                    className="admin-retire-form"
+                    className="admin-legend-form"
                     onSubmit={(event) => {
                       event.preventDefault();
-                      void retireProfile(profile._id, profile.handle);
+                      void promoteLegend(profile._id, profile.handle);
                     }}
                   >
-                    <label htmlFor={`retire-note-${profile._id}`}>
-                      Why are we retiring @{profile.handle}?
+                    <label htmlFor={`legend-note-${profile._id}`}>
+                      Why is @{profile.handle} a legend?
                     </label>
                     <div className="handle-input-row">
                       <input
-                        id={`retire-note-${profile._id}`}
-                        value={retireNote}
+                        id={`legend-note-${profile._id}`}
+                        value={legendNote}
                         maxLength={400}
                         placeholder="Held number one so long we had to hang the jersey."
-                        onChange={(event) => setRetireNote(event.target.value)}
+                        onChange={(event) => setLegendNote(event.target.value)}
                       />
                       <button
                         type="submit"
                         disabled={busy === profile._id}
-                        title="Retire them and publish the champion page"
+                        title="Make them a legend and publish the page"
                       >
-                        <TrophyIcon aria-hidden="true" />{" "}
-                        {busy === profile._id ? "Retiring" : "Retire and publish"}
+                        <CrownSimpleIcon aria-hidden="true" />{" "}
+                        {busy === profile._id ? "Publishing" : "Make legend and publish"}
                       </button>
                     </div>
                     <p className="field-help">
-                      This line goes on the public page at /retired/{profile.normalizedHandle},
-                      which is built to share on X. They leave every ranking but keep their
-                      profile and history.
+                      This line goes on the public page at /legends/{profile.normalizedHandle},
+                      which is built to share on X. They leave every ranking, join the Legends
+                      pill, and keep their profile and history.
                     </p>
                   </form>
                 ) : null}

@@ -1,5 +1,19 @@
 # Task log
 
+## To Do
+
+- [ ] Deploy the Legends rename to production, then run the backfill, in that order. `npx convex run migrations:backfillLegendFields --prod` fails today with "Could not find function for 'migrations:backfillLegendFields'" because production still runs the pre-rename code: its function list shows `profiles:getRetired` and `profiles:setRetired` and no `migrations:*`. Run `npx convex deploy` first, then the backfill. Still a no-op unless somebody is retired on production between now and the deploy.
+
+## Completed — 2026-09-01 09:22 UTC (Legends board and the retire rename)
+
+- [x] Retire mode renamed to Legends everywhere. `retiredAt` / `retiredNote` became `legendAt` / `legendNote`, `profiles.setRetired` became `setLegend`, `getRetired` became `getLegend`, the page moved to `/legends/<handle>`, and the admin controls read Make legend, Legend page, and Back to the board. `/retired/<handle>` still resolves: the HTTP route answers on both prefixes for crawlers and the app redirects in the browser. PRD: prds/legends-board-and-rename.md. `convex/schema.ts`, `convex/profiles.ts`, `convex/validators.ts`, `convex/groups.ts`, `convex/siteFiles.ts`, `convex/sharePages.ts`, `convex/http.ts`, `src/App.tsx`, `src/components/AdminPanel.tsx`, `src/components/GroupsPanel.tsx`, `src/globals.css`.
+- [x] New `convex/migrations.ts` with `backfillLegendFields`, an idempotent one-off that copies pre-rename records onto the new fields and clears the old ones. Ran clean on dev (3 scanned, 0 moved); production showed no pre-rename records, and it is safe to run there anyway. It cannot run on production before `npx convex deploy` ships the file, since the function does not exist there yet.
+- [x] Legend page drops Engagements and Impressions, keeping Posts and Followers. `getLegend` no longer returns the two race metrics at all, so the public payload shrank, and the stats grid is two columns with the mobile split rules removed. `src/pages/LegendPage.tsx` (renamed from `RetiredPage.tsx`), `src/globals.css`.
+- [x] Legends pill: `listLeaderboard` gained `mode: "legends"` returning legends newest first, the board subscribes to it always so pill visibility keys off the result length, and the pill sits last and only exists when someone is a legend. Rank cells on that board carry a crown instead of a number. `convex/profiles.ts`, `src/components/Leaderboard.tsx`, `src/globals.css`.
+- [x] Group boards now receive their legend members as a third section after ranked and muted. The client hides them until a search term matches, so the default board is unchanged, and a match renders under a "Legends, retired undefeated" divider with an "Undefeated legend" link to their page. Legend beats muted when someone is both. `convex/profiles.ts`, `src/components/Leaderboard.tsx`.
+- [x] `/admin/docs` section rewritten as Legends: the pill and its visibility rule, the crown instead of ranks, group search behavior, profile wide scope, and the old URL still working. `src/pages/AdminDocsPage.tsx`.
+- [x] Verified with `npx tsc --noEmit`, `npx eslint` (only the pre-existing `SiteHeader.tsx` set-state-in-effect error), `npx vitest run` (29 tests), `npm run build`, and a clean `npx convex dev --once` push. Pill, crown, and group search need a legend on the board plus an admin session to confirm in the browser.
+
 ## Completed — 2026-09-01 04:25 UTC (admin yapper search)
 
 - [x] Friends on the board (`/admin`) now has a name and @handle search. The heading reads N of M while a term is active, the list filters in place, and a miss shows "No yappers match that search." Roster query bumped to 250 so it matches the public board cap. PRD: prds/admin-yapper-search.md. `src/components/AdminPanel.tsx`.

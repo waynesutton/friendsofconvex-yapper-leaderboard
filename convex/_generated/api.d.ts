@@ -23,6 +23,7 @@ import type * as gifts from "../gifts.js";
 import type * as groups from "../groups.js";
 import type * as http from "../http.js";
 import type * as imports from "../imports.js";
+import type * as migrations from "../migrations.js";
 import type * as profiles from "../profiles.js";
 import type * as sharePages from "../sharePages.js";
 import type * as siteDirectory from "../siteDirectory.js";
@@ -59,6 +60,7 @@ declare const fullApi: ApiFromModules<{
   groups: typeof groups;
   http: typeof http;
   imports: typeof imports;
+  migrations: typeof migrations;
   profiles: typeof profiles;
   sharePages: typeof sharePages;
   siteDirectory: typeof siteDirectory;

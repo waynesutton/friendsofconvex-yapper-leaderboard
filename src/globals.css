@@ -1113,6 +1113,36 @@ html[data-theme="convex"] .metric-info-trigger[aria-expanded="true"] {
   color: var(--caption-ink);
 }
 
+/* Legends carry a crown where their rank number used to be, because ranking
+   champions against each other defeats the point of retiring them. */
+.rank-cell .rank-crown {
+  width: 20px;
+  height: 20px;
+  color: #f3b01c;
+}
+
+.legend-row-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--signal-coral-dark);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.legend-row-link svg {
+  width: 12px;
+  height: 12px;
+}
+
+.legend-row-link:hover {
+  text-decoration: underline;
+}
+
 .convex-posts-cell {
   display: flex;
   align-items: center;
@@ -1861,9 +1891,9 @@ html[data-theme="convex"] .metric-info-trigger[aria-expanded="true"] {
   gap: 8px;
 }
 
-/* Inline retire note editor: opens under the row it belongs to and spans the
+/* Inline legend note editor: opens under the row it belongs to and spans the
    whole admin grid so the input has room for a full sentence. */
-.admin-retire-form {
+.admin-legend-form {
   grid-column: 1 / -1;
   margin-top: 4px;
   padding: 16px;
@@ -1872,7 +1902,7 @@ html[data-theme="convex"] .metric-info-trigger[aria-expanded="true"] {
   border-radius: var(--radius-small);
 }
 
-.admin-retire-form > label {
+.admin-legend-form > label {
   display: block;
   margin-bottom: 10px;
   font-family: var(--font-mono), ui-monospace, monospace;
@@ -4861,9 +4891,9 @@ html[data-theme="convex"] .metric-info-trigger[aria-expanded="true"] {
   align-items: center;
 }
 
-/* Retired champion page. Reuses the 16:9 racing stripe card from the gift
-   pass so the shareable moment looks like the rest of the brand. */
-.retired-page {
+/* Legend page. Reuses the 16:9 racing stripe card from the gift pass so the
+   shareable moment looks like the rest of the brand. */
+.legend-page {
   --gift-red: #ee342f;
   --gift-yellow: #f3b01c;
   --gift-purple: #8d2676;
@@ -4876,11 +4906,11 @@ html[data-theme="convex"] .metric-info-trigger[aria-expanded="true"] {
   align-items: center;
 }
 
-.retired-heading {
+.legend-heading {
   min-width: 0;
 }
 
-.retired-heading h1 {
+.legend-heading h1 {
   margin: 0;
   max-width: 100%;
   overflow-wrap: anywhere;
@@ -4891,14 +4921,14 @@ html[data-theme="convex"] .metric-info-trigger[aria-expanded="true"] {
   line-height: 1.08;
 }
 
-.retired-handle {
+.legend-handle {
   display: block;
   margin-top: 0.12em;
   color: var(--signal-coral-dark);
   overflow-wrap: anywhere;
 }
 
-.retired-note {
+.legend-note {
   max-width: 620px;
   margin: 22px 0 0;
   color: var(--broadcast-ink);
@@ -4906,7 +4936,7 @@ html[data-theme="convex"] .metric-info-trigger[aria-expanded="true"] {
   line-height: 1.5;
 }
 
-.retired-date {
+.legend-date {
   max-width: 620px;
   margin: 14px 0 0;
   color: var(--caption-ink);
@@ -4914,14 +4944,14 @@ html[data-theme="convex"] .metric-info-trigger[aria-expanded="true"] {
   line-height: 1.55;
 }
 
-.retired-card-column {
+.legend-card-column {
   min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 18px;
 }
 
-.retired-card-flag {
+.legend-card-flag {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -4930,31 +4960,33 @@ html[data-theme="convex"] .metric-info-trigger[aria-expanded="true"] {
   border-radius: 999px;
 }
 
-.retired-card-flag svg {
+.legend-card-flag svg {
   width: 14px;
   height: 14px;
   color: var(--gift-yellow);
 }
 
-.retired-stats {
+/* Two numbers only: posts and followers. Engagements and impressions are the
+   race metrics, and this page is the opposite of a race. */
+.legend-stats {
   margin: 0;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   border: 1px solid var(--line-standard);
   border-radius: var(--radius-medium);
   overflow: hidden;
 }
 
-.retired-stats > div {
+.legend-stats > div {
   padding: 16px;
   border-right: 1px solid var(--line-standard);
 }
 
-.retired-stats > div:last-child {
+.legend-stats > div:last-child {
   border-right: 0;
 }
 
-.retired-stats dt {
+.legend-stats dt {
   color: var(--caption-ink);
   font-family: var(--font-mono), ui-monospace, monospace;
   font-size: 10px;
@@ -4963,7 +4995,7 @@ html[data-theme="convex"] .metric-info-trigger[aria-expanded="true"] {
   text-transform: uppercase;
 }
 
-.retired-stats dd {
+.legend-stats dd {
   margin: 8px 0 0;
   font-family: var(--font-mono), ui-monospace, monospace;
   font-variant-numeric: tabular-nums;
@@ -4971,13 +5003,13 @@ html[data-theme="convex"] .metric-info-trigger[aria-expanded="true"] {
   font-weight: 650;
 }
 
-.retired-actions {
+.legend-actions {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 12px;
 }
 
-.retired-footer-line {
+.legend-footer-line {
   margin: 0;
   color: var(--caption-ink);
   font-size: 13px;
@@ -5006,7 +5038,7 @@ html[data-theme="convex"] .metric-info-trigger[aria-expanded="true"] {
   .gift-sender-panel,
   .gift-portal,
   .gift-public-page,
-  .retired-page {
+  .legend-page {
     grid-template-columns: 1fr;
     align-items: start;
   }
@@ -5055,24 +5087,11 @@ html[data-theme="convex"] .metric-info-trigger[aria-expanded="true"] {
     font-size: clamp(22px, 6vw, 30px);
   }
 
-  .retired-heading h1 {
+  .legend-heading h1 {
     font-size: clamp(26px, 7vw, 34px);
   }
 
-  .retired-stats {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .retired-stats > div:nth-child(2) {
-    border-right: 0;
-  }
-
-  .retired-stats > div:nth-child(3),
-  .retired-stats > div:nth-child(4) {
-    border-top: 1px solid var(--line-standard);
-  }
-
-  .retired-actions {
+  .legend-actions {
     grid-template-columns: 1fr;
   }
 
@@ -5490,7 +5509,7 @@ html[data-theme="convex"] .join-copy h1,
 html[data-theme="convex"] .gift-admin-intro h1,
 html[data-theme="convex"] .gift-portal-copy h1,
 html[data-theme="convex"] .gift-public-heading h1,
-html[data-theme="convex"] .retired-heading h1,
+html[data-theme="convex"] .legend-heading h1,
 html[data-theme="convex"] .access-state h1 {
   font-weight: 720;
   letter-spacing: -0.06em;
@@ -5783,7 +5802,7 @@ html[data-theme="convex"] .header-admin-chip {
 .gift-admin-intro h1,
 .gift-portal-copy h1,
 .gift-public-heading h1,
-.retired-heading h1,
+.legend-heading h1,
 .gift-closed-card h1,
 .access-state h1,
 html[data-theme="convex"] .hero h1,
@@ -5794,7 +5813,7 @@ html[data-theme="convex"] .admin-intro h1,
 html[data-theme="convex"] .gift-admin-intro h1,
 html[data-theme="convex"] .gift-portal-copy h1,
 html[data-theme="convex"] .gift-public-heading h1,
-html[data-theme="convex"] .retired-heading h1,
+html[data-theme="convex"] .legend-heading h1,
 html[data-theme="convex"] .gift-closed-card h1,
 html[data-theme="convex"] .access-state h1 {
   font-family: "neue-haas-grotesk-display", sans-serif;

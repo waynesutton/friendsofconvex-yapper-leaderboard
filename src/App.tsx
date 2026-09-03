@@ -1,4 +1,4 @@
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useParams } from "react-router-dom";
 import { BuiltWithFooter } from "./components/BuiltWithFooter";
 import { SiteHeader } from "./components/SiteHeader";
 import { AboutPage } from "./pages/AboutPage";
@@ -15,8 +15,15 @@ import { GiftPassPage } from "./pages/GiftPassPage";
 import { GiftSharePage } from "./pages/GiftSharePage";
 import { HomePage } from "./pages/HomePage";
 import { JoinPage } from "./pages/JoinPage";
-import { RetiredPage } from "./pages/RetiredPage";
+import { LegendPage } from "./pages/LegendPage";
 import { Providers } from "./providers";
+
+// Retire mode was renamed to Legends. Cards for the old URL are already out
+// on X, so those links land here and move to the new one.
+function LegacyRetiredRedirect() {
+  const { handle } = useParams<{ handle: string }>();
+  return <Navigate to={`/legends/${handle ?? ""}`} replace />;
+}
 
 export function App() {
   return (
@@ -27,7 +34,8 @@ export function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/join" element={<JoinPage />} />
-          <Route path="/retired/:handle" element={<RetiredPage />} />
+          <Route path="/legends/:handle" element={<LegendPage />} />
+          <Route path="/retired/:handle" element={<LegacyRetiredRedirect />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/admin/groups" element={<AdminGroupsPage />} />
           <Route path="/admin/settings" element={<AdminSettingsPage />} />

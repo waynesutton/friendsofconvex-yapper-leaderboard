@@ -7,7 +7,7 @@ import { fourthwallWebhook, xDmCallback } from "./giftWebhooks";
 import {
   giftShareImage,
   giftSharePage,
-  retiredSharePage,
+  legendSharePage,
 } from "./sharePages";
 import {
   serveLlmsTxt,
@@ -63,12 +63,19 @@ http.route({
   handler: giftShareImage,
 });
 
-// Retired champion pages get their own title and description so the X card
-// names the person instead of repeating the board headline.
+// Legend pages get their own title and description so the X card names the
+// person instead of repeating the board headline. The /retired/ prefix is the
+// pre-rename URL, kept so cards already shared on X still resolve.
+http.route({
+  pathPrefix: "/legends/",
+  method: "GET",
+  handler: legendSharePage,
+});
+
 http.route({
   pathPrefix: "/retired/",
   method: "GET",
-  handler: retiredSharePage,
+  handler: legendSharePage,
 });
 
 // Agent Ready: agents.md, llms-full.txt, status, readiness, RSS, agent-skills.

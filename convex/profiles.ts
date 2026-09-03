@@ -75,6 +75,7 @@ export type PublicLeaderboardRow = {
   addedAt: number;
   updatedAt: number;
   muted?: boolean;
+  legend?: boolean;
   convexPostCount?: number;
   convexImpressions?: number;
   convexEngagements?: number;
@@ -86,7 +87,7 @@ export type PublicLeaderboardRow = {
 
 function toPublicLeaderboardRow(
   row: LeaderboardRow,
-  muted?: boolean,
+  flags?: { muted?: boolean; legend?: boolean },
 ): PublicLeaderboardRow {
   return {
     _id: row._id,
@@ -103,7 +104,8 @@ function toPublicLeaderboardRow(
     lastSyncedAt: row.lastSyncedAt,
     addedAt: row.addedAt,
     updatedAt: row.updatedAt,
-    muted,
+    muted: flags?.muted,
+    legend: flags?.legend,
     convexPostCount: row.convexPostCount,
     convexImpressions: row.convexImpressions,
     convexEngagements: row.convexEngagements,
@@ -164,8 +166,8 @@ async function buildConvexLeaderboard(
 
   const rows: Array<ConvexLeaderboardRow> = [];
   for (const profile of profiles) {
-    // Retired champions leave every ranking, including Convex mentions.
-    if (profile.retiredAt !== undefined) continue;
+    // Legends leave every ranking, including Convex mentions.
+    if (profile.legendAt !== undefined) continue;
     const history = await ctx.db
       .query("snapshots")
       .withIndex("by_profile_id_and_window_end", (q) =>
@@ -235,7 +237,13 @@ async function buildConvexLeaderboard(
 export const listLeaderboard = query({
   args: {
     limit: v.optional(v.number()),
-    mode: v.optional(v.union(v.literal("default"), v.literal("convex"))),
+    mode: v.optional(
+      v.union(
+        v.literal("default"),
+        v.literal("convex"),
+        v.literal("legends"),
+      ),
+    ),
     // When set, the board only shows active members of this group, ranked
     // with the standard Yappers ordering. Takes precedence over mode.
     groupId: v.optional(v.id("groups")),
@@ -257,15 +265,20 @@ export const listLeaderboard = query({
           q.eq("groupId", args.groupId!),
         )
         .take(250);
-      // Ranked and muted members are sorted apart so muted rows always land
-      // after the divider, whatever their metrics say.
+      // Three sections, sorted apart so a row can never drift out of its
+      // own: ranked, then muted under the divider, then legends. Legends ship
+      // to the client unranked so a search can still find a group member who
+      // has left the race; the board hides them until someone types.
       const ranked: Array<Doc<"profiles">> = [];
       const muted: Array<Doc<"profiles">> = [];
+      const legends: Array<Doc<"profiles">> = [];
       for (const membership of memberships) {
         const profile = await ctx.db.get("profiles", membership.profileId);
         if (!profile || !profile.active) continue;
-        if (profile.retiredAt !== undefined) continue;
-        if (membership.muted) {
+        // Legend beats muted: they are off the board for a happier reason.
+        if (profile.legendAt !== undefined) {
+          legends.push(profile);
+        } else if (membership.muted) {
           muted.push(profile);
         } else {
           ranked.push(profile);
@@ -273,14 +286,31 @@ export const listLeaderboard = query({
       }
       ranked.sort(compareYapperRows);
       muted.sort(compareYapperRows);
+      legends.sort((left, right) => (right.legendAt ?? 0) - (left.legendAt ?? 0));
       return [
         ...ranked.map((profile) => toPublicLeaderboardRow(profile)),
-        ...muted.map((profile) => toPublicLeaderboardRow(profile, true)),
+        ...muted.map((profile) => toPublicLeaderboardRow(profile, { muted: true })),
+        ...legends.map((profile) => toPublicLeaderboardRow(profile, { legend: true })),
       ].slice(0, limit);
     }
     if (args.mode === "convex") {
       const rows = await buildConvexLeaderboard(ctx, limit);
       return rows.map((row) => toPublicLeaderboardRow(row));
+    }
+    // The Legends board: everyone who has been retired undefeated, newest
+    // first. No ranks, so the order is the only story it tells.
+    if (args.mode === "legends") {
+      const legends = await ctx.db
+        .query("profiles")
+        .withIndex("by_active_and_current_impressions", (q) =>
+          q.eq("active", true),
+        )
+        .take(250);
+      return legends
+        .filter((profile) => profile.legendAt !== undefined)
+        .sort((left, right) => (right.legendAt ?? 0) - (left.legendAt ?? 0))
+        .slice(0, limit)
+        .map((profile) => toPublicLeaderboardRow(profile, { legend: true }));
     }
     const profiles = await ctx.db
       .query("profiles")
@@ -295,7 +325,7 @@ export const listLeaderboard = query({
     // Profiles awaiting their first X sync sort after rows with real metrics.
     profiles.sort(compareYapperRows);
     return profiles
-      .filter((profile) => profile.retiredAt === undefined)
+      .filter((profile) => profile.legendAt === undefined)
       .map((profile) => toPublicLeaderboardRow(profile));
   },
 });
@@ -460,19 +490,19 @@ export const setActive = mutation({
   },
 });
 
-const RETIRED_NOTE_LIMIT = 400;
+const LEGEND_NOTE_LIMIT = 400;
 
-// Retire mode: an undefeated champion leaves every ranking and gets a public
-// champion page at /retired/<handle>. Different from Archive, which hides
-// someone completely. Retiring keeps them visible, just out of the race.
-export const setRetired = mutation({
+// Legend status: an undefeated champion leaves every ranking and gets a public
+// page at /legends/<handle>. Different from Archive, which hides someone
+// completely. A legend stays visible, just out of the race.
+export const setLegend = mutation({
   args: {
     profileId: v.id("profiles"),
-    retired: v.boolean(),
+    legend: v.boolean(),
     note: v.optional(v.string()),
   },
   returns: v.object({
-    retired: v.boolean(),
+    legend: v.boolean(),
     handle: v.string(),
     pagePath: v.string(),
   }),
@@ -481,33 +511,35 @@ export const setRetired = mutation({
     const profile = await ctx.db.get("profiles", args.profileId);
     if (!profile) throw new Error("Profile not found.");
 
-    if (args.retired) {
-      const note = args.note?.trim().slice(0, RETIRED_NOTE_LIMIT);
+    if (args.legend) {
+      const note = args.note?.trim().slice(0, LEGEND_NOTE_LIMIT);
       await ctx.db.patch("profiles", args.profileId, {
-        // Keep the original retirement date when only the note changes.
-        retiredAt: profile.retiredAt ?? Date.now(),
-        retiredNote: note || undefined,
+        // Keep the original date when only the note changes.
+        legendAt: profile.legendAt ?? Date.now(),
+        legendNote: note || undefined,
         updatedAt: Date.now(),
       });
     } else {
       await ctx.db.patch("profiles", args.profileId, {
-        retiredAt: undefined,
-        retiredNote: undefined,
+        legendAt: undefined,
+        legendNote: undefined,
         updatedAt: Date.now(),
       });
     }
 
     return {
-      retired: args.retired,
+      legend: args.legend,
       handle: profile.handle,
-      pagePath: `/retired/${profile.normalizedHandle}`,
+      pagePath: `/legends/${profile.normalizedHandle}`,
     };
   },
 });
 
-// Public champion page data. Returns null unless the handle belongs to an
-// active, retired profile, so the page never leaks archived people.
-export const getRetired = query({
+// Public legend page data. Returns null unless the handle belongs to an
+// active legend, so the page never leaks archived people. Only the career
+// numbers ship: engagements and impressions are the race metrics, and this
+// page is the opposite of a race.
+export const getLegend = query({
   args: { handle: v.string() },
   returns: v.union(
     v.object({
@@ -515,11 +547,9 @@ export const getRetired = query({
       displayName: v.string(),
       bio: v.union(v.string(), v.null()),
       profileImageUrl: v.union(v.string(), v.null()),
-      retiredAt: v.number(),
-      retiredNote: v.union(v.string(), v.null()),
+      legendAt: v.number(),
+      legendNote: v.union(v.string(), v.null()),
       currentPosts: v.number(),
-      currentEngagements: v.number(),
-      currentImpressions: v.number(),
       currentFollowers: v.number(),
     }),
     v.null(),
@@ -536,7 +566,7 @@ export const getRetired = query({
         q.eq("normalizedHandle", normalizedHandle),
       )
       .unique();
-    if (!profile || !profile.active || profile.retiredAt === undefined) {
+    if (!profile || !profile.active || profile.legendAt === undefined) {
       return null;
     }
     return {
@@ -544,11 +574,9 @@ export const getRetired = query({
       displayName: profile.displayName,
       bio: profile.bio,
       profileImageUrl: profile.profileImageUrl,
-      retiredAt: profile.retiredAt,
-      retiredNote: profile.retiredNote ?? null,
+      legendAt: profile.legendAt,
+      legendNote: profile.legendNote ?? null,
       currentPosts: profile.currentPosts,
-      currentEngagements: profile.currentEngagements,
-      currentImpressions: profile.currentImpressions,
       currentFollowers: profile.currentFollowers,
     };
   },

@@ -56,9 +56,9 @@ export const listPublicDirectory = internalQuery({
 
     let newestUpdatedAt: number | null = null;
     const people = profiles
-      // Retired champions are off every board, so they stay out of the
-      // discovery files too.
-      .filter((profile) => profile.retiredAt === undefined)
+      // Legends are off every board, so they stay out of the discovery
+      // files too.
+      .filter((profile) => profile.legendAt === undefined)
       .map((profile) => {
         if (newestUpdatedAt === null || profile.updatedAt > newestUpdatedAt) {
           newestUpdatedAt = profile.updatedAt;
@@ -89,7 +89,7 @@ export const listPublicDirectory = internalQuery({
       const members = [];
       for (const membership of memberships) {
         const profile = await ctx.db.get("profiles", membership.profileId);
-        if (profile && profile.active && profile.retiredAt === undefined) {
+        if (profile && profile.active && profile.legendAt === undefined) {
           members.push(profile);
         }
       }
