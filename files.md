@@ -30,6 +30,7 @@
 - `prds/admin-yapper-search.md` — Admin name and handle search on Friends on the board and each group member roster.
 - `prds/group-mute-and-retire-mode.md` — Per group mute below the ranking divider, plus the original retire mode for undefeated champions (since renamed to Legends).
 - `prds/legends-board-and-rename.md` — Retire mode renamed to Legends: the Legends pill, crown instead of ranks, legends findable by search on their group boards, two stats on the page, and the field backfill.
+- `prds/x-sync-failure-banner-and-stale-metrics.md` — Root cause of the Sep 2026 "Add the X API key" banner (X billing cycle spend cap), the honest board notice, stale metrics staying visible, and the sync short circuit.
 - `prds/hide-main-yappers-tab.md` — Fork toggle that hides the main Yappers pill so a fork can run custom group boards only, with first-pill fallback and a no-blank-board guard.
 - `agent-ready.config.json` — Agent Ready app settings and static page list used by `npx agent-ready sync`.
 - `llms.txt` — GitHub pointer to the live discovery files on the site origin.
@@ -107,9 +108,9 @@
 - `convex/siteFiles.ts` — Internal public-directory query and HTTP actions that serve the live discovery files from active profiles and visible groups, sorted in the board's canonical engagement rank so sitemap numbering matches the homepage.
 - `convex/authz.ts` — X identity lookup, stable-ID admin allowlist checks, and the non-throwing `isAdminViewer` helper for admin-aware public queries.
 - `convex/imports.ts` — Bulk handle and public X List validation and import actions.
-- `convex/profiles.ts` — Leaderboard (default, Convex mentions, legends, and group modes) returning a public projection that strips internal profile fields, stored Convex posts, membership, import, Legends (`setLegend` and the public `getLegend` page query), and protected admin functions including permanent profile removal with snapshot cleanup. `listForSync` pages every active profile in join order through a cursor, never by score.
-- `convex/xSync.ts` — X lookup, seven-day aggregation, the Convex mention scan, and sync actions. Counts original posts, quote posts, and replies (reposts stay out via `referenced_tweets`), drains the whole board in batches, and schedules a continuation action when a run nears the action deadline so boards past 100 people still refresh everyone.
-- `convex/xSyncParsing.ts` — Pure X post parsing: repost detection, engagement field sum, and the Convex mention haystack covering post text, long form note text, and expanded convex.dev links. No Convex imports so vitest tests it directly.
+- `convex/profiles.ts` — Leaderboard (default, Convex mentions, legends, and group modes) returning a public projection that strips internal profile fields, stored Convex posts, membership, import, Legends (`setLegend` and the public `getLegend` page query), and protected admin functions including permanent profile removal with snapshot cleanup. `listForSync` pages every active profile in join order through a cursor, never by score. `hasSyncedMetrics` and `compareYapperRows` keep rows whose latest sync failed ranked on their stored numbers, and the public `getSyncHealth` query feeds the board notice with aggregate sync counts plus the most common X error.
+- `convex/xSync.ts` — X lookup, seven-day aggregation, the Convex mention scan, and sync actions. Counts original posts, quote posts, and replies (reposts stay out via `referenced_tweets`), drains the whole board in batches, schedules a continuation action when a run nears the action deadline so boards past 100 people still refresh everyone, and halts the run at the first X spend cap error with `haltedReason` in the result.
+- `convex/xSyncParsing.ts` — Pure X post parsing: repost detection, engagement field sum, the Convex mention haystack covering post text, long form note text, and expanded convex.dev links, and `isSpendCapError` for X billing cap messages. No Convex imports so vitest tests it directly.
 - `convex/badges.ts` — Top 3 rank badge query and admin mutations with file storage uploads.
 - `convex/slack.ts` — Admin action posting the Convex yappers digest to Slack.
 - `convex/gifts.ts` — Gift campaigns, numbered repeat recipients, consent consumption, history, portal state with a hard 7 day link expiry cap, the hourly expiry job, events, redemption (with a Gift lab link fallback), saved Fourthwall product presets, recipient handle search, and campaign archive plus cascade delete.
@@ -135,9 +136,9 @@
 ## Tests
 
 - `vitest.config.ts` — Vitest setup: edge runtime environment for convex-test, tests kept in `tests/` outside the Convex bundler's reach.
-- `tests/xSyncParsing.test.ts` — Post classification, engagement field sum, and Convex mention matching fixtures (replies, long posts, expanded convex.dev links, no "convexity").
+- `tests/xSyncParsing.test.ts` — Post classification, engagement field sum, Convex mention matching fixtures (replies, long posts, expanded convex.dev links, no "convexity"), and the X spend cap message matcher.
 - `tests/profilesListForSync.test.ts` — convex-test paging checks: a board past 100 active profiles is visited exactly once per refresh, score blind, with archived rows excluded.
-- `tests/groups.test.ts` — Group leaderboard comparator order, group name slugs, and the Groups sections plus branding headers in the generated discovery files.
+- `tests/groups.test.ts` — Group leaderboard comparator order (including error rows with stored metrics staying ranked), group name slugs, and the Groups sections plus branding headers in the generated discovery files.
 - `tests/yapperSearch.test.ts` — Name and handle matcher: empty terms match everyone, a leading @ is stripped, misses return false.
 
 ## Build and hosting

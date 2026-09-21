@@ -2,8 +2,24 @@ import { describe, expect, test } from "vitest";
 import {
   buildConvexHaystack,
   isRepost,
+  isSpendCapError,
   parsePostPage,
 } from "../convex/xSyncParsing";
+
+describe("spend cap detection", () => {
+  test("matches the X billing cycle cap message", () => {
+    expect(isSpendCapError("Your monthly spend cap has been reached.")).toBe(true);
+    expect(isSpendCapError("UsageCapExceeded")).toBe(true);
+    expect(isSpendCapError("Usage cap exceeded: Monthly product cap")).toBe(true);
+  });
+
+  test("ignores per handle failures and empty messages", () => {
+    expect(isSpendCapError("X account not found.")).toBe(false);
+    expect(isSpendCapError("X API request failed (429).")).toBe(false);
+    expect(isSpendCapError(null)).toBe(false);
+    expect(isSpendCapError(undefined)).toBe(false);
+  });
+});
 
 // Minimal X API v2 post shape used by the sync.
 function makePost(overrides: Record<string, unknown> = {}) {

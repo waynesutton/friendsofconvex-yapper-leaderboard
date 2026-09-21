@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Fixed
+
+- The board no longer blames a missing X API key when X is the problem. In mid September production showed "Add the X API key" and "Awaiting X" on every row while `X_BEARER_TOKEN` was set: the X developer project had hit its billing cycle spend cap, every sync call came back "Your monthly spend cap has been reached.", and the board treated 184 error rows as 184 rows that had never synced. Three changes. Rows whose latest sync failed keep showing and ranking on their stored numbers, and only rows that have never synced read "Awaiting X". A new public `profiles.getSyncHealth` query lets the notice say what is really wrong: no key, X rejecting requests with the exact message, first sync not run yet, or stale numbers with the date they were last synced. The daily sync stops at the first spend cap error instead of making a doomed request per profile, and the admin Sync everyone feedback reports the halt reason. PRD: prds/x-sync-failure-banner-and-stale-metrics.md (2026-09-21).
+
 ### Added
 
 - A Legends pill on the board. It appears only once at least one person has been retired undefeated, and disappears again if nobody has. Nobody on that board carries a rank number: every row shows a crown, newest legend first, with an "Undefeated legend" link to their page. Legends still belong to their groups, so searching a group board turns them up under a "Legends, retired undefeated" divider even though they sit out of the ranking; clearing the search hides them again. PRD: prds/legends-board-and-rename.md (2026-09-01).

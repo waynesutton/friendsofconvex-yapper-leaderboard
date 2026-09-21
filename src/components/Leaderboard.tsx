@@ -57,6 +57,14 @@ type LeaderboardRow = FunctionReturnType<typeof api.profiles.listLeaderboard>[nu
 type RankBadge = FunctionReturnType<typeof api.badges.listRankBadges>[number];
 type PublicGroup = FunctionReturnType<typeof api.groups.listPublic>[number];
 
+// A row has numbers worth showing once any sync has succeeded. A later failed
+// sync (X spend cap, renamed handle) sets syncStatus to "error" but leaves the
+// stored metrics alone, so the board keeps showing them. Mirrors
+// hasSyncedMetrics in convex/profiles.ts.
+function hasMetrics(row: Pick<LeaderboardRow, "syncStatus" | "lastSyncedAt">): boolean {
+  return row.syncStatus === "synced" || row.lastSyncedAt !== null;
+}
+
 // Branding fallback while the settings query loads, so there is no flash of
 // missing text. Matches the server-side defaults exactly.
 const BRANDING_FALLBACK = {
@@ -258,6 +266,9 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
     mode: "legends",
   });
   const rankBadges = useQuery(api.badges.listRankBadges, {});
+  // Drives the board notice: missing key, X refusing requests, or first sync
+  // pending. Cheap aggregate, no per person data.
+  const syncHealth = useQuery(api.profiles.getSyncHealth, {});
   const display = useQuery(api.boardSettings.getBoardDisplay, {}) ?? ALL_VISIBLE;
   const groups = useQuery(api.groups.listPublic, {});
   const branding = useQuery(api.siteSettings.getSiteBranding, {}) ?? BRANDING_FALLBACK;
@@ -450,8 +461,8 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
       const isMetricSort = activeSortKey !== "rank" && activeSortKey !== "name";
 
       // People awaiting their first X sync stay after rows with real metrics.
-      if (isMetricSort && left.syncStatus !== right.syncStatus) {
-        return left.syncStatus === "synced" ? -1 : 1;
+      if (isMetricSort && hasMetrics(left) !== hasMetrics(right)) {
+        return hasMetrics(left) ? -1 : 1;
       }
 
       let comparison = 0;
@@ -492,7 +503,7 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
   // stepping by the filter size until the whole board is visible.
   const visibleProfiles = sortedProfiles.slice(0, visibleCount);
   const remainingCount = sortedProfiles.length - visibleProfiles.length;
-  const syncedProfiles = profiles?.filter((profile) => profile.syncStatus === "synced") ?? [];
+  const syncedProfiles = profiles?.filter(hasMetrics) ?? [];
   const latestSync = syncedProfiles.reduce<number | null>(
     (latest, profile) =>
       profile.lastSyncedAt !== null && (latest === null || profile.lastSyncedAt > latest)
@@ -504,7 +515,7 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
   // Convex mode help states.
   const hasUnscannedRows =
     convexMode &&
-    (convexProfiles ?? []).some((row) => row.syncStatus === "synced" && !row.convexScanned);
+    (convexProfiles ?? []).some((row) => hasMetrics(row) && !row.convexScanned);
   const impressionsFallback =
     convexMode &&
     (convexProfiles ?? []).some((row) => (row.convexPostCount ?? 0) > 0) &&
@@ -753,12 +764,24 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
           </div>
         </div>
 
-        {profiles && profiles.length > 0 && syncedProfiles.length === 0 ? (
-          <div className="data-notice" role="status">
-            <span className="notice-mark" aria-hidden="true" />
-            Handles are live in Convex. Add the X API key to replace “Awaiting X” with real
-            seven-day metrics.
-          </div>
+        {/* Board notice, only when something is off. Branches on the real
+            cause so an X outage never reads as a missing key. */}
+        {profiles && profiles.length > 0 && syncHealth ? (
+          syncedProfiles.length === 0 ? (
+            <div className="data-notice" role="status">
+              <span className="notice-mark" aria-hidden="true" />
+              {!syncHealth.xApiConfigured
+                ? "Handles are live in Convex. Add X_BEARER_TOKEN to the Convex deployment to replace “Awaiting X” with real seven day metrics."
+                : syncHealth.lastError
+                  ? `X is rejecting sync requests: ${syncHealth.lastError} Metrics fill in once X accepts requests again.`
+                  : "Handles are live in Convex. The first X sync has not run yet; metrics arrive after the daily refresh or an admin sync."}
+            </div>
+          ) : syncHealth.syncedCount === 0 && syncHealth.lastError ? (
+            <div className="data-notice" role="status">
+              <span className="notice-mark" aria-hidden="true" />
+              {`Showing the last synced numbers from ${formatSyncTime(latestSync)}. The latest X sync failed: ${syncHealth.lastError}`}
+            </div>
+          ) : null
         ) : null}
 
         {hasUnscannedRows ? (
@@ -957,7 +980,7 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
                             className="metric-cell convex-posts-cell"
                             role="cell"
                             data-label="Convex posts (7d)">
-                            {profile.syncStatus !== "synced" ? (
+                            {!hasMetrics(profile) ? (
                               "—"
                             ) : profile.convexScanned ? (
                               <span
@@ -983,28 +1006,28 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
                         ) : null}
                         {convexColumns.shareOfPosts ? (
                           <span className="metric-cell" role="cell" data-label="Share of posts">
-                            {profile.syncStatus === "synced" && profile.convexScanned
+                            {hasMetrics(profile) && profile.convexScanned
                               ? `${compactNumber(profile.convexPostCount ?? 0)} of ${compactNumber(profile.currentPosts)}`
                               : "—"}
                           </span>
                         ) : null}
                         {convexColumns.convexImpressions ? (
                           <span className="metric-cell" role="cell" data-label="Convex impressions">
-                            {profile.syncStatus === "synced" && profile.convexScanned
+                            {hasMetrics(profile) && profile.convexScanned
                               ? compactNumber(profile.convexImpressions ?? 0)
                               : "—"}
                           </span>
                         ) : null}
                         {convexColumns.convexEngagements ? (
                           <span className="metric-cell" role="cell" data-label="Convex engagement">
-                            {profile.syncStatus === "synced" && profile.convexScanned
+                            {hasMetrics(profile) && profile.convexScanned
                               ? compactNumber(profile.convexEngagements ?? 0)
                               : "—"}
                           </span>
                         ) : null}
                         {convexColumns.weeklyChange ? (
                           <span className="metric-cell" role="cell" data-label="Weekly change">
-                            {profile.syncStatus === "synced" ? formatWeeklyChange(profile) : "—"}
+                            {hasMetrics(profile) ? formatWeeklyChange(profile) : "—"}
                           </span>
                         ) : null}
                       </>
@@ -1012,7 +1035,7 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
                       <>
                         {yappersColumns.posts ? (
                           <span className="metric-cell posts-cell" role="cell" data-label="Posts">
-                            {profile.syncStatus === "synced"
+                            {hasMetrics(profile)
                               ? compactNumber(profile.currentPosts)
                               : "—"}
                           </span>
@@ -1022,7 +1045,7 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
                             className="metric-cell engagement-cell"
                             role="cell"
                             data-label="Engagements">
-                            {profile.syncStatus === "synced"
+                            {hasMetrics(profile)
                               ? compactNumber(profile.currentEngagements)
                               : "—"}
                           </span>
@@ -1032,7 +1055,7 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
                             className="metric-cell impression-cell"
                             role="cell"
                             data-label="Impressions (7D)">
-                            {profile.syncStatus === "synced"
+                            {hasMetrics(profile)
                               ? compactNumber(profile.currentImpressions)
                               : "Awaiting X"}
                           </span>

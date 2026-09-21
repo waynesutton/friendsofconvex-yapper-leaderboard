@@ -25,6 +25,7 @@ type PeekProfile = {
   bio: string | null;
   currentFollowers: number;
   syncStatus: "pending" | "synced" | "error";
+  lastSyncedAt: number | null;
 };
 
 // Splits a bio into text, @mention links, and raw URL links. Mentions go to
@@ -206,7 +207,9 @@ export function ProfilePeek({
           </p>
           {profile.bio ? <p className="profile-peek-bio">{bioNodes(profile.bio)}</p> : null}
           <p className="profile-peek-footer">
-            {profile.syncStatus === "synced" ? (
+            {/* Any past sync leaves a real follower count; only never synced
+                rows wait. Matches hasMetrics on the board. */}
+            {profile.syncStatus === "synced" || profile.lastSyncedAt !== null ? (
               <span className="profile-peek-followers">
                 {compactNumber(profile.currentFollowers)} followers
               </span>

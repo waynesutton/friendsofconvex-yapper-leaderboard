@@ -116,13 +116,23 @@ function toPublicLeaderboardRow(
   };
 }
 
-// Canonical Yappers ordering: synced rows first, then engagements with
+// A row has real numbers to show once any sync has succeeded. A later failed
+// sync flips syncStatus to "error" but leaves the stored metrics in place, so
+// the board keeps ranking and showing them instead of dropping to "Awaiting X".
+export function hasSyncedMetrics(
+  row: Pick<Doc<"profiles">, "syncStatus" | "lastSyncedAt">,
+): boolean {
+  return row.syncStatus === "synced" || row.lastSyncedAt !== null;
+}
+
+// Canonical Yappers ordering: rows with metrics first, then engagements with
 // impressions, posts, and join date as tie breakers. Shared by the default
 // board, group boards, and the discovery files so rankings always match.
 export function compareYapperRows(
   left: Pick<
     Doc<"profiles">,
     | "syncStatus"
+    | "lastSyncedAt"
     | "currentEngagements"
     | "currentImpressions"
     | "currentPosts"
@@ -131,14 +141,15 @@ export function compareYapperRows(
   right: Pick<
     Doc<"profiles">,
     | "syncStatus"
+    | "lastSyncedAt"
     | "currentEngagements"
     | "currentImpressions"
     | "currentPosts"
     | "addedAt"
   >,
 ): number {
-  const leftGroup = left.syncStatus === "synced" ? 0 : 1;
-  const rightGroup = right.syncStatus === "synced" ? 0 : 1;
+  const leftGroup = hasSyncedMetrics(left) ? 0 : 1;
+  const rightGroup = hasSyncedMetrics(right) ? 0 : 1;
   return (
     leftGroup - rightGroup ||
     right.currentEngagements - left.currentEngagements ||
@@ -416,6 +427,63 @@ export const getSetupStatus = query({
       ),
       adminAllowlistConfigured: Boolean(process.env.ADMIN_X_USER_IDS),
       adminMode: "convex-auth" as const,
+    };
+  },
+});
+
+// Public board health so the banner can say what is really wrong: no key,
+// X rejecting requests (spend cap, bad token), or the first sync not run yet.
+// Only aggregate counts plus the most common X API error message leave the
+// deployment; no per person syncError, handle, or identity data.
+export const getSyncHealth = query({
+  args: {},
+  returns: v.object({
+    xApiConfigured: v.boolean(),
+    activeCount: v.number(),
+    syncedCount: v.number(),
+    failedCount: v.number(),
+    neverSyncedCount: v.number(),
+    lastError: v.union(v.string(), v.null()),
+  }),
+  handler: async (ctx) => {
+    const profiles = await ctx.db
+      .query("profiles")
+      .withIndex("by_active_and_current_impressions", (q) =>
+        q.eq("active", true),
+      )
+      .take(250);
+    let syncedCount = 0;
+    let failedCount = 0;
+    let neverSyncedCount = 0;
+    const errorCounts: Record<string, number> = {};
+    for (const profile of profiles) {
+      if (profile.syncStatus === "synced") syncedCount += 1;
+      if (profile.syncStatus === "error") {
+        failedCount += 1;
+        if (profile.syncError) {
+          errorCounts[profile.syncError] =
+            (errorCounts[profile.syncError] ?? 0) + 1;
+        }
+      }
+      if (profile.lastSyncedAt === null) neverSyncedCount += 1;
+    }
+    // The message most rows share is the one worth surfacing; a single
+    // renamed handle should not become the board wide headline.
+    let lastError: string | null = null;
+    let lastErrorCount = 0;
+    for (const [message, count] of Object.entries(errorCounts)) {
+      if (count > lastErrorCount) {
+        lastError = message;
+        lastErrorCount = count;
+      }
+    }
+    return {
+      xApiConfigured: Boolean(process.env.X_BEARER_TOKEN),
+      activeCount: profiles.length,
+      syncedCount,
+      failedCount,
+      neverSyncedCount,
+      lastError,
     };
   },
 });

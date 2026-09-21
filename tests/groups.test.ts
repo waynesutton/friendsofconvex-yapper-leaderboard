@@ -13,6 +13,7 @@ import {
 function makeRow(overrides: Partial<Parameters<typeof compareYapperRows>[0]> = {}) {
   return {
     syncStatus: "synced" as const,
+    lastSyncedAt: 1_000 as number | null,
     currentEngagements: 0,
     currentImpressions: 0,
     currentPosts: 0,
@@ -32,13 +33,30 @@ describe("group leaderboard ordering", () => {
     expect(rows.map((row) => row.currentEngagements)).toEqual([500, 90, 10]);
   });
 
-  test("unsynced rows sort after synced rows regardless of metrics", () => {
+  test("never synced rows sort after rows with metrics regardless of numbers", () => {
     const pending = makeRow({
       syncStatus: "pending" as never,
+      lastSyncedAt: null,
       currentEngagements: 9999,
     });
     const synced = makeRow({ currentEngagements: 1 });
     expect([pending, synced].sort(compareYapperRows)[0]).toBe(synced);
+  });
+
+  test("a row whose latest sync failed keeps ranking on its stored metrics", () => {
+    // X spend cap day: status flips to error but the numbers are still real.
+    const staleButReal = makeRow({
+      syncStatus: "error" as never,
+      currentEngagements: 500,
+    });
+    const fresh = makeRow({ currentEngagements: 10 });
+    const neverSynced = makeRow({
+      syncStatus: "error" as never,
+      lastSyncedAt: null,
+      currentEngagements: 9999,
+    });
+    const sorted = [neverSynced, fresh, staleButReal].sort(compareYapperRows);
+    expect(sorted).toEqual([staleButReal, fresh, neverSynced]);
   });
 
   test("impressions, posts, then join date break engagement ties", () => {

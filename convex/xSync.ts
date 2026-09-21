@@ -10,6 +10,7 @@ import {
 import { syncResultValidator } from "./validators";
 import {
   isRecord,
+  isSpendCapError,
   numberOrZero,
   parsePostPage,
   stringOrNull,
@@ -271,15 +272,25 @@ type SyncPage = {
   isDone: boolean;
 };
 
+type SyncBatchOutcome = {
+  nextCursor: string | null;
+  // Set when the run stopped early because X is refusing every request
+  // (billing cycle spend cap). Profiles not yet reached keep their previous
+  // status and metrics, so the board shows the last good numbers.
+  haltedReason: string | null;
+};
+
 // Drains listForSync pages from the given cursor. Sequential requests keep
 // the integration comfortably below X rate limits. Stops early when the
 // action deadline nears so the caller can schedule a continuation instead of
 // timing out; every active profile still gets exactly one attempt per run.
+// Also stops at the first spend cap error, since every later call would fail
+// the same way and each one still costs a request.
 async function syncBatchesFrom(
   ctx: ActionCtx,
   startCursor: string | null,
   totals: RefreshTotals,
-): Promise<{ nextCursor: string | null }> {
+): Promise<SyncBatchOutcome> {
   const startedAt = Date.now();
   let cursor: string | null = startCursor;
   for (;;) {
@@ -292,11 +303,17 @@ async function syncBatchesFrom(
       totals.processed += 1;
       if (result.status === "synced") totals.synced += 1;
       else totals.failed += 1;
+      if (result.status === "error" && isSpendCapError(result.message)) {
+        console.warn(
+          `X sync halted at @${target.handle}: ${result.message} Remaining profiles keep their last synced metrics.`,
+        );
+        return { nextCursor: null, haltedReason: result.message };
+      }
     }
-    if (page.isDone) return { nextCursor: null };
+    if (page.isDone) return { nextCursor: null, haltedReason: null };
     cursor = page.continueCursor;
     if (Date.now() - startedAt > SYNC_DEADLINE_MS) {
-      return { nextCursor: cursor };
+      return { nextCursor: cursor, haltedReason: null };
     }
   }
 }
@@ -307,6 +324,7 @@ async function syncAllProfiles(ctx: ActionCtx): Promise<{
   failed: number;
   missingKey: boolean;
   remainderScheduled: boolean;
+  haltedReason: string | null;
 }> {
   if (!process.env.X_BEARER_TOKEN) {
     return {
@@ -315,11 +333,12 @@ async function syncAllProfiles(ctx: ActionCtx): Promise<{
       failed: 0,
       missingKey: true,
       remainderScheduled: false,
+      haltedReason: null,
     };
   }
 
   const totals: RefreshTotals = { processed: 0, synced: 0, failed: 0 };
-  const { nextCursor } = await syncBatchesFrom(ctx, null, totals);
+  const { nextCursor, haltedReason } = await syncBatchesFrom(ctx, null, totals);
   if (nextCursor !== null) {
     await ctx.scheduler.runAfter(0, internal.xSync.refreshAllContinuation, {
       cursor: nextCursor,
@@ -331,6 +350,7 @@ async function syncAllProfiles(ctx: ActionCtx): Promise<{
     ...totals,
     missingKey: false,
     remainderScheduled: nextCursor !== null,
+    haltedReason,
   };
 }
 
@@ -362,6 +382,7 @@ const refreshAllResultValidator = v.object({
   failed: v.number(),
   missingKey: v.boolean(),
   remainderScheduled: v.boolean(),
+  haltedReason: v.union(v.string(), v.null()),
 });
 
 export const refreshAll = action({
@@ -396,7 +417,17 @@ export const refreshAllContinuation = internalAction({
       synced: args.synced,
       failed: args.failed,
     };
-    const { nextCursor } = await syncBatchesFrom(ctx, args.cursor, totals);
+    const { nextCursor, haltedReason } = await syncBatchesFrom(
+      ctx,
+      args.cursor,
+      totals,
+    );
+    if (haltedReason !== null) {
+      console.log(
+        `refreshAll halted: ${haltedReason} ${totals.synced} synced, ${totals.failed} failed, ${totals.processed} processed.`,
+      );
+      return null;
+    }
     if (nextCursor !== null) {
       await ctx.scheduler.runAfter(0, internal.xSync.refreshAllContinuation, {
         cursor: nextCursor,

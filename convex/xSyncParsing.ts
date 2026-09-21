@@ -29,6 +29,17 @@ export function numberOrZero(value: unknown): number {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
 
+// X blocks every request once the developer project's billing cycle cap is
+// reached ("Your monthly spend cap has been reached."), no matter how much
+// prepaid credit is loaded. One such error means the whole run will fail the
+// same way, so the sync stops instead of burning a call per profile. Matches
+// the current wording plus the older UsageCapExceeded title.
+export const SPEND_CAP_PATTERN = /spend cap|usage cap|UsageCapExceeded/i;
+
+export function isSpendCapError(message: string | null | undefined): boolean {
+  return typeof message === "string" && SPEND_CAP_PATTERN.test(message);
+}
+
 // Only reposts are dropped from the board. Replies count as posts, matching
 // the posts number people see in their own X analytics. X's
 // `exclude=retweets` query parameter is not trusted alone because `exclude`
