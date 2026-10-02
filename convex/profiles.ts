@@ -866,7 +866,7 @@ export type PreparedImportPerson = {
 export async function upsertImportedProfile(
   ctx: MutationCtx,
   person: PreparedImportPerson,
-  source: "bulk" | "x-list",
+  source: "bulk" | "x-list" | "mention-queue",
 ): Promise<{ profileId: Id<"profiles">; created: boolean }> {
   const normalizedHandle = normalizeHandle(person.handle);
   const byId = await ctx.db

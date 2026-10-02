@@ -42,6 +42,7 @@ export const profileValidator = v.object({
       v.literal("bulk"),
       v.literal("x-list"),
       v.literal("self-join"),
+      v.literal("mention-queue"),
     ),
   ),
   authUserId: v.optional(v.id("users")),

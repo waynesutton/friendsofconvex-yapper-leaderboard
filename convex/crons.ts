@@ -25,4 +25,24 @@ crons.interval(
   {},
 );
 
+// Hourly check for the admin mention queue. Cron schedules are fixed in code,
+// so the admin chosen interval (1, 4, or 6 hours, default 6) and the on/off
+// switch live in mentionScanState. Runs that are off or not due return before
+// any X request. since_id keeps each real scan to posts since the last one.
+crons.cron(
+  "scan @convex mentions",
+  "41 * * * *",
+  internal.mentionQueue.scanScheduled,
+  {},
+);
+
+// Drop mention queue people whose mentions aged out of the 30 day window,
+// then prune stored mention posts past 35 days.
+crons.cron(
+  "recount mention queue window",
+  "23 11 * * *",
+  internal.mentionQueue.recountWindow,
+  { cursor: null },
+);
+
 export default crons;

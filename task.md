@@ -4,6 +4,20 @@
 
 - [ ] Deploy the Legends rename to production, then run the backfill, in that order. `npx convex run migrations:backfillLegendFields --prod` fails today with "Could not find function for 'migrations:backfillLegendFields'" because production still runs the pre-rename code: its function list shows `profiles:getRetired` and `profiles:setRetired` and no `migrations:*`. Run `npx convex deploy` first, then the backfill. Still a no-op unless somebody is retired on production between now and the deploy.
 
+- [ ] Deploy the mention queue to production (`npx convex deploy`, then `npm run deploy -- --skip-convex`). Scans default to on every 6 hours, so production starts reading X once deployed; uncheck Scan X for new mentions on `/admin/queue` to pause it.
+- [ ] Signed in check of `/admin/queue`: Add to board, Dismiss, Restore, Load more, and the Automatic scans controls need an admin X session.
+
+## Completed — 2026-10-02 07:18 UTC (mention queue scan settings)
+
+- [x] Admin on/off switch and 1, 4, or 6 hour schedule (default 6) for the mention scan, saved as optional `enabled` and `intervalHours` on `mentionScanState`. The cron checks hourly at minute 41 and `isScanDue` skips before any X call when off or not due. Scan now is blocked while off. New `setScanSettings` mutation; `getScanStatus` returns the settings. Automatic scans panel and next scan time on `/admin/queue`. PRD: prds/mention-queue-scan-settings.md. `convex/schema.ts`, `convex/mentionQueue.ts`, `convex/crons.ts`, `src/components/MentionQueuePanel.tsx`, `src/globals.css`, `src/pages/AdminDocsPage.tsx`.
+- [x] Verified with `npx convex dev --once`, `npx tsc --noEmit`, `npx vitest run` (43 tests, 3 new), eslint on touched files, and `npm run build`.
+
+## Completed — 2026-10-02 07:05 UTC (@convex mention queue)
+
+- [x] New admin page `/admin/queue` (Mention queue in the admin nav): people who mentioned @convex at least twice in the last 30 days and are not on the board, newest mention first, 30 per page with Load more, links to their last two mentions, Add to board, Dismiss, Restore, and Queued / Dismissed / Added tabs. PRD: prds/mention-queue.md. `src/components/MentionQueuePanel.tsx`, `src/pages/AdminQueuePage.tsx`, `src/App.tsx`, `src/components/SiteHeader.tsx`, `src/globals.css`.
+- [x] Backend: `mentionPosts`, `mentionCandidates`, and `mentionScanState` tables plus a `mention-queue` profile source. `convex/mentionQueue.ts` scans the X mentions timeline with `since_id`, records deduped posts, keeps a 30 day count and status per author, recounts and prunes daily, and adds people through `upsertImportedProfile`. `xSync.refreshOneInternal` syncs the new profile right away. Scan every 6 hours at minute 41 (moved from hourly at 07:10 UTC) and daily recount at 11:23 UTC in `convex/crons.ts`. `convex/schema.ts`, `convex/validators.ts`, `convex/profiles.ts`, `convex/imports.ts`, `convex/xSync.ts`.
+- [x] Verified with `npx convex dev --once`, `npx tsc --noEmit`, `npx vitest run` (40 tests, 8 new in `tests/mentionQueue.test.ts`), eslint on touched files (only the pre-existing `SiteHeader.tsx` set-state-in-effect error), and `npm run build`. A live dev scan read 792 mentions over 8 pages (X's 800 cap, Sep 21 to Oct 2) and queued 109 people out of 457 authors.
+
 ## Completed — 2026-09-21 04:45 UTC (X sync failures shown honestly)
 
 - [x] Diagnosed the production "Add the X API key" banner: `X_BEARER_TOKEN` was set, but all 184 active profiles carried `syncError: "Your monthly spend cap has been reached."` from the Aug 17 to Sep 17 X billing cycle. The cycle reset on Sep 17 and the cron recovered (181 synced on Sep 21). Verified with `npx convex env list --prod` and `npx convex data profiles --prod`. PRD: prds/x-sync-failure-banner-and-stale-metrics.md.

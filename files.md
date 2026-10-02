@@ -31,6 +31,8 @@
 - `prds/group-mute-and-retire-mode.md` — Per group mute below the ranking divider, plus the original retire mode for undefeated champions (since renamed to Legends).
 - `prds/legends-board-and-rename.md` — Retire mode renamed to Legends: the Legends pill, crown instead of ranks, legends findable by search on their group boards, two stats on the page, and the field backfill.
 - `prds/x-sync-failure-banner-and-stale-metrics.md` — Root cause of the Sep 2026 "Add the X API key" banner (X billing cycle spend cap), the honest board notice, stale metrics staying visible, and the sync short circuit.
+- `prds/mention-queue.md` — @convex mention queue: X mentions timeline scan, 30 day rolling count, admin queue with Load more, Add to board, and Dismiss.
+- `prds/mention-queue-scan-settings.md` — Admin on/off switch and 1, 4, or 6 hour schedule for the mention scan, gated by an hourly cron.
 - `prds/hide-main-yappers-tab.md` — Fork toggle that hides the main Yappers pill so a fork can run custom group boards only, with first-pill fallback and a no-blank-board guard.
 - `agent-ready.config.json` — Agent Ready app settings and static page list used by `npx agent-ready sync`.
 - `llms.txt` — GitHub pointer to the live discovery files on the site origin.
@@ -59,6 +61,8 @@
 - `src/pages/HomePage.tsx` — Public leaderboard route.
 - `src/pages/AdminPage.tsx` — Convex Auth protected admin route.
 - `src/pages/AdminGroupsPage.tsx` — Admin-only custom groups route.
+- `src/pages/AdminQueuePage.tsx` — Admin-only @convex mention queue route at `/admin/queue`.
+- `src/components/MentionQueuePanel.tsx` — Mention queue body: scan status, next scan time, and Scan now, an Automatic scans panel (on/off and every 1, 4, or 6 hours), Queued / Dismissed / Added tabs, rows with avatar, mention count, and the last two mention links, Add to board, Dismiss, Restore, and a 30 per page Load more footer.
 - `src/pages/AdminSettingsPage.tsx` — Admin-only site branding settings route.
 - `src/pages/JoinPage.tsx` — Public X sign-in and join-request route.
 - `src/pages/AboutPage.tsx` — Methodology with the exact measurement rules (what counts as a post, the engagement and impression formulas), the daily 8:17 AM Pacific refresh, and a link to Convex cron jobs.
@@ -107,7 +111,8 @@
 - `convex/siteDirectory.ts` — Pure builders for live `llms.txt`, `sitemap.md`, `sitemap.xml`, and `robots.txt`, branded from site settings with a Groups section when groups exist.
 - `convex/siteFiles.ts` — Internal public-directory query and HTTP actions that serve the live discovery files from active profiles and visible groups, sorted in the board's canonical engagement rank so sitemap numbering matches the homepage.
 - `convex/authz.ts` — X identity lookup, stable-ID admin allowlist checks, and the non-throwing `isAdminViewer` helper for admin-aware public queries.
-- `convex/imports.ts` — Bulk handle and public X List validation and import actions.
+- `convex/imports.ts` — Bulk handle and public X List validation and import actions; exports `requestX` and `parseXUser` for other X readers.
+- `convex/mentionQueue.ts` — @convex mention queue: X mentions timeline scan with `since_id`, pure `parseMentionPage`, deduped post recording, 30 day rolling counts and statuses, daily recount and prune, scan settings with the pure `isScanDue` gate and `setScanSettings`, admin paginated `listQueue`, `getScanStatus`, `addToBoard`, `dismiss`, and `restore`.
 - `convex/profiles.ts` — Leaderboard (default, Convex mentions, legends, and group modes) returning a public projection that strips internal profile fields, stored Convex posts, membership, import, Legends (`setLegend` and the public `getLegend` page query), and protected admin functions including permanent profile removal with snapshot cleanup. `listForSync` pages every active profile in join order through a cursor, never by score. `hasSyncedMetrics` and `compareYapperRows` keep rows whose latest sync failed ranked on their stored numbers, and the public `getSyncHealth` query feeds the board notice with aggregate sync counts plus the most common X error.
 - `convex/xSync.ts` — X lookup, seven-day aggregation, the Convex mention scan, and sync actions. Counts original posts, quote posts, and replies (reposts stay out via `referenced_tweets`), drains the whole board in batches, schedules a continuation action when a run nears the action deadline so boards past 100 people still refresh everyone, and halts the run at the first X spend cap error with `haltedReason` in the result.
 - `convex/xSyncParsing.ts` — Pure X post parsing: repost detection, engagement field sum, the Convex mention haystack covering post text, long form note text, and expanded convex.dev links, and `isSpendCapError` for X billing cap messages. No Convex imports so vitest tests it directly.
@@ -125,7 +130,7 @@
 - `convex/xAccountActivityWebhooks.ts` — X CRC response, raw-body signature verification, and event dispatch.
 - `convex/xAccountActivity.ts` — Idempotent X event storage and global GIFT or STOP state.
 - `convex/xAccountActivityActions.ts` — Admin webhook registration and OAuth 1.0a sender subscription.
-- `convex/crons.ts` — Daily X metrics refresh at 15:17 UTC (8:17 AM Pacific during PDT) and an hourly job that closes gift dispatches whose links passed the 7 day cap.
+- `convex/crons.ts` — Daily X metrics refresh at 15:17 UTC (8:17 AM Pacific during PDT), an hourly job that closes gift dispatches whose links passed the 7 day cap, an hourly @convex mention scan check at minute 41 that only reads X when the admin setting (on or off, every 1, 4, or 6 hours) says a scan is due, and a daily mention queue recount at 11:23 UTC.
 - `convex/validators.ts` — Shared return validators, including the public leaderboard projection that keeps internal profile fields server side.
 - `convex/convex.config.ts` — Convex app definition mounting Agent Ready and the static hosting component.
 - `scripts/generate-auth-keys.mjs` — Local utility for creating Convex Auth JWT key pairs.
@@ -139,6 +144,7 @@
 - `tests/xSyncParsing.test.ts` — Post classification, engagement field sum, Convex mention matching fixtures (replies, long posts, expanded convex.dev links, no "convexity"), and the X spend cap message matcher.
 - `tests/profilesListForSync.test.ts` — convex-test paging checks: a board past 100 active profiles is visited exactly once per refresh, score blind, with archived rows excluded.
 - `tests/groups.test.ts` — Group leaderboard comparator order (including error rows with stored metrics staying ranked), group name slugs, and the Groups sections plus branding headers in the generated discovery files.
+- `tests/mentionQueue.test.ts` — convex-test checks for the mention queue: two mentions queue and one watches, duplicate posts ignored, board members go straight to added, the daily recount demotes aged out mentions, Add to board is idempotent, the queue pages past 30 newest first, admin only access, and mention page parsing.
 - `tests/yapperSearch.test.ts` — Name and handle matcher: empty terms match everyone, a leading @ is stripped, misses return false.
 
 ## Build and hosting

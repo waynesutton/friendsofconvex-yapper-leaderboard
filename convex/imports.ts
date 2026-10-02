@@ -27,7 +27,7 @@ type ImportEntry = {
   message: string | null;
 };
 
-type XUser = {
+export type XUser = {
   id: string;
   username: string;
   name: string;
@@ -60,7 +60,7 @@ function xError(payload: unknown, fallback: string): string {
   return fallback;
 }
 
-async function requestX(url: URL, token: string): Promise<unknown> {
+export async function requestX(url: URL, token: string): Promise<unknown> {
   const response = await fetch(url, {
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -71,7 +71,7 @@ async function requestX(url: URL, token: string): Promise<unknown> {
   return payload;
 }
 
-function parseXUser(value: unknown): XUser | null {
+export function parseXUser(value: unknown): XUser | null {
   if (!isRecord(value)) return null;
   if (
     typeof value.id !== "string" ||

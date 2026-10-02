@@ -376,6 +376,21 @@ export const refreshOne = action({
   },
 });
 
+// Backend-only single profile sync, scheduled after the mention queue adds
+// someone so their metrics fill in without waiting for the daily cron.
+export const refreshOneInternal = internalAction({
+  args: { profileId: v.id("profiles") },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const target: SyncTarget | null = await ctx.runQuery(
+      internal.profiles.getForSync,
+      { profileId: args.profileId },
+    );
+    if (target) await syncProfile(ctx, target);
+    return null;
+  },
+});
+
 const refreshAllResultValidator = v.object({
   processed: v.number(),
   synced: v.number(),

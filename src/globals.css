@@ -2200,10 +2200,28 @@ html[data-theme="convex"] .metric-info-trigger[aria-expanded="true"] {
   cursor: pointer;
 }
 
-.board-column-settings input[type="checkbox"] {
+.board-column-settings input[type="checkbox"],
+.board-column-settings input[type="radio"] {
   width: 16px;
   height: 16px;
   accent-color: var(--signal-coral);
+}
+
+/* Mention queue scan settings sit between the intro and the queue tabs. */
+.queue-settings {
+  margin: 0 0 20px;
+}
+
+.queue-settings fieldset:disabled label {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.queue-settings-hint {
+  clear: both;
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--caption-ink);
 }
 
 /* Custom groups admin: one expandable card per group. */
@@ -6007,4 +6025,99 @@ html[data-theme="convex"] .access-state h1 {
   height: 14px;
   color: var(--signal-coral-dark);
   flex-shrink: 0;
+}
+
+/* Mention queue (/admin/queue): avatar, mention count, and the last two
+   mention post links on each admin row. */
+.queue-avatar {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--control-inset);
+  border: 1px solid var(--line-standard);
+}
+
+.queue-avatar-fallback {
+  display: inline-grid;
+  place-items: center;
+  color: var(--caption-ink);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.queue-row .admin-identity > span {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.queue-count {
+  display: inline-block;
+  min-width: 22px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--signal-coral);
+  color: #fff;
+  text-align: center;
+}
+
+.queue-posts {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.queue-posts a {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--caption-ink);
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.queue-posts a:hover .queue-post-text,
+.queue-posts a:focus-visible .queue-post-text {
+  color: var(--broadcast-ink);
+  text-decoration: underline;
+  text-decoration-color: var(--signal-coral);
+}
+
+.queue-posts svg {
+  flex: 0 0 auto;
+  width: 13px;
+  height: 13px;
+}
+
+.queue-post-date {
+  flex: 0 0 auto;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11px;
+}
+
+.queue-post-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.queue-added-note {
+  color: var(--caption-ink);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.queue-history-note {
+  margin: 0 0 12px;
 }

@@ -55,6 +55,35 @@ export function AdminDocsPage() {
           <section>
             <span className="method-number">02</span>
             <div>
+              <h2>Mention queue</h2>
+              <p>
+                <Link className="text-link" to="/admin/queue">/admin/queue</Link>{" "}
+                lists people who mentioned @convex on X at least twice in the
+                last 30 days and are not on the board yet, newest mention
+                first. It shows 30 people at a time with Load more. Each row
+                links to their two latest mentions so you can read them before
+                deciding. Add to board puts them on the main Yappers board and
+                syncs their metrics right away. Dismiss hides them from the
+                queue for good, and the Dismissed tab has Restore.
+              </p>
+              <p>
+                Automatic scans run every 6 hours by default. Pick every hour or
+                every 4 hours under Scan every, or uncheck Scan X for new
+                mentions to stop every X read for the queue; the queue and its
+                actions keep working while it is off. Each scan only reads posts
+                written since the last one, and Scan now runs one on demand. X only returns the 800
+                most recent mentions, so on a fresh deployment the first scan
+                may cover less than 30 days; counts fill in as later scans
+                build history. A daily job drops people whose mentions aged out
+                of the window. Set <code>MENTION_TARGET_HANDLE</code> in Convex
+                to track a different account on a fork.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <span className="method-number">03</span>
+            <div>
               <h2>Groups</h2>
               <p>
                 <Link className="text-link" to="/admin/groups">/admin/groups</Link>{" "}
@@ -97,7 +126,7 @@ export function AdminDocsPage() {
           </section>
 
           <section>
-            <span className="method-number">03</span>
+            <span className="method-number">04</span>
             <div>
               <h2>Public vs internal groups</h2>
               <p>
@@ -115,7 +144,7 @@ export function AdminDocsPage() {
           </section>
 
           <section>
-            <span className="method-number">04</span>
+            <span className="method-number">05</span>
             <div>
               <h2>Legends</h2>
               <p>
@@ -157,7 +186,7 @@ export function AdminDocsPage() {
           </section>
 
           <section>
-            <span className="method-number">05</span>
+            <span className="method-number">06</span>
             <div>
               <h2>Site settings</h2>
               <p>
@@ -174,7 +203,7 @@ export function AdminDocsPage() {
           </section>
 
           <section>
-            <span className="method-number">06</span>
+            <span className="method-number">07</span>
             <div>
               <h2>Gift studio</h2>
               <p>
@@ -191,7 +220,7 @@ export function AdminDocsPage() {
           </section>
 
           <section>
-            <span className="method-number">07</span>
+            <span className="method-number">08</span>
             <div>
               <h2>Revoking access</h2>
               <p>

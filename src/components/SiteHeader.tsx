@@ -11,6 +11,7 @@ import { ThemeSwitcher } from "./ThemeSwitcher";
 const ADMIN_LINKS = [
   { to: "/admin", label: "Board ops" },
   { to: "/admin/groups", label: "Groups" },
+  { to: "/admin/queue", label: "Mention queue" },
   { to: "/admin/gifts", label: "Gift studio" },
   { to: "/admin/gift-lab", label: "Gift lab" },
   { to: "/admin/gifts/guide", label: "Gifts guide" },

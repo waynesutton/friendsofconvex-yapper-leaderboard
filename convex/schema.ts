@@ -107,6 +107,7 @@ export default defineSchema({
         v.literal("bulk"),
         v.literal("x-list"),
         v.literal("self-join"),
+        v.literal("mention-queue"),
       ),
     ),
     authUserId: v.optional(v.id("users")),
@@ -155,6 +156,61 @@ export default defineSchema({
   })
     .index("by_profile_id", ["profileId"])
     .index("by_profile_id_and_window_end", ["profileId", "windowEnd"]),
+
+  // Posts that mention the @convex X account, read from the X mentions
+  // timeline. Feeds the admin mention queue; pruned after 35 days.
+  mentionPosts: defineTable({
+    postId: v.string(),
+    authorXUserId: v.string(),
+    text: v.string(),
+    url: v.string(),
+    postedAt: v.number(),
+  })
+    .index("by_post_id", ["postId"])
+    .index("by_author_x_user_id_and_posted_at", ["authorXUserId", "postedAt"])
+    .index("by_posted_at", ["postedAt"]),
+
+  // One row per person who mentioned @convex. Only `queued` rows (2 or more
+  // mentions in the last 30 days, not on the board) show in the queue.
+  mentionCandidates: defineTable({
+    xUserId: v.string(),
+    handle: v.string(),
+    normalizedHandle: v.string(),
+    displayName: v.string(),
+    profileImageUrl: v.union(v.string(), v.null()),
+    bio: v.union(v.string(), v.null()),
+    followerCount: v.number(),
+    recentMentionCount: v.number(),
+    lastMentionAt: v.number(),
+    status: v.union(
+      v.literal("watching"),
+      v.literal("queued"),
+      v.literal("added"),
+      v.literal("dismissed"),
+    ),
+    reviewedAt: v.union(v.number(), v.null()),
+    updatedAt: v.number(),
+  })
+    .index("by_x_user_id", ["xUserId"])
+    .index("by_status_and_last_mention_at", ["status", "lastMentionAt"]),
+
+  // Singleton (key "convex") tracking the mention scan cursor and health.
+  mentionScanState: defineTable({
+    key: v.string(),
+    targetHandle: v.string(),
+    targetXUserId: v.union(v.string(), v.null()),
+    sinceId: v.union(v.string(), v.null()),
+    firstScannedAt: v.union(v.number(), v.null()),
+    lastScannedAt: v.union(v.number(), v.null()),
+    lastError: v.union(v.string(), v.null()),
+    // Admin settings. Missing `enabled` means on; missing `intervalHours`
+    // means 6, the recommended schedule.
+    enabled: v.optional(v.boolean()),
+    intervalHours: v.optional(
+      v.union(v.literal(1), v.literal(4), v.literal(6)),
+    ),
+    updatedAt: v.number(),
+  }).index("by_key", ["key"]),
 
   // Singleton (key "board") controlling which metric columns the public
   // leaderboard shows in each mode. Missing doc means everything is visible.

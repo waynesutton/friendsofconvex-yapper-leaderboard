@@ -7,6 +7,7 @@ import { AdminGiftLabPage } from "./pages/AdminGiftLabPage";
 import { AdminGiftsGuidePage } from "./pages/AdminGiftsGuidePage";
 import { AdminGiftsPage } from "./pages/AdminGiftsPage";
 import { AdminGroupsPage } from "./pages/AdminGroupsPage";
+import { AdminQueuePage } from "./pages/AdminQueuePage";
 import { AdminPage } from "./pages/AdminPage";
 import { AdminSettingsPage } from "./pages/AdminSettingsPage";
 import { AdminSetupPage } from "./pages/AdminSetupPage";
@@ -38,6 +39,7 @@ export function App() {
           <Route path="/retired/:handle" element={<LegacyRetiredRedirect />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/admin/groups" element={<AdminGroupsPage />} />
+          <Route path="/admin/queue" element={<AdminQueuePage />} />
           <Route path="/admin/settings" element={<AdminSettingsPage />} />
           <Route path="/admin/docs" element={<AdminDocsPage />} />
           <Route path="/admin/setup" element={<AdminSetupPage />} />
