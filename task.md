@@ -6,6 +6,13 @@
 
 - [ ] Deploy the mention queue to production (`npx convex deploy`, then `npm run deploy -- --skip-convex`). Scans default to on every 6 hours, so production starts reading X once deployed; uncheck Scan X for new mentions on `/admin/queue` to pause it.
 - [ ] Signed in check of `/admin/queue`: Add to board, Dismiss, Restore, Load more, and the Automatic scans controls need an admin X session.
+- [ ] Signed in admin header pass on a real phone and in the Studio theme: tab strip swipes, active tab stays in view, Sign out icon reads correctly.
+
+## Completed — 2026-10-02 07:35 UTC (responsive header and board)
+
+- [x] Wider header (`--header-width` 1680px). Admin pages get a second row tab strip with every admin page plus Settings, an active underline, and `aria-current`; it swipes on narrow screens, so the admin hamburger is gone. Public nav links show the active page. Menu state keyed to the path fixes the old set state in effect lint error. PRD: prds/responsive-header-and-board.md. `src/components/SiteHeader.tsx`, `src/lib/useScrollActiveIntoView.ts`, `src/globals.css`.
+- [x] Board cards from 1000px down, two columns on tablet, one on phones. Phone pills are one swipeable row with the active pill scrolled into view, the share toolbar fits one row and goes icon only under 520px, the kicker wraps, and the last card keeps its border. `src/components/Leaderboard.tsx`, `src/globals.css`.
+- [x] Verified at 390px, 820px, and 1440px in the browser, plus `npx tsc --noEmit`, eslint on touched files, `npx vitest run` (43 tests), and `npm run build`.
 
 ## Completed — 2026-10-02 07:18 UTC (mention queue scan settings)
 

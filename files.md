@@ -33,6 +33,8 @@
 - `prds/x-sync-failure-banner-and-stale-metrics.md` — Root cause of the Sep 2026 "Add the X API key" banner (X billing cycle spend cap), the honest board notice, stale metrics staying visible, and the sync short circuit.
 - `prds/mention-queue.md` — @convex mention queue: X mentions timeline scan, 30 day rolling count, admin queue with Load more, Add to board, and Dismiss.
 - `prds/mention-queue-scan-settings.md` — Admin on/off switch and 1, 4, or 6 hour schedule for the mention scan, gated by an hourly cron.
+- `.interface-design/system.md` — Saved design direction, tokens, breakpoints, and reusable UI patterns (swipe strip, admin tabs, board cards) for future sessions.
+- `prds/responsive-header-and-board.md` — Wider header, admin tab strip, and tablet and phone layouts for the board.
 - `prds/hide-main-yappers-tab.md` — Fork toggle that hides the main Yappers pill so a fork can run custom group boards only, with first-pill fallback and a no-blank-board guard.
 - `agent-ready.config.json` — Agent Ready app settings and static page list used by `npx agent-ready sync`.
 - `llms.txt` — GitHub pointer to the live discovery files on the site origin.
@@ -58,6 +60,7 @@
 - `src/lib/usePageTitle.ts` — Per-route document title hook replacing Next.js metadata.
 - `src/lib/browserEnvironment.ts` — X in-app browser and touch-device detection plus the sessionStorage sign-in attempt flag behind the mobile login guidance.
 - `src/lib/yapperSearch.ts` — Client-side name and handle matcher used by the admin board and group rosters.
+- `src/lib/useScrollActiveIntoView.ts` — Scrolls a horizontal strip sideways so its active tab or pill stays visible, without moving the page.
 - `src/pages/HomePage.tsx` — Public leaderboard route.
 - `src/pages/AdminPage.tsx` — Convex Auth protected admin route.
 - `src/pages/AdminGroupsPage.tsx` — Admin-only custom groups route.
@@ -75,7 +78,7 @@
 - `src/pages/GiftLabPassPage.tsx` — Named thank-you route for Gift lab links at `/gift/for/:token`.
 - `src/pages/GiftSharePage.tsx` — Safe public thank-you card route without claim credentials.
 - `src/pages/LegendPage.tsx` — Public legend page at `/legends/:handle` for someone retired undefeated: racing stripe card, the admin's note, career posts and followers only, Post on X, copy link, and a not-found card for unknown handles. The old `/retired/:handle` URL redirects here.
-- `src/components/Leaderboard.tsx` — Search, sortable ranking (both modes open on Rank) with muted group members listed unranked under a divider and legends surfaced by search only on group boards, the compact board toolbar (kicker, freshness chip, How this is measured link, Yappers / Convex mentions / custom group / Legends pills with sliding thumb, live pip, and a linkable `?board=` URL parameter, Top N filter dropdown, share), per-column metric definitions rendered as header tooltips, admin-controlled column visibility with a dynamic grid, expandable Convex post rows, streak chips, avatar-anchored top 3 rank badges in both modes with a first place sparkle, an avatar bio peek card on every row, and a Load more footer that steps by the Top filter size until the whole board is visible.
+- `src/components/Leaderboard.tsx` — Search, sortable ranking (both modes open on Rank) with muted group members listed unranked under a divider and legends surfaced by search only on group boards, the compact board toolbar (kicker, freshness chip, How this is measured link, Yappers / Convex mentions / custom group / Legends pills with sliding thumb, live pip, and a linkable `?board=` URL parameter, Top N filter dropdown, share), per-column metric definitions rendered as header tooltips, admin-controlled column visibility with a dynamic grid that turns into labeled cards (two columns on tablet, one on phones) under 1000px, a swipeable pill row on phones, expandable Convex post rows, streak chips, avatar-anchored top 3 rank badges in both modes with a first place sparkle, an avatar bio peek card on every row, and a Load more footer that steps by the Top filter size until the whole board is visible.
 - `src/components/MetricInfo.tsx` — Accessible metric definition popover used on leaderboard column headers; opens on hover and focus, toggles on tap, closes on Escape, blur, or outside press.
 - `src/components/ProfilePeek.tsx` — Avatar bio peek: hover, focus, or tap a board avatar to open a fixed-position call sheet card with the synced X bio (linkified @mentions and URLs), follower count, and an Open on X link; one card at a time, closes on Escape, blur, outside press, or scroll.
 - `src/components/FilterDropdown.tsx` — Shared themed listbox dropdown (trigger button plus floating menu) used for the board Top N filter and the gift count filter; closes on outside click, Escape, or selection.
@@ -91,7 +94,7 @@
 - `src/components/AdminAccessNote.tsx` — Shared admin-only notice with the signed-in admin chip and steps for adding another admin to `ADMIN_X_USER_IDS`.
 - `src/components/ImportPanel.tsx` — Bulk handle and public X List preview and import controls.
 - `src/components/JoinBoard.tsx` — X sign-in, membership request, and review status, with X in-app browser instructions, a mobile stay-in-this-browser hint, and a failed sign-in retry message.
-- `src/components/SiteHeader.tsx` — Primary navigation with the brandable lockup (custom logo and header title from site settings), a Phosphor hamburger menu that replaces the inline nav on small screens, plus admin links, the settings gear icon, the Admin @handle chip, and Sign out on `/admin` routes for signed-in admins.
+- `src/components/SiteHeader.tsx` — Wide header with the brandable lockup (custom logo and header title from site settings), public nav links with an active state and a hamburger menu on small screens, and on `/admin` routes the Admin @handle chip, Sign out, and a swipeable second row tab strip of every admin page plus Settings.
 - `src/components/ThemeSwitcher.tsx` — Icon-only round Convex/Studio theme toggle with persistence and an accessible name.
 - `src/components/BuiltWithFooter.tsx` — Cursor and Convex attribution, the open source board credit with a GitHub mark linking to the repo, `llms.txt` and `sitemap.md` links, and Convex social icons.
 - `src/components/formatters.ts` — Metric, date, and relative sync time formatting helpers.

@@ -4,6 +4,11 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Changed
+
+- The header stretches wider and the admin nav no longer wraps. Admin pages get a second row of tabs covering every admin page plus Settings, with an underline on the page you are on. On a phone the row swipes sideways and keeps the active tab in view, so admins skip the hamburger. Public nav links mark the current page too. Sign out shrinks to an icon button on small phones. PRD: prds/responsive-header-and-board.md (2026-10-02).
+- The board reads well on tablets and phones. From 1000px down every row is a labeled card, two columns on tablets and one on phones, so numbers never lose their labels and the Convex view no longer gets clipped. On phones the Yappers, Convex mentions, group, and Legends pills sit in one swipeable row with the active pill scrolled into view. The share buttons fit on one line and go icon only under 520px (2026-10-02).
+
 ### Fixed
 
 - The board no longer blames a missing X API key when X is the problem. In mid September production showed "Add the X API key" and "Awaiting X" on every row while `X_BEARER_TOKEN` was set: the X developer project had hit its billing cycle spend cap, every sync call came back "Your monthly spend cap has been reached.", and the board treated 184 error rows as 184 rows that had never synced. Three changes. Rows whose latest sync failed keep showing and ranking on their stored numbers, and only rows that have never synced read "Awaiting X". A new public `profiles.getSyncHealth` query lets the notice say what is really wrong: no key, X rejecting requests with the exact message, first sync not run yet, or stale numbers with the date they were last synced. The daily sync stops at the first spend cap error instead of making a doomed request per profile, and the admin Sync everyone feedback reports the halt reason. PRD: prds/x-sync-failure-banner-and-stale-metrics.md (2026-09-21).

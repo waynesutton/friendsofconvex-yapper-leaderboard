@@ -27,6 +27,8 @@
   --control-focus: #e9664c;
   --page-gutter: clamp(20px, 5vw, 72px);
   --page-width: 1400px;
+  /* The header bar runs wider than the page so the nav has room to breathe. */
+  --header-width: 1680px;
   --radius-small: 6px;
   --radius-medium: 12px;
   --radius-large: 22px;
@@ -95,15 +97,88 @@ button:disabled {
 .site-header {
   /* Positioning context for the absolutely placed mobile menu. */
   position: relative;
-  width: min(100%, var(--page-width));
+  width: min(100%, var(--header-width));
   min-height: 72px;
   margin: 0 auto;
   padding: 14px var(--page-gutter);
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
+  gap: 0 24px;
   border-bottom: 1px solid var(--line-standard);
+}
+
+/* Admin header: identity row on top, page tabs flush with the bottom rule. */
+.site-header--admin {
+  padding-bottom: 0;
+}
+
+.header-admin-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-tabs {
+  /* Positioned so the active tab's offsetLeft is measured from the strip. */
+  position: relative;
+  order: 3;
+  flex: 1 0 100%;
+  min-width: 0;
+  margin-top: 12px;
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.admin-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.admin-tabs a {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--caption-ink);
+  font-size: 14px;
+  font-weight: 550;
+  text-decoration: none;
+  white-space: nowrap;
+  /* The active marker is an inset rule so tabs never shift when it appears. */
+  box-shadow: inset 0 -2px 0 transparent;
+  transition:
+    color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.admin-tabs a:hover {
+  color: var(--broadcast-ink);
+  box-shadow: inset 0 -2px 0 var(--line-standard);
+}
+
+.admin-tabs a.active {
+  color: var(--broadcast-ink);
+  box-shadow: inset 0 -2px 0 var(--signal-coral);
+}
+
+.admin-tabs a:focus-visible {
+  outline-offset: -3px;
+}
+
+.admin-tabs svg {
+  width: 17px;
+  height: 17px;
+}
+
+/* Settings sits apart at the end of the strip. */
+.admin-tabs .admin-tabs-settings {
+  margin-left: auto;
 }
 
 .brand-lockup {
@@ -246,38 +321,13 @@ button:disabled {
   border-bottom: 0;
 }
 
-.mobile-nav a:hover {
+.mobile-nav a:hover,
+.mobile-nav a.active {
   color: var(--broadcast-ink);
 }
 
-.mobile-nav .mobile-nav-settings svg {
-  font-size: 18px;
-}
-
-.mobile-nav-footer {
-  margin-top: 12px;
-  padding-top: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  border-top: 1px solid var(--line-whisper);
-}
-
-.mobile-nav .nav-signout {
-  border: 1px solid var(--line-standard);
-}
-
-/* The admin nav carries seven links plus a chip and sign out, so it trades
-   the inline nav for the hamburger well before phone widths. */
-@media (max-width: 1200px) {
-  .site-header--admin .site-nav {
-    display: none;
-  }
-
-  .site-header--admin .nav-toggle {
-    display: inline-flex;
-  }
+.mobile-nav a.active {
+  font-weight: 650;
 }
 
 @media (max-width: 760px) {
@@ -287,6 +337,17 @@ button:disabled {
 
   .nav-toggle {
     display: inline-flex;
+  }
+
+  /* Tabs bleed to the screen edge so a cut off tab reads as "swipe for more". */
+  .admin-tabs {
+    margin-top: 6px;
+    margin-inline: calc(var(--page-gutter) * -1);
+    padding-inline: calc(var(--page-gutter) - 12px);
+  }
+
+  .admin-tabs .admin-tabs-settings {
+    margin-left: 0;
   }
 }
 
@@ -299,6 +360,7 @@ button:disabled {
   color: var(--caption-ink);
   font-size: 14px;
   text-decoration: none;
+  white-space: nowrap;
   transition:
     background-color 160ms ease,
     color 160ms ease,
@@ -308,6 +370,11 @@ button:disabled {
 .site-nav a:hover {
   background: var(--studio-paper-deep);
   color: var(--broadcast-ink);
+}
+
+.site-nav a.active {
+  color: var(--broadcast-ink);
+  font-weight: 600;
 }
 
 .site-nav a:active {
@@ -2483,17 +2550,6 @@ html[data-theme="convex"] .metric-info-trigger[aria-expanded="true"] {
   flex-wrap: wrap;
 }
 
-/* Gear icon link in the admin header nav. */
-.nav-settings-link {
-  display: inline-flex;
-  align-items: center;
-}
-
-.nav-settings-link svg {
-  width: 18px;
-  height: 18px;
-}
-
 .badge-settings-grid {
   margin-top: 20px;
   display: grid;
@@ -3060,95 +3116,18 @@ html[data-theme="convex"] .metric-info-trigger[aria-expanded="true"] {
     outline-offset: 2px;
   }
 
-  .table-row {
-    grid-template-columns: var(
-      --board-grid-compact,
-      56px minmax(220px, 1fr) repeat(3, minmax(90px, 0.45fr)) 76px
-    );
-  }
-
-  .leaderboard-table[data-mode="convex"] .table-row {
-    grid-template-columns: var(
-      --board-grid-compact,
-      56px minmax(170px, 1fr) repeat(5, minmax(82px, 0.45fr)) 128px
-    );
-  }
-
-  .admin-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .join-signal {
-    max-width: 620px;
-  }
-}
-
-@media (max-width: 760px) {
-  .site-header {
-    min-height: auto;
-    padding-top: 12px;
-    padding-bottom: 12px;
-    align-items: center;
-  }
-
-  .brand-slash,
-  .brand-lockup > span:last-child {
-    display: none;
-  }
-
-  .hero {
-    min-height: auto;
-    padding: 28px 0 20px;
-  }
-
-  .hero h1 {
-    font-size: clamp(44px, 12vw, 62px);
-  }
-
-  .board-heading,
-  .admin-list-heading {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .admin-list-heading-actions {
-    width: 100%;
-  }
-
-  .board-controls .share-toolbar {
-    margin-left: 0;
-    justify-content: flex-start;
-  }
-
-  .mode-tabs {
-    width: 100%;
-  }
-
-  .mode-tabs button {
-    padding: 0 10px;
-    font-size: 13px;
-    gap: 6px;
-  }
-
-  /* Search takes its own full width line on small screens. */
-  .search-field.board-search {
-    margin-left: 0;
-    width: 100%;
-  }
-
-  .share-toolbar {
-    justify-content: flex-start;
-  }
-
-  .search-field > span:last-child {
-    display: none;
-  }
-
+  /* Cards from tablet down. The column header is hidden at this width, so a
+     squeezed table would show numbers without labels (and the Convex view's
+     tracks are wider than a tablet); every card labels its own metrics. */
   .leaderboard-table {
     background: transparent;
     border: 0;
     border-radius: 0;
     overflow: visible;
+  }
+
+  html[data-theme="convex"] .leaderboard-table {
+    box-shadow: none;
   }
 
   .table-row {
@@ -3162,6 +3141,12 @@ html[data-theme="convex"] .metric-info-trigger[aria-expanded="true"] {
     background: var(--studio-sheet);
     border: 1px solid var(--line-standard);
     border-radius: var(--radius-medium);
+  }
+
+  /* The table rule that drops the last row's divider would cut the last
+     card's bottom edge. */
+  .table-row-group:last-child > .table-row:last-child {
+    border-bottom: 1px solid var(--line-standard);
   }
 
   .table-row:hover {
@@ -3178,7 +3163,7 @@ html[data-theme="convex"] .metric-info-trigger[aria-expanded="true"] {
     grid-row: 1;
   }
 
-  /* Mobile cards: smaller badge, tucked tighter so it clears the rank number. */
+  /* Cards: smaller badge, tucked tighter so it clears the rank number. */
   .rank-badge {
     width: 22px;
     height: 22px;
@@ -3257,8 +3242,163 @@ html[data-theme="convex"] .metric-info-trigger[aria-expanded="true"] {
     border-radius: var(--radius-medium);
   }
 
+  /* Section dividers become a quiet labeled band between cards. */
+  .board-divider {
+    margin: 6px 0 12px;
+    border: 1px solid var(--line-standard);
+    border-radius: var(--radius-small);
+  }
+
   .skeleton-row {
     min-height: 120px;
+  }
+
+  .admin-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .join-signal {
+    max-width: 620px;
+  }
+}
+
+@media (max-width: 760px) {
+  .site-header {
+    min-height: auto;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    align-items: center;
+  }
+
+  .site-header--admin {
+    padding-bottom: 0;
+  }
+
+  .brand-slash,
+  .brand-lockup > span:last-child {
+    display: none;
+  }
+
+  .hero {
+    min-height: auto;
+    padding: 28px 0 20px;
+  }
+
+  .hero h1 {
+    font-size: clamp(44px, 12vw, 62px);
+  }
+
+  .board-heading,
+  .admin-list-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .admin-list-heading-actions {
+    width: 100%;
+  }
+
+  /* Kicker label, freshness chip, and method link wrap instead of
+     overflowing a phone. */
+  .board-toolbar .board-kicker {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+
+  /* Phones: every pill count becomes one swipeable row of capsules that
+     bleeds to the screen edge, so a cut off pill says "swipe for more".
+     Equal lanes truncated labels, and wrapping stacked rows above the board. */
+  .mode-tabs,
+  .mode-tabs--wrap {
+    flex: 1 0 100%;
+    min-width: 0;
+    width: auto;
+    margin-inline: calc(var(--page-gutter) * -1);
+    padding: 2px var(--page-gutter);
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    scroll-padding-inline: var(--page-gutter);
+    scrollbar-width: none;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .mode-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .mode-tabs-thumb {
+    display: none;
+  }
+
+  .mode-tabs button {
+    flex: 0 0 auto;
+    min-height: 44px;
+    padding: 0 16px;
+    background: var(--studio-sheet);
+    border: 1.5px solid var(--broadcast-ink);
+    scroll-snap-align: start;
+  }
+
+  .mode-tabs button:hover:not([aria-pressed="true"]) {
+    background: var(--studio-paper-deep);
+  }
+
+  .mode-tabs button[aria-pressed="true"] {
+    background: var(--broadcast-ink);
+    color: var(--studio-sheet);
+  }
+
+  .mode-tab-label {
+    max-width: 200px;
+  }
+
+  /* Search takes its own full width line on small screens. */
+  .search-field.board-search {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  /* List filter and share actions on one row: the filter stretches, the
+     share buttons keep their natural width. */
+  .board-controls .share-toolbar {
+    width: 100%;
+    margin-left: 0;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+  }
+
+  .board-controls .filter-dropdown {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .board-controls .filter-dropdown-trigger {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .board-controls .filter-dropdown-trigger > span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .board-controls .filter-dropdown-caret {
+    margin-left: auto;
+  }
+
+  .share-toolbar {
+    justify-content: flex-start;
+  }
+
+  .search-field > span:last-child {
+    display: none;
   }
 
   .empty-state {
@@ -5254,7 +5394,7 @@ html[data-theme="convex"] .site-header {
   min-height: 68px;
   padding-inline: max(
     var(--page-gutter),
-    calc((100vw - var(--page-width)) / 2 + var(--page-gutter))
+    calc((100vw - var(--header-width)) / 2 + var(--page-gutter))
   );
   background: rgba(33, 23, 24, 0.96);
   border-color: rgba(255, 250, 240, 0.16);
@@ -5292,6 +5432,24 @@ html[data-theme="convex"] .site-nav a:hover {
   color: #fffaf0;
 }
 
+html[data-theme="convex"] .site-nav a.active {
+  color: #fffaf0;
+}
+
+html[data-theme="convex"] .admin-tabs a {
+  color: rgba(255, 250, 240, 0.66);
+}
+
+html[data-theme="convex"] .admin-tabs a:hover {
+  color: #fffaf0;
+  box-shadow: inset 0 -2px 0 rgba(255, 250, 240, 0.28);
+}
+
+html[data-theme="convex"] .admin-tabs a.active {
+  color: #fffaf0;
+  box-shadow: inset 0 -2px 0 var(--signal-coral);
+}
+
 html[data-theme="convex"] .theme-switcher {
   border-color: rgba(255, 250, 240, 0.24);
   color: #fffaf0;
@@ -5323,16 +5481,9 @@ html[data-theme="convex"] .mobile-nav a {
   color: rgba(255, 250, 240, 0.78);
 }
 
-html[data-theme="convex"] .mobile-nav a:hover {
+html[data-theme="convex"] .mobile-nav a:hover,
+html[data-theme="convex"] .mobile-nav a.active {
   color: #fffaf0;
-}
-
-html[data-theme="convex"] .mobile-nav-footer {
-  border-color: rgba(255, 250, 240, 0.1);
-}
-
-html[data-theme="convex"] .mobile-nav .nav-signout {
-  border-color: rgba(255, 250, 240, 0.24);
 }
 
 html[data-theme="convex"] .leaderboard-page {
@@ -5680,42 +5831,67 @@ html[data-theme="convex"] .site-footer .cursor-logomark {
   }
 }
 
-/* Admin header controls: nav sign out button and the admin identity chip.
-   They only render on /admin routes for signed in admins. */
-.site-nav .nav-signout {
+/* Admin header controls: sign out button and the admin identity chip.
+   They only render on /admin routes for signed in admins. Sign out shares
+   the outlined 44px language of the theme toggle beside it. */
+.nav-signout {
   min-height: 44px;
-  padding: 0 14px;
+  padding: 0 16px;
   display: inline-flex;
   align-items: center;
-  border: 0;
+  gap: 8px;
+  border: 1px solid var(--line-standard);
   border-radius: 999px;
   background: transparent;
-  color: var(--caption-ink);
+  color: var(--broadcast-ink-soft);
   font: inherit;
   font-size: 14px;
+  white-space: nowrap;
   cursor: pointer;
   transition:
     background-color 160ms ease,
+    border-color 160ms ease,
     color 160ms ease,
     transform 160ms ease;
 }
 
-.site-nav .nav-signout:hover {
+.nav-signout svg {
+  width: 17px;
+  height: 17px;
+}
+
+.nav-signout:hover {
   background: var(--studio-paper-deep);
+  border-color: var(--line-emphasis);
   color: var(--broadcast-ink);
 }
 
-.site-nav .nav-signout:active {
+.nav-signout:active {
   transform: translateY(1px);
 }
 
-html[data-theme="convex"] .site-nav .nav-signout {
-  color: rgba(255, 250, 240, 0.72);
+html[data-theme="convex"] .nav-signout {
+  border-color: rgba(255, 250, 240, 0.24);
+  color: rgba(255, 250, 240, 0.82);
 }
 
-html[data-theme="convex"] .site-nav .nav-signout:hover {
+html[data-theme="convex"] .nav-signout:hover {
   background: rgba(255, 250, 240, 0.1);
+  border-color: rgba(255, 250, 240, 0.44);
   color: #fffaf0;
+}
+
+/* Phones: Sign out folds to an icon circle; aria-label keeps its name. */
+@media (max-width: 520px) {
+  .nav-signout {
+    width: 44px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .nav-signout-label {
+    display: none;
+  }
 }
 
 .header-admin-chip,
@@ -6120,4 +6296,42 @@ html[data-theme="convex"] .access-state h1 {
 
 .queue-history-note {
   margin: 0 0 12px;
+}
+
+/* Tablet board: the cards sit two across so a tablet is not a stretched
+   phone. Row groups are display: contents, so cards, dividers, and the
+   expanded posts panel are all direct grid items. */
+@media (min-width: 761px) and (max-width: 1000px) {
+  .leaderboard-table {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 12px;
+    align-items: start;
+  }
+
+  .leaderboard-table > .table-header,
+  .leaderboard-table .board-divider,
+  .leaderboard-table .convex-posts-panel,
+  .leaderboard-table .empty-state {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Small phones: share actions fold to icon circles so the list filter keeps
+   one row. Each button keeps its name through the visually hidden label. */
+@media (max-width: 520px) {
+  .board-controls .share-toolbar > button {
+    width: 44px;
+    padding: 0;
+    flex: 0 0 auto;
+  }
+
+  .board-controls .share-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
 }

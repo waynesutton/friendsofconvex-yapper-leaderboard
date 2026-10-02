@@ -18,6 +18,7 @@ import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import {
   useMemo,
+  useRef,
   useState,
   type CSSProperties,
   type KeyboardEvent,
@@ -27,6 +28,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { DEFAULT_BRANDING } from "../../convex/brandingDefaults";
+import { useScrollActiveIntoView } from "../lib/useScrollActiveIntoView";
 import { FilterDropdown, type FilterDropdownOption } from "./FilterDropdown";
 import { compactNumber, formatSyncTime, initials, relativeSyncTime } from "./formatters";
 import { MetricInfo } from "./MetricInfo";
@@ -347,6 +349,9 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
     pills.findIndex((pill) => pill.id === activeBoard),
     0,
   );
+  // Phones scroll the pills sideways; keep the active one in view.
+  const modeTabsRef = useRef<HTMLDivElement>(null);
+  useScrollActiveIntoView(modeTabsRef, 'button[aria-pressed="true"]', activeBoard);
   const activeGroup: PublicGroup | undefined = (groups ?? []).find(
     (group) => group.slug === activeBoard,
   );
@@ -387,12 +392,8 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
   };
   const activeSortKey: SortKey = sortKeyVisibility[sortKey] ? sortKey : "rank";
 
-  // Grid templates mirror the visible column set so the table reflows. The
-  // compact template covers the tablet breakpoint, which otherwise hard codes
-  // the metric column count.
-  const visibleMetricCount = convexMode
-    ? CONVEX_TRACKS.filter((track) => convexColumns[track.key]).length
-    : YAPPERS_TRACKS.filter((track) => yappersColumns[track.key]).length;
+  // Grid template mirrors the visible column set so the table reflows. Tablet
+  // and phone widths switch to cards, which label their own metrics.
   const gridTemplate = convexMode
     ? [
         "64px",
@@ -406,10 +407,6 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
         ...YAPPERS_TRACKS.filter((track) => yappersColumns[track.key]).map((track) => track.width),
         "96px",
       ].join(" ");
-  const compactGridTemplate = convexMode
-    ? `56px minmax(170px, 1fr) repeat(${visibleMetricCount}, minmax(82px, 0.45fr)) 128px`
-    : `56px minmax(220px, 1fr) repeat(${visibleMetricCount}, minmax(90px, 0.45fr)) 76px`;
-
   // Muted members and legends are listed but unranked, so rank numbers skip
   // them and the people below them keep their real position.
   const canonicalRanks = useMemo(() => {
@@ -716,6 +713,7 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
             crush the labels. */}
         <div className="board-controls">
           <div
+            ref={modeTabsRef}
             className={`mode-tabs${pills.length > 4 ? " mode-tabs--wrap" : ""}`}
             role="group"
             aria-label="Switch the board view"
@@ -753,13 +751,13 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
               ) : (
                 <CopyIcon aria-hidden="true" />
               )}
-              {copied === "board" ? "Copied" : "Copy link"}
+              <span className="share-label">{copied === "board" ? "Copied" : "Copy link"}</span>
             </button>
             <button type="button" onClick={handleShare}>
-              <ShareNetworkIcon aria-hidden="true" /> Share
+              <ShareNetworkIcon aria-hidden="true" /> <span className="share-label">Share</span>
             </button>
             <button type="button" onClick={postOnX}>
-              <XLogoIcon aria-hidden="true" /> Post on X
+              <XLogoIcon aria-hidden="true" /> <span className="share-label">Post on X</span>
             </button>
           </div>
         </div>
@@ -853,7 +851,6 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
           style={
             {
               "--board-grid": gridTemplate,
-              "--board-grid-compact": compactGridTemplate,
             } as CSSProperties
           }>
           <div className="table-header" role="row">
