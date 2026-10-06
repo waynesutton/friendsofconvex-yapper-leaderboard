@@ -8,6 +8,17 @@
 - [ ] Signed in check of `/admin/queue`: Add to board, Dismiss, Restore, Load more, and the Automatic scans controls need an admin X session.
 - [ ] Signed in admin header pass on a real phone and in the Studio theme: tab strip swipes, active tab stays in view, Sign out icon reads correctly.
 
+## Completed — 2026-10-06 18:50 UTC (toolbar follow up)
+
+- [x] Opening search no longer wraps the share button labels ("Copy / link", "Post on / X"). Tool buttons are `white-space: nowrap` and never shrink, and an open search folds the share buttons to icon circles at every width above 760px, not only up to 1240px. `src/globals.css`.
+- [x] Removed the "How this is measured" link from the board kicker; it pointed to `/about`, the same page as the header About link and the footer Methodology link, which already carry the metric definitions. `src/components/Leaderboard.tsx`, `src/globals.css`.
+- [x] Verified with `npx tsc --noEmit`, eslint, and browser checks at 1100px and 1440px with search open (every tool 44px tall, one row).
+
+## Completed — 2026-10-06 18:45 UTC (two row board toolbar with collapsible search)
+
+- [x] Board header went from three rows to two. Row one is the kicker on the left and the tools on the right: a search icon, Top N filter, Copy link, Share, Post on X. Row two is the board pills alone. Search folds into an icon and grows into an inline field on click or `/`, filters the active tab like before, shows a live count, clears on the first Escape and folds on the second, and folds on blur when empty. A `?search=` link opens it. Share buttons go icon only from 761px to 1000px, and up to 1240px while search is open; the kicker chips wrap inside their column instead of pushing the tools down. Phones keep the tools on one row under the kicker, and an open search takes its own line. `src/components/BoardSearch.tsx` (new), `src/components/Leaderboard.tsx`, `src/globals.css`.
+- [x] Verified with `npx tsc --noEmit`, eslint on touched files, and browser checks at 1280px, 900px, and 390px with search open and closed, plus the Escape and refocus behavior.
+
 ## Completed — 2026-10-02 07:35 UTC (responsive header and board)
 
 - [x] Wider header (`--header-width` 1680px). Admin pages get a second row tab strip with every admin page plus Settings, an active underline, and `aria-current`; it swipes on narrow screens, so the admin hamburger is gone. Public nav links show the active page. Menu state keyed to the path fixes the old set state in effect lint error. PRD: prds/responsive-header-and-board.md. `src/components/SiteHeader.tsx`, `src/lib/useScrollActiveIntoView.ts`, `src/globals.css`.

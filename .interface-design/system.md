@@ -47,6 +47,12 @@ Used for the admin tab row and the phone board pills. Reuse it for any set of pe
 - 44px tall, active state is a coral inset bottom box shadow, hover uses `--line-standard`. Settings is pushed right with `margin-left: auto`.
 - Admins never get the hamburger; the strip replaces it.
 
+### Board toolbar (two rows)
+
+- Row one: kicker left (`flex: 1 1 auto`, chips wrap inside it), tools right on one nowrap line. Row two: pills alone.
+- Search is an icon circle that opens into a 44px inset pill (280px, min 170px) and shrinks before anything wraps. Tool buttons never wrap or shrink. While search is open, share buttons fold to icon circles at every width above 760px; from 761px to 1000px they are always icon only.
+- Phones: tools take a full row under the kicker; an open search gets its own line with a 16px input.
+
 ### Board cards
 
 - The table becomes transparent; each `.table-row` is a card with a `--line-standard` border and `--radius-medium`.

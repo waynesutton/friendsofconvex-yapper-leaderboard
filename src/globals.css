@@ -538,19 +538,25 @@ button:disabled {
   margin-top: 0;
 }
 
+/* Kicker left, tools right, one line above phone width. When space runs
+   short the kicker chips wrap inside their own column instead of pushing
+   the tools onto a third row. */
 .board-toolbar {
   margin-bottom: 12px;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 10px 16px;
 }
 
 .board-toolbar .board-kicker {
+  flex: 1 1 auto;
+  min-width: 0;
   margin: 0;
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  gap: 6px 10px;
 }
 
 /* The kicker label states the 7 day window, so it reads at near full ink
@@ -575,45 +581,66 @@ button:disabled {
   cursor: default;
 }
 
-/* Route to the methodology for readers on mobile, where the column header
-   tooltips are not rendered at all. */
-.board-method-link {
-  color: var(--caption-ink);
-  font-family: var(--font-mono), ui-monospace, monospace;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  text-decoration: underline;
-  text-decoration-thickness: 1px;
-  text-underline-offset: 3px;
-  white-space: nowrap;
-}
-
-.board-method-link:hover {
-  color: var(--signal-coral-dark);
-}
-
-/* Compact search beside the kicker: same inset control, sized for one row.
-   The convex theme sets its own .board-search min-height further down. */
-.search-field.board-search {
+/* Tools ride the kicker row, pushed right. They stay on one line; the open
+   search field gives up width before anything wraps. */
+.board-toolbar .share-toolbar {
+  flex: 0 1 auto;
   margin-left: auto;
-  width: min(380px, 100%);
-  min-height: 48px;
-  padding: 0 16px;
+  min-width: 0;
+  flex-wrap: nowrap;
+  align-items: center;
+}
+
+/* Closed search: one icon circle matching the share buttons. */
+.share-toolbar .board-search-toggle {
+  width: 44px;
+  padding: 0;
+  flex: 0 0 auto;
+}
+
+/* Open search: an inset pill the same height as its neighbors, growing out
+   of the icon it replaced. The convex theme pins min-height further down. */
+.search-field.board-search {
+  flex: 0 1 auto;
+  width: 280px;
+  min-width: 170px;
+  min-height: 44px;
+  padding: 0 8px 0 14px;
+  gap: 8px;
+  border-radius: 999px;
+  animation: board-search-open 180ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+@keyframes board-search-open {
+  from {
+    width: 44px;
+    opacity: 0.4;
+  }
 }
 
 .search-field.board-search svg {
-  width: 18px;
-  height: 18px;
+  width: 17px;
+  height: 17px;
 }
 
 .search-field.board-search input {
-  padding: 12px 0;
-  font-size: 15px;
+  padding: 10px 0;
+  font-size: 14px;
 }
 
-/* Mode tabs and the list plus share actions, one row directly above the table. */
+/* Result count chip inside the open field, tabular so it never jitters. */
+.search-field.board-search .board-search-count {
+  min-width: 28px;
+  padding: 3px 8px;
+  border: 1px solid var(--line-standard);
+  border-radius: 999px;
+  color: var(--caption-ink);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+/* Mode tabs get their own row directly above the table. */
 .board-controls {
   margin-bottom: 12px;
   display: flex;
@@ -622,8 +649,49 @@ button:disabled {
   gap: 10px 16px;
 }
 
-.board-controls .share-toolbar {
-  margin-left: auto;
+/* Tool buttons never wrap their labels or squeeze; the open search field is
+   the only thing in the row allowed to shrink. */
+.board-toolbar .share-toolbar > button,
+.board-toolbar .filter-dropdown {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+/* While search is open the share buttons fold to icon circles at every width
+   above phones, so the field has room and the row stays one line. On tablets
+   they are icon circles all the time. Each button keeps its name through the
+   hidden label. */
+@media (min-width: 761px) {
+  .board-toolbar .share-toolbar[data-search-open] > button {
+    width: 44px;
+    padding: 0;
+  }
+
+  .board-toolbar .share-toolbar[data-search-open] .share-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+}
+
+@media (min-width: 761px) and (max-width: 1000px) {
+  .board-toolbar .share-toolbar > button {
+    width: 44px;
+    padding: 0;
+    flex: 0 0 auto;
+  }
+
+  .board-toolbar .share-toolbar .share-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
 }
 
 .board-heading,
@@ -3358,38 +3426,56 @@ html[data-theme="convex"] .metric-info-trigger[aria-expanded="true"] {
     max-width: 200px;
   }
 
-  /* Search takes its own full width line on small screens. */
-  .search-field.board-search {
-    margin-left: 0;
-    width: 100%;
+  /* Search icon, list filter, and share actions on one row under the kicker:
+     the filter stretches, the rest keep their natural width. */
+  .board-toolbar {
+    flex-wrap: wrap;
   }
 
-  /* List filter and share actions on one row: the filter stretches, the
-     share buttons keep their natural width. */
-  .board-controls .share-toolbar {
+  .board-toolbar .share-toolbar {
     width: 100%;
     margin-left: 0;
-    flex-wrap: nowrap;
     justify-content: flex-start;
   }
 
-  .board-controls .filter-dropdown {
+  /* An open search claims a full line of its own above the tools, with a
+     16px input so iOS does not zoom on focus. */
+  .board-toolbar .share-toolbar[data-search-open] {
+    flex-wrap: wrap;
+  }
+
+  .search-field.board-search {
+    flex: 1 0 100%;
+    width: 100%;
+  }
+
+  @keyframes board-search-open {
+    from {
+      opacity: 0.4;
+    }
+  }
+
+  .search-field.board-search input {
+    font-size: 16px;
+  }
+
+  .board-toolbar .filter-dropdown {
     flex: 1 1 auto;
     min-width: 0;
   }
 
-  .board-controls .filter-dropdown-trigger {
+  .board-toolbar .filter-dropdown-trigger {
     width: 100%;
     justify-content: flex-start;
   }
 
-  .board-controls .filter-dropdown-trigger > span {
+  .board-toolbar .filter-dropdown-trigger > span {
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
-  .board-controls .filter-dropdown-caret {
+  .board-toolbar .filter-dropdown-caret {
     margin-left: auto;
   }
 
@@ -5582,7 +5668,7 @@ html[data-theme="convex"] .search-field {
 }
 
 html[data-theme="convex"] .search-field.board-search {
-  min-height: 48px;
+  min-height: 44px;
 }
 
 html[data-theme="convex"] .leaderboard-table {
@@ -6320,13 +6406,13 @@ html[data-theme="convex"] .access-state h1 {
 /* Small phones: share actions fold to icon circles so the list filter keeps
    one row. Each button keeps its name through the visually hidden label. */
 @media (max-width: 520px) {
-  .board-controls .share-toolbar > button {
+  .board-toolbar .share-toolbar > button {
     width: 44px;
     padding: 0;
     flex: 0 0 auto;
   }
 
-  .board-controls .share-label {
+  .board-toolbar .share-label {
     position: absolute;
     width: 1px;
     height: 1px;

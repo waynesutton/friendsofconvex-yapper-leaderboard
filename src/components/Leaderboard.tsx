@@ -8,7 +8,6 @@ import {
   CrownSimpleIcon,
   FunnelSimpleIcon,
   LockSimpleIcon,
-  MagnifyingGlassIcon,
   ShareNetworkIcon,
   TrophyIcon,
   UsersThreeIcon,
@@ -29,6 +28,7 @@ import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { DEFAULT_BRANDING } from "../../convex/brandingDefaults";
 import { useScrollActiveIntoView } from "../lib/useScrollActiveIntoView";
+import { BoardSearch } from "./BoardSearch";
 import { FilterDropdown, type FilterDropdownOption } from "./FilterDropdown";
 import { compactNumber, formatSyncTime, initials, relativeSyncTime } from "./formatters";
 import { MetricInfo } from "./MetricInfo";
@@ -281,6 +281,8 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
     () => searchParams.get("board") ?? DEFAULT_BOARD,
   );
   const [search, setSearch] = useState(initialSearch);
+  // A shared ?search= link opens the field so the active filter is visible.
+  const [searchOpen, setSearchOpen] = useState(() => initialSearch.trim() !== "");
   // Board opens on Top 30; Load more extends past the filter until everyone
   // is visible.
   const [topFilter, setTopFilter] = useState<TopFilterValue>("30");
@@ -687,26 +689,46 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
             <span className="board-sync-chip" title={formatSyncTime(latestSync)}>
               {relativeSyncTime(latestSync)}
             </span>
-            {/* Mobile hides the table header, so the definitions need a link too. */}
-            <Link className="board-method-link" to="/about">
-              How this is measured
-            </Link>
           </p>
-          {/* Compact search on the kicker row so filtering sits with the board title. */}
-          <label className="search-field board-search">
-            <MagnifyingGlassIcon aria-hidden="true" />
-            <span className="sr-only">Search by name or X handle</span>
-            <input
-              type="search"
+          {/* Tools share the kicker row: search folds into an icon so the
+              board header stays two rows. Search filters the active tab. */}
+          <div
+            className="share-toolbar"
+            role="group"
+            aria-label="Search and share the board"
+            data-search-open={searchOpen || undefined}>
+            <BoardSearch
               value={search}
-              onChange={(event) => changeSearch(event.target.value)}
-              placeholder="Search a person or @handle"
+              onChange={changeSearch}
+              open={searchOpen}
+              onOpenChange={setSearchOpen}
+              resultCount={activeRows ? sortedProfiles.length : null}
             />
-            {activeRows ? <span>{sortedProfiles.length} people</span> : null}
-          </label>
+            <FilterDropdown
+              label="How many yappers to show"
+              value={topFilter}
+              options={TOP_FILTER_OPTIONS}
+              onChange={changeTopFilter}
+              icon={<FunnelSimpleIcon aria-hidden="true" />}
+            />
+            <button type="button" onClick={() => handleCopy("board", window.location.href)}>
+              {copied === "board" ? (
+                <CheckIcon aria-hidden="true" />
+              ) : (
+                <CopyIcon aria-hidden="true" />
+              )}
+              <span className="share-label">{copied === "board" ? "Copied" : "Copy link"}</span>
+            </button>
+            <button type="button" onClick={handleShare}>
+              <ShareNetworkIcon aria-hidden="true" /> <span className="share-label">Share</span>
+            </button>
+            <button type="button" onClick={postOnX}>
+              <XLogoIcon aria-hidden="true" /> <span className="share-label">Post on X</span>
+            </button>
+          </div>
         </div>
 
-        {/* Channel switch plus the list and share actions, directly above the table.
+        {/* Channel switch on its own row, directly above the table.
             Up to 4 pills keep the sliding-thumb channel switch; 5 or more wrap
             into self-bordered capsules across as many rows as needed, because
             the 1D thumb cannot slide across wrapped rows and equal lanes would
@@ -736,29 +758,6 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
                 <span className="mode-tab-label">{pill.label}</span>
               </button>
             ))}
-          </div>
-          <div className="share-toolbar" aria-label="Share leaderboard">
-            <FilterDropdown
-              label="How many yappers to show"
-              value={topFilter}
-              options={TOP_FILTER_OPTIONS}
-              onChange={changeTopFilter}
-              icon={<FunnelSimpleIcon aria-hidden="true" />}
-            />
-            <button type="button" onClick={() => handleCopy("board", window.location.href)}>
-              {copied === "board" ? (
-                <CheckIcon aria-hidden="true" />
-              ) : (
-                <CopyIcon aria-hidden="true" />
-              )}
-              <span className="share-label">{copied === "board" ? "Copied" : "Copy link"}</span>
-            </button>
-            <button type="button" onClick={handleShare}>
-              <ShareNetworkIcon aria-hidden="true" /> <span className="share-label">Share</span>
-            </button>
-            <button type="button" onClick={postOnX}>
-              <XLogoIcon aria-hidden="true" /> <span className="share-label">Post on X</span>
-            </button>
           </div>
         </div>
 
