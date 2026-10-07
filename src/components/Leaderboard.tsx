@@ -541,27 +541,35 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
         : `Top yappers right now on the ${boardTitle}`;
 
   // Freezes the active tab's top 5 into a /b/:id link whose X card shows the
-  // ranking at this moment. Internal boards and any failure fall back to the
-  // live board URL so sharing always works.
-  async function boardShareUrl(): Promise<string> {
-    if (activeGroup?.internal) return window.location.href;
+  // ranking at this moment, and names the top 3 handles in the post text.
+  // Internal boards and any failure fall back to the live board URL and the
+  // plain text so sharing always works.
+  async function boardShareLink(): Promise<{ url: string; text: string }> {
+    const fallback = { url: window.location.href, text: shareText };
+    if (activeGroup?.internal) return fallback;
     try {
-      const shareId = await createBoardShare({ board: activeBoard });
-      if (shareId) return `${window.location.origin}/b/${shareId}`;
+      const share = await createBoardShare({ board: activeBoard });
+      if (share) {
+        const handles = share.topHandles.map((handle) => `@${handle}`).join(" ");
+        return {
+          url: `${window.location.origin}/b/${share.shareId}`,
+          text: handles ? `${shareText}: ${handles}` : shareText,
+        };
+      }
     } catch (error) {
       console.error("Board share snapshot failed", error);
     }
-    return window.location.href;
+    return fallback;
   }
 
   async function handleShare() {
     if (sharing) return;
     setSharing("native");
     try {
-      const url = await boardShareUrl();
+      const { url, text } = await boardShareLink();
       if (navigator.share) {
         try {
-          await navigator.share({ title: branding.siteTitle, text: shareText, url });
+          await navigator.share({ title: branding.siteTitle, text, url });
         } catch (error) {
           // Safari can drop the user gesture across the snapshot await; copy
           // the card link instead so the click still does something useful.
@@ -587,9 +595,9 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
     if (popup) popup.opener = null;
     setSharing("x");
     try {
-      const url = await boardShareUrl();
+      const { url, text } = await boardShareLink();
       const intent = new URL("https://x.com/intent/post");
-      intent.searchParams.set("text", shareText);
+      intent.searchParams.set("text", text);
       intent.searchParams.set("url", url);
       if (popup && !popup.closed) {
         popup.location.href = intent.toString();

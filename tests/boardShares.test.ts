@@ -180,9 +180,12 @@ test("repeat posts of an unchanged board reuse one share, a change makes a new o
     board: "impressions",
   });
   expect(first).not.toBeNull();
-  expect(again).toBe(first);
+  expect(again).toEqual(first);
+  expect(first?.topHandles).toEqual(["yapper7", "yapper6", "yapper5"]);
 
-  const share = await t.query(api.boardShares.getBoardShare, { shareId: first! });
+  const share = await t.query(api.boardShares.getBoardShare, {
+    shareId: first!.shareId,
+  });
   expect(share?.boardLabel).toBe("Yappers");
   expect(share?.rows).toHaveLength(5);
   expect(share?.rows[0]).toMatchObject({ rank: 1, handle: "yapper7", value: null });
@@ -194,9 +197,10 @@ test("repeat posts of an unchanged board reuse one share, a change makes a new o
   const changed = await t.mutation(api.boardShares.createBoardShare, {
     board: "impressions",
   });
-  expect(changed).not.toBe(first);
+  expect(changed?.shareId).not.toBe(first?.shareId);
+  expect(changed?.topHandles[0]).toBe("yapper1");
   const changedShare = await t.query(api.boardShares.getBoardShare, {
-    shareId: changed!,
+    shareId: changed!.shareId,
   });
   expect(changedShare?.rows[0]?.handle).toBe("yapper1");
 });
@@ -277,13 +281,13 @@ test("group, Convex mentions, and Legends boards each freeze their own story", a
   });
 
   const groupShare = await t.query(api.boardShares.getBoardShare, {
-    shareId: (await t.mutation(api.boardShares.createBoardShare, { board: "champions" }))!,
+    shareId: (await t.mutation(api.boardShares.createBoardShare, { board: "champions" }))!.shareId,
   });
   expect(groupShare?.boardLabel).toBe("Champions");
   expect(groupShare?.rows.map((row) => row.handle)).toEqual(["yapper2", "yapper1"]);
 
   const convexShare = await t.query(api.boardShares.getBoardShare, {
-    shareId: (await t.mutation(api.boardShares.createBoardShare, { board: "convex" }))!,
+    shareId: (await t.mutation(api.boardShares.createBoardShare, { board: "convex" }))!.shareId,
   });
   expect(convexShare?.metricLabel).toBe("Convex posts");
   expect(convexShare?.rows).toEqual([
@@ -291,7 +295,7 @@ test("group, Convex mentions, and Legends boards each freeze their own story", a
   ]);
 
   const legendShare = await t.query(api.boardShares.getBoardShare, {
-    shareId: (await t.mutation(api.boardShares.createBoardShare, { board: "legends" }))!,
+    shareId: (await t.mutation(api.boardShares.createBoardShare, { board: "legends" }))!.shareId,
   });
   expect(legendShare?.kind).toBe("legends");
   expect(legendShare?.rows).toEqual([

@@ -192,13 +192,23 @@ function newestSync(
   return newest;
 }
 
-// Freezes the active tab and returns the share id, or null when the tab is
-// empty or not public. Repeat calls with an unchanged ranking return the
-// existing id, so the X card URL stays stable and the table stays small.
+// How many handles the post text names, taken from the frozen card rows.
+export const SHARE_TEXT_HANDLES = 3;
+
+// Freezes the active tab and returns the share id plus the top handles for
+// the post text, or null when the tab is empty or not public. Repeat calls
+// with an unchanged ranking return the existing id, so the X card URL stays
+// stable and the table stays small.
 export const createBoardShare = mutation({
   args: { board: v.string() },
-  returns: v.union(v.id("boardShares"), v.null()),
-  handler: async (ctx, args): Promise<Id<"boardShares"> | null> => {
+  returns: v.union(
+    v.object({ shareId: v.id("boardShares"), topHandles: v.array(v.string()) }),
+    v.null(),
+  ),
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{ shareId: Id<"boardShares">; topHandles: Array<string> } | null> => {
     const board = args.board.trim().slice(0, 80);
     if (!board) return null;
     const resolved = await resolveBoard(ctx, board);
@@ -212,6 +222,9 @@ export const createBoardShare = mutation({
       rows,
       dataAsOf,
     });
+    const topHandles = rows
+      .slice(0, SHARE_TEXT_HANDLES)
+      .map((row) => row.handle);
 
     const existing = await ctx.db
       .query("boardShares")
@@ -219,7 +232,7 @@ export const createBoardShare = mutation({
         q.eq("board", board).eq("contentHash", contentHash),
       )
       .first();
-    if (existing) return existing._id;
+    if (existing) return { shareId: existing._id, topHandles };
 
     const shareId = await ctx.db.insert("boardShares", {
       board,
@@ -234,7 +247,7 @@ export const createBoardShare = mutation({
     await ctx.scheduler.runAfter(0, internal.boardShareRender.renderAndStore, {
       shareId,
     });
-    return shareId;
+    return { shareId, topHandles };
   },
 });
 

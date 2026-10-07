@@ -10,6 +10,10 @@
 - [ ] Signed in check of `/admin/queue`: Add to board, Dismiss, Restore, Load more, and the Automatic scans controls need an admin X session.
 - [ ] Signed in admin header pass on a real phone and in the Studio theme: tab strip swipes, active tab stays in view, Sign out icon reads correctly.
 
+## Completed — 2026-10-07 19:14 UTC (top 3 handles in the share text)
+
+- [x] `createBoardShare` returns `{ shareId, topHandles }`, with the top 3 handles from the frozen card rows. Post on X and Share append them as `: @a @b @c`; internal groups and failures keep the plain text. `convex/boardShares.ts`, `src/components/Leaderboard.tsx`, `tests/boardShares.test.ts` (52 passing). Pushed to dev and dev static hosting re uploaded; `npx convex run boardShares:createBoardShare '{"board":"impressions"}'` returned three handles.
+
 ## Completed — 2026-10-07 06:07 UTC (board cards without engagement numbers)
 
 - [x] Yappers and group snapshot cards no longer show engagement numbers or the ENGAGEMENTS header; rank, avatar, name, and handle stay. Convex mentions keeps its post counts. Snapshots store `value: null` for engagement boards, so new shares get new ids and fresh images; links already posted keep their old image. `convex/boardShares.ts`, `convex/ogArt.ts`, `scripts/preview-board-og.mjs`, `tests/boardShares.test.ts` (52 passing), pushed to dev.

@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
+- Post on X and Share now name the top 3 people in the post text, for example "Top yappers right now on the Friends of Convex Yapper Leader Board: @convex_dev @waynesutton @testyapper". The handles come from the same frozen snapshot as the card, so the text and the image always agree regardless of search or sort on screen. Internal groups and any snapshot failure keep the plain text (2026-10-07).
+
 - Board snapshot share cards. Post on X and Share now post a `/b/<id>` link whose X card shows the top 5 of the tab you are on: Yappers and groups with rank, name, and handle but no engagement numbers, Convex mentions with mention counts, Legends with crowns and no rank. The card carries an "as of" time from the newest sync. The server builds the snapshot itself and reuses one link until the ranking changes, so repeat posts do not pile up. Internal groups, hidden groups, and tabs turned off in board settings share the plain live link, and Copy link still copies the live board. The card PNG is rendered once with resvg and kept in Convex file storage. Opening a `/b/` link in a browser lands on that tab. `node scripts/preview-board-og.mjs` previews the card locally. PRD: prds/board-snapshot-share-cards.md (2026-10-06).
 
 ### Changed

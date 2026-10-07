@@ -1,7 +1,7 @@
 # Board snapshot share cards
 
 Created: 2026-10-06 20:26 UTC
-Last Updated: 2026-10-07 06:07 UTC
+Last Updated: 2026-10-07 19:14 UTC
 Status: Done (dev). Production needs a deploy plus a static upload.
 
 ## Problem
@@ -62,3 +62,4 @@ The X post intent only takes text and a URL, so the image has to arrive through 
 - 2026-10-06 20:26 UTC: PRD written.
 - 2026-10-06 20:40 UTC: Shipped on dev. Card subtitle reads "Leading right now" for one row, and the as of line follows the last row instead of a fixed spot.
 - 2026-10-07 06:07 UTC: Yappers and group cards drop the engagement numbers and the metric header; only Convex mentions shows a count now.
+- 2026-10-07 19:14 UTC: The post text names the top 3 handles from the snapshot (`createBoardShare` returns `{ shareId, topHandles }`).
