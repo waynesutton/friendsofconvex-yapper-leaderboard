@@ -11,6 +11,7 @@ import { AdminQueuePage } from "./pages/AdminQueuePage";
 import { AdminPage } from "./pages/AdminPage";
 import { AdminSettingsPage } from "./pages/AdminSettingsPage";
 import { AdminSetupPage } from "./pages/AdminSetupPage";
+import { BoardSharePage } from "./pages/BoardSharePage";
 import { GiftLabPassPage } from "./pages/GiftLabPassPage";
 import { GiftPassPage } from "./pages/GiftPassPage";
 import { GiftSharePage } from "./pages/GiftSharePage";
@@ -35,6 +36,7 @@ export function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/join" element={<JoinPage />} />
+          <Route path="/b/:shareId" element={<BoardSharePage />} />
           <Route path="/legends/:handle" element={<LegendPage />} />
           <Route path="/retired/:handle" element={<LegacyRetiredRedirect />} />
           <Route path="/admin" element={<AdminPage />} />

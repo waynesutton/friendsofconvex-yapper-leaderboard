@@ -1,5 +1,14 @@
 import { v } from "convex/values";
 
+// One frozen row on a board share card. Legends rows carry no rank or value.
+export const boardShareRowValidator = v.object({
+  rank: v.union(v.number(), v.null()),
+  handle: v.string(),
+  displayName: v.string(),
+  profileImageUrl: v.union(v.string(), v.null()),
+  value: v.union(v.number(), v.null()),
+});
+
 export const syncStatusValidator = v.union(
   v.literal("pending"),
   v.literal("synced"),

@@ -49,6 +49,17 @@ export function AdminDocsPage() {
                 least one visible group must exist first so the board never
                 goes blank.
               </p>
+              <p>
+                Post on X and Share freeze the top 5 of whatever tab is open
+                (Yappers, Convex mentions, a group, or Legends) into a short
+                /b/ link. The X card for that link is a rendered image of
+                those rows with the time of the last sync, so the post shows
+                the ranking when it was shared, not whatever it says later.
+                Posting an unchanged board again reuses the same link.
+                Internal groups and hidden tabs never get a card; those
+                buttons share the plain board link instead. Copy link always
+                copies the live board.
+              </p>
             </div>
           </section>
 

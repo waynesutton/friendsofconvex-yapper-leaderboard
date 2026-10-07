@@ -5,6 +5,8 @@ import { components } from "./_generated/api";
 import { auth } from "./auth";
 import { fourthwallWebhook, xDmCallback } from "./giftWebhooks";
 import {
+  boardShareImage,
+  boardSharePage,
   giftShareImage,
   giftSharePage,
   legendSharePage,
@@ -76,6 +78,20 @@ http.route({
   pathPrefix: "/retired/",
   method: "GET",
   handler: legendSharePage,
+});
+
+// Board share cards: a frozen top 5 of the tab someone posted from, with a
+// rendered card image so the X post shows the ranking at posting time.
+http.route({
+  pathPrefix: "/b/",
+  method: "GET",
+  handler: boardSharePage,
+});
+
+http.route({
+  pathPrefix: "/og/board/",
+  method: "GET",
+  handler: boardShareImage,
 });
 
 // Agent Ready: agents.md, llms-full.txt, status, readiness, RSS, agent-skills.

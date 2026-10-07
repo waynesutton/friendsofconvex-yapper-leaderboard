@@ -33,6 +33,7 @@
 - `prds/x-sync-failure-banner-and-stale-metrics.md` — Root cause of the Sep 2026 "Add the X API key" banner (X billing cycle spend cap), the honest board notice, stale metrics staying visible, and the sync short circuit.
 - `prds/mention-queue.md` — @convex mention queue: X mentions timeline scan, 30 day rolling count, admin queue with Load more, Add to board, and Dismiss.
 - `prds/mention-queue-scan-settings.md` — Admin on/off switch and 1, 4, or 6 hour schedule for the mention scan, gated by an hourly cron.
+- `prds/board-snapshot-share-cards.md` — Post on X and Share freeze the active tab's top 5 into a `/b/:id` link with a rendered X card, plus the dev verification notes on static assets and cached redirects.
 - `.interface-design/system.md` — Saved design direction, tokens, breakpoints, and reusable UI patterns (swipe strip, admin tabs, board cards) for future sessions.
 - `prds/responsive-header-and-board.md` — Wider header, admin tab strip, and tablet and phone layouts for the board.
 - `prds/hide-main-yappers-tab.md` — Fork toggle that hides the main Yappers pill so a fork can run custom group boards only, with first-pill fallback and a no-blank-board guard.
@@ -55,7 +56,7 @@
 
 - `index.html` — SPA shell with metadata, discovery file links, WebSite JSON-LD, the no-flash theme boot script, the deferred Rybbit analytics script, Google Fonts links, and the site default OpenGraph image `og-friends-of-convex.png`.
 - `src/main.tsx` — React entry point with the browser router.
-- `src/App.tsx` — Route table and shared layout for every page.
+- `src/App.tsx` — Route table and shared layout for every page, including the `/b/:shareId` board snapshot redirect.
 - `src/providers.tsx` — Convex Auth React provider reading `VITE_CONVEX_URL` with a `getConvexUrl()` static host fallback.
 - `src/lib/usePageTitle.ts` — Per-route document title hook replacing Next.js metadata.
 - `src/lib/browserEnvironment.ts` — X in-app browser and touch-device detection plus the sessionStorage sign-in attempt flag behind the mobile login guidance.
@@ -73,12 +74,13 @@
 - `src/pages/AdminGiftsPage.tsx` — Admin-only Fourthwall gift studio route.
 - `src/pages/AdminGiftLabPage.tsx` — Admin-only Gift lab route for named gift links.
 - `src/pages/AdminGiftsGuidePage.tsx` — Admin-only plain-language walkthrough of the Gift studio for non technical admins.
-- `src/pages/AdminDocsPage.tsx` — Admin-only reference page: who gets admin access, how to grant or revoke it, and what each admin surface does (board ops, groups, public vs internal boards, per member mute, Legends, site settings, gifts).
+- `src/pages/AdminDocsPage.tsx` — Admin-only reference page: who gets admin access, how to grant or revoke it, and what each admin surface does (board ops, groups, public vs internal boards, per member mute, Legends, board snapshot sharing, site settings, gifts).
 - `src/pages/GiftPassPage.tsx` — Private personalized gift-pass route.
 - `src/pages/GiftLabPassPage.tsx` — Named thank-you route for Gift lab links at `/gift/for/:token`.
 - `src/pages/GiftSharePage.tsx` — Safe public thank-you card route without claim credentials.
+- `src/pages/BoardSharePage.tsx` — Browser landing for a shared board snapshot at `/b/:shareId`: reads the snapshot and redirects to `/?board=...` (or `/` for Yappers and unknown ids). Crawlers get the card meta from `convex/sharePages.ts` instead.
 - `src/pages/LegendPage.tsx` — Public legend page at `/legends/:handle` for someone retired undefeated: racing stripe card, the admin's note, career posts and followers only, Post on X, copy link, and a not-found card for unknown handles. The old `/retired/:handle` URL redirects here.
-- `src/components/Leaderboard.tsx` — Search, sortable ranking (both modes open on Rank) with muted group members listed unranked under a divider and legends surfaced by search only on group boards, the two row board toolbar (row one: kicker, freshness chip, collapsible search, Top N filter dropdown, share; row two: Yappers / Convex mentions / custom group / Legends pills with sliding thumb, live pip, and a linkable `?board=` URL parameter), per-column metric definitions rendered as header tooltips, admin-controlled column visibility with a dynamic grid that turns into labeled cards (two columns on tablet, one on phones) under 1000px, a swipeable pill row on phones, expandable Convex post rows, streak chips, avatar-anchored top 3 rank badges in both modes with a first place sparkle, an avatar bio peek card on every row, and a Load more footer that steps by the Top filter size until the whole board is visible.
+- `src/components/Leaderboard.tsx` — Search, sortable ranking (both modes open on Rank) with muted group members listed unranked under a divider and legends surfaced by search only on group boards, the two row board toolbar (row one: kicker, freshness chip, collapsible search, Top N filter dropdown, share; row two: Yappers / Convex mentions / custom group / Legends pills with sliding thumb, live pip, and a linkable `?board=` URL parameter), per-column metric definitions rendered as header tooltips, admin-controlled column visibility with a dynamic grid that turns into labeled cards (two columns on tablet, one on phones) under 1000px, a swipeable pill row on phones, expandable Convex post rows, streak chips, avatar-anchored top 3 rank badges in both modes with a first place sparkle, an avatar bio peek card on every row, a Load more footer that steps by the Top filter size until the whole board is visible, and Post on X / Share that create a board snapshot link with tab aware text (Copy link stays the live URL).
 - `src/components/MetricInfo.tsx` — Accessible metric definition popover used on leaderboard column headers; opens on hover and focus, toggles on tap, closes on Escape, blur, or outside press.
 - `src/components/ProfilePeek.tsx` — Avatar bio peek: hover, focus, or tap a board avatar to open a fixed-position call sheet card with the synced X bio (linkified @mentions and URLs), follower count, and an Open on X link; one card at a time, closes on Escape, blur, outside press, or scroll.
 - `src/components/BoardSearch.tsx` — Collapsible board search: an icon button in the tools row that opens into an inline field on click or `/`, filters the active board tab, shows a live match count, clears then folds on Escape, and folds on blur when empty.
@@ -104,20 +106,20 @@
 
 ## Convex backend
 
-- `convex/schema.ts` — Auth, leaderboard, Convex mention snapshot fields, legend fields on profiles, rank badges, board display settings, custom groups and memberships with a per member mute flag, the site branding singleton, gift product presets, numbered gift-delivery, Gift lab links, and X Account Activity tables with indexes plus the recipient handle search index.
+- `convex/schema.ts` — Auth, leaderboard, Convex mention snapshot fields, legend fields on profiles, rank badges, board display settings, custom groups and memberships with a per member mute flag, the site branding singleton, frozen board snapshots (`boardShares`, deduped by board plus row hash), gift product presets, numbered gift-delivery, Gift lab links, and X Account Activity tables with indexes plus the recipient handle search index.
 - `convex/boardSettings.ts` — Public query and admin mutation for which metric columns each leaderboard view shows plus the Yappers and Convex mentions tab toggles with a no-blank-board guard.
 - `convex/groups.ts` — Custom group CRUD (new groups start hidden), ordering, memberships, the internal (admin only) flag, per member mute, per group column overrides, and the X List sync action that creates missing profiles and upserts members.
 - `convex/brandingDefaults.ts` — Shipped site branding constants shared by the backend and the frontend fallbacks.
 - `convex/siteSettings.ts` — Site branding singleton: public merged read, admin save with logo storage cleanup, upload URL, and reset.
 - `convex/auth.config.ts` — Convex Auth issuer configuration.
 - `convex/auth.ts` — X OAuth 2.0 provider and profile mapping.
-- `convex/http.ts` — Convex Auth, X DM sender, Fourthwall, and X Account Activity HTTP routes, Agent Ready routes, live discovery files, plus the static hosting catch-all registered last.
+- `convex/http.ts` — Convex Auth, X DM sender, Fourthwall, and X Account Activity HTTP routes, share pages and images (`/gift/share/`, `/legends/`, `/b/`, `/og/gift/`, `/og/board/`), Agent Ready routes, live discovery files, plus the static hosting catch-all registered last.
 - `convex/siteDirectory.ts` — Pure builders for live `llms.txt`, `sitemap.md`, `sitemap.xml`, and `robots.txt`, branded from site settings with a Groups section when groups exist.
 - `convex/siteFiles.ts` — Internal public-directory query and HTTP actions that serve the live discovery files from active profiles and visible groups, sorted in the board's canonical engagement rank so sitemap numbering matches the homepage.
 - `convex/authz.ts` — X identity lookup, stable-ID admin allowlist checks, and the non-throwing `isAdminViewer` helper for admin-aware public queries.
 - `convex/imports.ts` — Bulk handle and public X List validation and import actions; exports `requestX` and `parseXUser` for other X readers.
 - `convex/mentionQueue.ts` — @convex mention queue: X mentions timeline scan with `since_id`, pure `parseMentionPage`, deduped post recording, 30 day rolling counts and statuses, daily recount and prune, scan settings with the pure `isScanDue` gate and `setScanSettings`, admin paginated `listQueue`, `getScanStatus`, `addToBoard`, `dismiss`, and `restore`.
-- `convex/profiles.ts` — Leaderboard (default, Convex mentions, legends, and group modes) returning a public projection that strips internal profile fields, stored Convex posts, membership, import, Legends (`setLegend` and the public `getLegend` page query), and protected admin functions including permanent profile removal with snapshot cleanup. `listForSync` pages every active profile in join order through a cursor, never by score. `hasSyncedMetrics` and `compareYapperRows` keep rows whose latest sync failed ranked on their stored numbers, and the public `getSyncHealth` query feeds the board notice with aggregate sync counts plus the most common X error.
+- `convex/profiles.ts` — Leaderboard (default, Convex mentions, legends, and group modes) returning a public projection that strips internal profile fields, stored Convex posts, membership, import, Legends (`setLegend` and the public `getLegend` page query), and protected admin functions including permanent profile removal with snapshot cleanup. `loadBoardRows` is the shared board read behind `listLeaderboard` and board snapshots. `listForSync` pages every active profile in join order through a cursor, never by score. `hasSyncedMetrics` and `compareYapperRows` keep rows whose latest sync failed ranked on their stored numbers, and the public `getSyncHealth` query feeds the board notice with aggregate sync counts plus the most common X error.
 - `convex/xSync.ts` — X lookup, seven-day aggregation, the Convex mention scan, and sync actions. Counts original posts, quote posts, and replies (reposts stay out via `referenced_tweets`), drains the whole board in batches, schedules a continuation action when a run nears the action deadline so boards past 100 people still refresh everyone, and halts the run at the first X spend cap error with `haltedReason` in the result.
 - `convex/xSyncParsing.ts` — Pure X post parsing: repost detection, engagement field sum, the Convex mention haystack covering post text, long form note text, and expanded convex.dev links, and `isSpendCapError` for X billing cap messages. No Convex imports so vitest tests it directly.
 - `convex/badges.ts` — Top 3 rank badge query and admin mutations with file storage uploads.
@@ -127,20 +129,25 @@
 - `convex/giftActions.ts` — Fourthwall provisioning/reconciliation, Gift lab link creation and status sync, verified product preset saves with name and thumbnail lookup, encrypted X sender OAuth/DM actions, and the DM text builder that renders per-dispatch custom messages with placeholder and STOP safety nets.
 - `convex/giftCrypto.ts` — PKCE, token generation, AES-GCM encryption, and webhook HMAC helpers.
 - `convex/giftWebhooks.ts` — X sender callback and verified, deduplicated Fourthwall order webhook.
-- `convex/sharePages.ts` — HTTP actions serving crawler-friendly `/gift/share/:token` and `/legends/:handle` pages with rewritten meta tags (the legacy `/retired/:handle` prefix is served too), plus the `/og/gift/:token.png` share image route.
+- `convex/sharePages.ts` — HTTP actions serving crawler-friendly `/gift/share/:token`, `/legends/:handle`, and `/b/:id` board snapshot pages with rewritten meta tags (snapshots are noindex with a canonical to the live board; the legacy `/retired/:handle` prefix is served too), plus the `/og/gift/:token.png` and `/og/board/:id.png` image routes. The board image serves the stored PNG, renders on a miss, and redirects to the default art with `no-store` if rendering fails.
+- `convex/boardShares.ts` — Board snapshots: public `createBoardShare` (server resolves the tab, respects board settings, refuses hidden and internal groups, dedupes by row hash, schedules the prewarm render) and `getBoardShare`, internal `getForRender` and `saveImage`, plus pure `buildShareRows` and `hashShareRows`.
+- `convex/boardShareRender.ts` — Node action rendering a snapshot's 1200×630 board card and storing it in Convex file storage; returns stored bytes when the PNG already exists.
+- `convex/ogArt.ts` — Pure SVG pieces shared by both share cards: canvas size, stripe art, Convex mark, XML escaping, label fitting, compact numbers, Pacific "as of" formatting, and the board card SVG builder. No imports, so tests and the preview script load it directly.
+- `convex/ogRenderKit.ts` — Node helpers for the share renderers: cached resvg wasm and Inter font loading from static hosting, avatar fetch to data URI, and SVG to PNG.
 - `convex/migrations.ts` — One-off data migrations run by hand from the CLI. `backfillLegendFields` moves pre-rename `retiredAt` / `retiredNote` records onto `legendAt` / `legendNote`; safe to run twice.
-- `convex/giftShareRender.ts` — Node action rendering the personalized 1200×630 share PNG: solid `#2A1E1D` field with the bottom racing stripes from `public/background-image-sidebar.svg`, left aligned text, Inter fonts from `public/render/`.
+- `convex/giftShareRender.ts` — Node action rendering the personalized 1200×630 share PNG: solid `#2A1E1D` field with the bottom racing stripes from `public/background-image-sidebar.svg`, left aligned text, Inter fonts from `public/render/`. Art and rendering come from `convex/ogArt.ts` and `convex/ogRenderKit.ts`.
 - `convex/xAccountActivityPayload.ts` — Privacy-minimized inbound X DM parsing and command detection.
 - `convex/xAccountActivityWebhooks.ts` — X CRC response, raw-body signature verification, and event dispatch.
 - `convex/xAccountActivity.ts` — Idempotent X event storage and global GIFT or STOP state.
 - `convex/xAccountActivityActions.ts` — Admin webhook registration and OAuth 1.0a sender subscription.
 - `convex/crons.ts` — Daily X metrics refresh at 15:17 UTC (8:17 AM Pacific during PDT), an hourly job that closes gift dispatches whose links passed the 7 day cap, an hourly @convex mention scan check at minute 41 that only reads X when the admin setting (on or off, every 1, 4, or 6 hours) says a scan is due, and a daily mention queue recount at 11:23 UTC.
-- `convex/validators.ts` — Shared return validators, including the public leaderboard projection that keeps internal profile fields server side.
+- `convex/validators.ts` — Shared return validators, including the public leaderboard projection that keeps internal profile fields server side and the frozen board snapshot row.
 - `convex/convex.config.ts` — Convex app definition mounting Agent Ready and the static hosting component.
 - `scripts/generate-auth-keys.mjs` — Local utility for creating Convex Auth JWT key pairs.
 - `scripts/test-x-account-activity.mjs` — Parser, inbound filtering, consent availability, and HMAC regression checks.
 - `scripts/check-node-version.mjs` — Clear Node 22.13 minimum preflight that explains npm cannot switch runtimes before development, builds, and production startup.
 - `scripts/preview-share-og.mjs` — Local preview of the personalized share OG card using the shipped wasm and fonts.
+- `scripts/preview-board-og.mjs` — Local preview of the board snapshot card: `node scripts/preview-board-og.mjs [ranked|convex|legends] [label]` writes `/tmp/board-og-<variant>.png`.
 
 ## Tests
 
@@ -149,6 +156,7 @@
 - `tests/profilesListForSync.test.ts` — convex-test paging checks: a board past 100 active profiles is visited exactly once per refresh, score blind, with archived rows excluded.
 - `tests/groups.test.ts` — Group leaderboard comparator order (including error rows with stored metrics staying ranked), group name slugs, and the Groups sections plus branding headers in the generated discovery files.
 - `tests/mentionQueue.test.ts` — convex-test checks for the mention queue: two mentions queue and one watches, duplicate posts ignored, board members go straight to added, the daily recount demotes aged out mentions, Add to board is idempotent, the queue pages past 30 newest first, admin only access, and mention page parsing.
+- `tests/boardShares.test.ts` — Board snapshot checks: row building per tab, hash stability, SVG escaping, dedupe and a new id when rows change, refusals for hidden tabs, internal and hidden groups, unknown boards, empty tabs, and bad ids.
 - `tests/yapperSearch.test.ts` — Name and handle matcher: empty terms match everyone, a leading @ is stripped, misses return false.
 
 ## Build and hosting

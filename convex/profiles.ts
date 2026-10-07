@@ -261,85 +261,99 @@ export const listLeaderboard = query({
   },
   returns: v.array(publicLeaderboardRowValidator),
   handler: async (ctx, args): Promise<Array<PublicLeaderboardRow>> => {
-    const limit = Math.min(Math.max(Math.floor(args.limit ?? 200), 1), 250);
-    if (args.groupId !== undefined) {
-      // Internal boards are admin only. Visitors get an empty board, which
-      // the frontend never hits because listPublic hides the pill too.
-      const group = await ctx.db.get("groups", args.groupId);
-      if (!group) return [];
-      if ((group.internal ?? false) && !(await isAdminViewer(ctx))) {
-        return [];
+    return await loadBoardRows(ctx, args);
+  },
+});
+
+// One ranking path for every board: the public query and the board share
+// snapshot both read rows through here, so a share card always matches
+// what the board shows.
+export async function loadBoardRows(
+  ctx: QueryCtx,
+  args: {
+    limit?: number;
+    mode?: "default" | "convex" | "legends";
+    groupId?: Id<"groups">;
+  },
+): Promise<Array<PublicLeaderboardRow>> {
+  const limit = Math.min(Math.max(Math.floor(args.limit ?? 200), 1), 250);
+  if (args.groupId !== undefined) {
+    // Internal boards are admin only. Visitors get an empty board, which
+    // the frontend never hits because listPublic hides the pill too.
+    const group = await ctx.db.get("groups", args.groupId);
+    if (!group) return [];
+    if ((group.internal ?? false) && !(await isAdminViewer(ctx))) {
+      return [];
+    }
+    const memberships = await ctx.db
+      .query("groupMemberships")
+      .withIndex("by_group_and_added_at", (q) =>
+        q.eq("groupId", args.groupId!),
+      )
+      .take(250);
+    // Three sections, sorted apart so a row can never drift out of its
+    // own: ranked, then muted under the divider, then legends. Legends ship
+    // to the client unranked so a search can still find a group member who
+    // has left the race; the board hides them until someone types.
+    const ranked: Array<Doc<"profiles">> = [];
+    const muted: Array<Doc<"profiles">> = [];
+    const legends: Array<Doc<"profiles">> = [];
+    for (const membership of memberships) {
+      const profile = await ctx.db.get("profiles", membership.profileId);
+      if (!profile || !profile.active) continue;
+      // Legend beats muted: they are off the board for a happier reason.
+      if (profile.legendAt !== undefined) {
+        legends.push(profile);
+      } else if (membership.muted) {
+        muted.push(profile);
+      } else {
+        ranked.push(profile);
       }
-      const memberships = await ctx.db
-        .query("groupMemberships")
-        .withIndex("by_group_and_added_at", (q) =>
-          q.eq("groupId", args.groupId!),
-        )
-        .take(250);
-      // Three sections, sorted apart so a row can never drift out of its
-      // own: ranked, then muted under the divider, then legends. Legends ship
-      // to the client unranked so a search can still find a group member who
-      // has left the race; the board hides them until someone types.
-      const ranked: Array<Doc<"profiles">> = [];
-      const muted: Array<Doc<"profiles">> = [];
-      const legends: Array<Doc<"profiles">> = [];
-      for (const membership of memberships) {
-        const profile = await ctx.db.get("profiles", membership.profileId);
-        if (!profile || !profile.active) continue;
-        // Legend beats muted: they are off the board for a happier reason.
-        if (profile.legendAt !== undefined) {
-          legends.push(profile);
-        } else if (membership.muted) {
-          muted.push(profile);
-        } else {
-          ranked.push(profile);
-        }
-      }
-      ranked.sort(compareYapperRows);
-      muted.sort(compareYapperRows);
-      legends.sort((left, right) => (right.legendAt ?? 0) - (left.legendAt ?? 0));
-      return [
-        ...ranked.map((profile) => toPublicLeaderboardRow(profile)),
-        ...muted.map((profile) => toPublicLeaderboardRow(profile, { muted: true })),
-        ...legends.map((profile) => toPublicLeaderboardRow(profile, { legend: true })),
-      ].slice(0, limit);
     }
-    if (args.mode === "convex") {
-      const rows = await buildConvexLeaderboard(ctx, limit);
-      return rows.map((row) => toPublicLeaderboardRow(row));
-    }
-    // The Legends board: everyone who has been retired undefeated, newest
-    // first. No ranks, so the order is the only story it tells.
-    if (args.mode === "legends") {
-      const legends = await ctx.db
-        .query("profiles")
-        .withIndex("by_active_and_current_impressions", (q) =>
-          q.eq("active", true),
-        )
-        .take(250);
-      return legends
-        .filter((profile) => profile.legendAt !== undefined)
-        .sort((left, right) => (right.legendAt ?? 0) - (left.legendAt ?? 0))
-        .slice(0, limit)
-        .map((profile) => toPublicLeaderboardRow(profile, { legend: true }));
-    }
-    const profiles = await ctx.db
+    ranked.sort(compareYapperRows);
+    muted.sort(compareYapperRows);
+    legends.sort((left, right) => (right.legendAt ?? 0) - (left.legendAt ?? 0));
+    return [
+      ...ranked.map((profile) => toPublicLeaderboardRow(profile)),
+      ...muted.map((profile) => toPublicLeaderboardRow(profile, { muted: true })),
+      ...legends.map((profile) => toPublicLeaderboardRow(profile, { legend: true })),
+    ].slice(0, limit);
+  }
+  if (args.mode === "convex") {
+    const rows = await buildConvexLeaderboard(ctx, limit);
+    return rows.map((row) => toPublicLeaderboardRow(row));
+  }
+  // The Legends board: everyone who has been retired undefeated, newest
+  // first. No ranks, so the order is the only story it tells.
+  if (args.mode === "legends") {
+    const legends = await ctx.db
       .query("profiles")
       .withIndex("by_active_and_current_impressions", (q) =>
         q.eq("active", true),
       )
-      .order("desc")
-      .take(limit);
-    // Canonical Yappers rank is engagement, not impressions. The frontend
-    // assigns rank numbers and top 3 badges from this array's order, so the
-    // sort here is what keeps badges correct after every sync or import.
-    // Profiles awaiting their first X sync sort after rows with real metrics.
-    profiles.sort(compareYapperRows);
-    return profiles
-      .filter((profile) => profile.legendAt === undefined)
-      .map((profile) => toPublicLeaderboardRow(profile));
-  },
-});
+      .take(250);
+    return legends
+      .filter((profile) => profile.legendAt !== undefined)
+      .sort((left, right) => (right.legendAt ?? 0) - (left.legendAt ?? 0))
+      .slice(0, limit)
+      .map((profile) => toPublicLeaderboardRow(profile, { legend: true }));
+  }
+  const profiles = await ctx.db
+    .query("profiles")
+    .withIndex("by_active_and_current_impressions", (q) =>
+      q.eq("active", true),
+    )
+    .order("desc")
+    .take(limit);
+  // Canonical Yappers rank is engagement, not impressions. The frontend
+  // assigns rank numbers and top 3 badges from this array's order, so the
+  // sort here is what keeps badges correct after every sync or import.
+  // Profiles awaiting their first X sync sort after rows with real metrics.
+  profiles.sort(compareYapperRows);
+  return profiles
+    .filter((profile) => profile.legendAt === undefined)
+    .map((profile) => toPublicLeaderboardRow(profile));
+}
 
 // Stored Convex posts from a profile's latest snapshot, loaded on row expand
 // so the main leaderboard payload stays small.

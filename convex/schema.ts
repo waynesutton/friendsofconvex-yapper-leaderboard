@@ -1,6 +1,7 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { authTables } from "@convex-dev/auth/server";
+import { boardShareRowValidator } from "./validators";
 
 const syncStatus = v.union(
   v.literal("pending"),
@@ -318,6 +319,21 @@ export default defineSchema({
     imageStorageId: v.optional(v.id("_storage")),
     updatedAt: v.number(),
   }).index("by_rank", ["rank"]),
+
+  // Frozen top of a board tab, created when someone posts the board on X.
+  // Deduped by board plus a hash of the rows, so repeat posts of an
+  // unchanged ranking share one URL. The PNG is rendered once and stored.
+  boardShares: defineTable({
+    board: v.string(),
+    boardLabel: v.string(),
+    kind: v.union(v.literal("ranked"), v.literal("legends")),
+    metricLabel: v.string(),
+    // At most 5 rows; bounded by createBoardShare.
+    rows: v.array(boardShareRowValidator),
+    dataAsOf: v.union(v.number(), v.null()),
+    contentHash: v.string(),
+    imageStorageId: v.optional(v.id("_storage")),
+  }).index("by_board_and_content_hash", ["board", "contentHash"]),
 
   giftCampaigns: defineTable({
     title: v.string(),

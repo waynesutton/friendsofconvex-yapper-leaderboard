@@ -13,7 +13,7 @@ import {
   UsersThreeIcon,
   XLogoIcon,
 } from "@phosphor-icons/react";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import {
   useMemo,
@@ -289,6 +289,9 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
   // How many sorted rows are revealed right now.
   const [visibleCount, setVisibleCount] = useState(() => filterStep("30"));
   const [copied, setCopied] = useState<string | null>(null);
+  // Which share button is waiting on its board snapshot.
+  const [sharing, setSharing] = useState<"x" | "native" | null>(null);
+  const createBoardShare = useMutation(api.boardShares.createBoardShare);
   // Both modes open on the ranking view. The canonical rank already encodes
   // each mode's story (engagements for Yappers, mention count for Convex).
   const [sortKey, setSortKey] = useState<SortKey>("rank");
@@ -526,32 +529,76 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
     window.setTimeout(() => setCopied(null), 1800);
   }
 
-  const shareText = `${branding.communityName} ${branding.boardName}`;
+  // Share text names the tab the visitor is on, so the post reads like the
+  // card it unfurls into.
+  const boardTitle = `${branding.communityName} ${branding.boardName}`;
+  const shareText = convexMode
+    ? `Top Convex mentions right now on the ${boardTitle}`
+    : legendsMode
+      ? `The legends of the ${boardTitle}, retired undefeated`
+      : activeGroup
+        ? `Who leads ${activeGroup.name} right now on the ${boardTitle}`
+        : `Top yappers right now on the ${boardTitle}`;
+
+  // Freezes the active tab's top 5 into a /b/:id link whose X card shows the
+  // ranking at this moment. Internal boards and any failure fall back to the
+  // live board URL so sharing always works.
+  async function boardShareUrl(): Promise<string> {
+    if (activeGroup?.internal) return window.location.href;
+    try {
+      const shareId = await createBoardShare({ board: activeBoard });
+      if (shareId) return `${window.location.origin}/b/${shareId}`;
+    } catch (error) {
+      console.error("Board share snapshot failed", error);
+    }
+    return window.location.href;
+  }
 
   async function handleShare() {
-    const shareData = {
-      title: branding.siteTitle,
-      text: shareText,
-      url: window.location.href,
-    };
+    if (sharing) return;
+    setSharing("native");
     try {
+      const url = await boardShareUrl();
       if (navigator.share) {
-        await navigator.share(shareData);
+        try {
+          await navigator.share({ title: branding.siteTitle, text: shareText, url });
+        } catch (error) {
+          // Safari can drop the user gesture across the snapshot await; copy
+          // the card link instead so the click still does something useful.
+          if (error instanceof DOMException && error.name === "NotAllowedError") {
+            await handleCopy("board", url);
+          } else if (!(error instanceof DOMException && error.name === "AbortError")) {
+            throw error;
+          }
+        }
       } else {
-        await handleCopy("board", shareData.url);
+        await handleCopy("board", url);
       }
-    } catch (error) {
-      if (!(error instanceof DOMException && error.name === "AbortError")) {
-        throw error;
-      }
+    } finally {
+      setSharing(null);
     }
   }
 
-  function postOnX() {
-    const intent = new URL("https://x.com/intent/post");
-    intent.searchParams.set("text", shareText);
-    intent.searchParams.set("url", window.location.href);
-    window.open(intent, "_blank", "noopener,noreferrer");
+  async function postOnX() {
+    if (sharing) return;
+    // Open the tab inside the click: Safari blocks window.open after an
+    // await. It navigates to the X intent once the snapshot link is ready.
+    const popup = window.open("", "_blank");
+    if (popup) popup.opener = null;
+    setSharing("x");
+    try {
+      const url = await boardShareUrl();
+      const intent = new URL("https://x.com/intent/post");
+      intent.searchParams.set("text", shareText);
+      intent.searchParams.set("url", url);
+      if (popup && !popup.closed) {
+        popup.location.href = intent.toString();
+      } else {
+        window.open(intent, "_blank", "noopener,noreferrer");
+      }
+    } finally {
+      setSharing(null);
+    }
   }
 
   function changeSearch(value: string) {
@@ -719,10 +766,16 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
               )}
               <span className="share-label">{copied === "board" ? "Copied" : "Copy link"}</span>
             </button>
-            <button type="button" onClick={handleShare}>
+            <button
+              type="button"
+              onClick={() => void handleShare()}
+              aria-busy={sharing === "native" || undefined}>
               <ShareNetworkIcon aria-hidden="true" /> <span className="share-label">Share</span>
             </button>
-            <button type="button" onClick={postOnX}>
+            <button
+              type="button"
+              onClick={() => void postOnX()}
+              aria-busy={sharing === "x" || undefined}>
               <XLogoIcon aria-hidden="true" /> <span className="share-label">Post on X</span>
             </button>
           </div>

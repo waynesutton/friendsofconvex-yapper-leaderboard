@@ -777,6 +777,12 @@ button:disabled {
   transform: translateY(1px);
 }
 
+/* Share and Post on X while the board snapshot link is being made. */
+.share-toolbar button[aria-busy="true"] {
+  cursor: progress;
+  opacity: 0.64;
+}
+
 .share-toolbar svg,
 .secondary-button svg,
 .icon-text-button svg {

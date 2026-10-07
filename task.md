@@ -2,11 +2,22 @@
 
 ## To Do
 
+- [ ] Deploy board snapshot share cards to production: `npx convex deploy`, then `npm run deploy -- --skip-convex` so `/render/fonts` and `/render/resvg.wasm` exist on production static hosting. Without the static upload every card falls back to the site wide image.
+- [ ] Post a real board snapshot on X from production and check the card in the post preview (X caches the first fetch per URL).
 - [ ] Deploy the Legends rename to production, then run the backfill, in that order. `npx convex run migrations:backfillLegendFields --prod` fails today with "Could not find function for 'migrations:backfillLegendFields'" because production still runs the pre-rename code: its function list shows `profiles:getRetired` and `profiles:setRetired` and no `migrations:*`. Run `npx convex deploy` first, then the backfill. Still a no-op unless somebody is retired on production between now and the deploy.
 
 - [ ] Deploy the mention queue to production (`npx convex deploy`, then `npm run deploy -- --skip-convex`). Scans default to on every 6 hours, so production starts reading X once deployed; uncheck Scan X for new mentions on `/admin/queue` to pause it.
 - [ ] Signed in check of `/admin/queue`: Add to board, Dismiss, Restore, Load more, and the Automatic scans controls need an admin X session.
 - [ ] Signed in admin header pass on a real phone and in the Studio theme: tab strip swipes, active tab stays in view, Sign out icon reads correctly.
+
+## Completed — 2026-10-06 20:40 UTC (board snapshot share cards)
+
+- [x] Post on X and Share now freeze the active tab's top 5 (Yappers, Convex mentions, a group, or Legends) into a `/b/:id` link whose X card shows that ranking. The server resolves the rows itself, dedupes by a hash of the frozen rows, and refuses hidden tabs, hidden groups, and internal groups (those share the plain live link). `convex/boardShares.ts`, `convex/schema.ts`, `convex/profiles.ts` (`loadBoardRows`).
+- [x] Card rendering with resvg, stored in Convex file storage and prewarmed on create. Shared render pieces moved to `convex/ogArt.ts` and `convex/ogRenderKit.ts`; the gift card uses them unchanged. `convex/boardShareRender.ts`, `convex/giftShareRender.ts`.
+- [x] `/b/:id` meta tags (noindex, canonical to the live board) and `/og/board/:id.png` in `convex/sharePages.ts` and `convex/http.ts`. Browsers opening `/b/:id` land on `/?board=...` via `src/pages/BoardSharePage.tsx`.
+- [x] Leaderboard: tab aware share text, Safari safe popup, busy state, native share falls back to copying the link. `src/components/Leaderboard.tsx`, `src/globals.css`, `/admin/docs` paragraph.
+- [x] `scripts/preview-board-og.mjs` for local PNG previews and `tests/boardShares.test.ts` (8 tests). Full suite 51 passing; tsc, eslint, build clean.
+- [x] Verified on dev: `/b/<id>` meta tags and rendered PNGs for Yappers and Convex mentions. Dev static hosting was re uploaded because the fonts returned 404. The image fallback redirect now sends `no-store`. PRD: prds/board-snapshot-share-cards.md.
 
 ## Completed — 2026-10-06 18:50 UTC (toolbar follow up)
 
