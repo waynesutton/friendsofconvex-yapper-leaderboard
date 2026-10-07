@@ -32,7 +32,7 @@ const svg = buildBoardCardSvg({
     handle,
     displayName,
     avatar: null,
-    value: legends ? null : convex ? Math.round(value / 1000) : value,
+    value: convex ? Math.round(value / 1000) : null,
   })),
 });
 

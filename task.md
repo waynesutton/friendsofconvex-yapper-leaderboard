@@ -10,6 +10,10 @@
 - [ ] Signed in check of `/admin/queue`: Add to board, Dismiss, Restore, Load more, and the Automatic scans controls need an admin X session.
 - [ ] Signed in admin header pass on a real phone and in the Studio theme: tab strip swipes, active tab stays in view, Sign out icon reads correctly.
 
+## Completed — 2026-10-07 06:07 UTC (board cards without engagement numbers)
+
+- [x] Yappers and group snapshot cards no longer show engagement numbers or the ENGAGEMENTS header; rank, avatar, name, and handle stay. Convex mentions keeps its post counts. Snapshots store `value: null` for engagement boards, so new shares get new ids and fresh images; links already posted keep their old image. `convex/boardShares.ts`, `convex/ogArt.ts`, `scripts/preview-board-og.mjs`, `tests/boardShares.test.ts` (52 passing), pushed to dev.
+
 ## Completed — 2026-10-06 20:40 UTC (board snapshot share cards)
 
 - [x] Post on X and Share now freeze the active tab's top 5 (Yappers, Convex mentions, a group, or Legends) into a `/b/:id` link whose X card shows that ranking. The server resolves the rows itself, dedupes by a hash of the frozen rows, and refuses hidden tabs, hidden groups, and internal groups (those share the plain live link). `convex/boardShares.ts`, `convex/schema.ts`, `convex/profiles.ts` (`loadBoardRows`).

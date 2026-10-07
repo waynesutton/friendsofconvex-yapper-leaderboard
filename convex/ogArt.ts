@@ -167,7 +167,7 @@ export function buildBoardCardSvg(input: BoardCardInput): string {
   <text x="${LEFT}" y="186" font-family="Inter" font-weight="500" font-size="17"
     fill="${MUTED}">${escapeXml(subtitle)}</text>
   ${
-    legends
+    legends || rows.every((row) => row.value === null)
       ? ""
       : `<text x="${RIGHT}" y="186" text-anchor="end" font-family="Inter" font-weight="700"
     font-size="13" letter-spacing="2" fill="${MUTED}">${escapeXml(input.metricLabel.toUpperCase())}</text>`

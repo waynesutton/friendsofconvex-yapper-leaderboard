@@ -68,8 +68,9 @@ export function buildShareRows(
       if (count <= 0) continue;
       out.push(toShareRow(row, rank, count));
     } else {
+      // Engagement boards share the ranking only, never the raw numbers.
       if (!hasSyncedMetrics(row)) continue;
-      out.push(toShareRow(row, rank, row.currentEngagements));
+      out.push(toShareRow(row, rank, null));
     }
     if (out.length === SHARE_ROW_LIMIT) break;
   }

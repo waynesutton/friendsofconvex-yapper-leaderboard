@@ -1,7 +1,7 @@
 # Board snapshot share cards
 
 Created: 2026-10-06 20:26 UTC
-Last Updated: 2026-10-06 20:40 UTC
+Last Updated: 2026-10-07 06:07 UTC
 Status: Done (dev). Production needs a deploy plus a static upload.
 
 ## Problem
@@ -16,7 +16,7 @@ The X post intent only takes text and a URL, so the image has to arrive through 
 - Snapshots dedupe by board plus a hash of the frozen rows. Rankings only move on the daily sync or an admin edit, so repeat clicks reuse one id and one URL, which bounds the table without a rate limiter.
 - The intent shares `/b/:id`. An HTTP action rewrites the SPA shell meta tags (title, description, `og:image`, `twitter:image`, `noindex`, canonical) for crawlers.
 - `/og/board/:id.png` serves a 1200x630 PNG drawn by resvg with the same stripe art, fonts, and Convex mark as the gift card. The mutation schedules a prewarm render that stores the PNG in Convex file storage, so the crawler gets a stored blob with an immutable cache header. A miss renders inline and stores.
-- Card content per tab: Yappers and groups show rank plus engagements, Convex mentions shows rank plus mention count, Legends shows a crown and no rank, newest first. An "As of" line uses the newest `lastSyncedAt` among the rows.
+- Card content per tab: Yappers and groups show rank, name, and handle with no numbers, Convex mentions shows rank plus mention count, Legends shows a crown and no rank, newest first. An "As of" line uses the newest `lastSyncedAt` among the rows.
 - Internal groups, hidden groups, and tabs turned off in board settings return `null`; the button falls back to the plain live URL.
 - Visitors who open `/b/:id` in a browser are sent to `/?board=<board>`.
 
@@ -61,3 +61,4 @@ The X post intent only takes text and a URL, so the image has to arrive through 
 
 - 2026-10-06 20:26 UTC: PRD written.
 - 2026-10-06 20:40 UTC: Shipped on dev. Card subtitle reads "Leading right now" for one row, and the as of line follows the last row instead of a fixed spot.
+- 2026-10-07 06:07 UTC: Yappers and group cards drop the engagement numbers and the metric header; only Convex mentions shows a count now.

@@ -91,7 +91,7 @@ test("ranked rows follow board ranks and skip muted, legend, and unsynced rows",
     [5, "yapper7"],
     [6, "yapper8"],
   ]);
-  expect(rows[0]?.value).toBe(999);
+  expect(rows.every((row) => row.value === null)).toBe(true);
 });
 
 test("Convex rows use mention count and drop people with none", () => {
@@ -150,6 +150,19 @@ test("the card SVG escapes names and shows ranks", () => {
   expect(svg).toContain("ENGAGEMENTS");
 });
 
+test("the card drops the metric column when no row has a number", () => {
+  const svg = buildBoardCardSvg({
+    communityName: "Friends of Convex",
+    boardLabel: "Convex Team",
+    kind: "ranked",
+    metricLabel: "Engagements",
+    dataAsOf: null,
+    rows: [{ rank: 1, handle: "a", displayName: "Jamie", avatar: null, value: null }],
+  });
+  expect(svg).not.toContain("ENGAGEMENTS");
+  expect(svg).toContain("Jamie");
+});
+
 test("repeat posts of an unchanged board reuse one share, a change makes a new one", async () => {
   const t = convexTest(schema, modules);
   const ids = await t.run(async (ctx) => {
@@ -172,7 +185,7 @@ test("repeat posts of an unchanged board reuse one share, a change makes a new o
   const share = await t.query(api.boardShares.getBoardShare, { shareId: first! });
   expect(share?.boardLabel).toBe("Yappers");
   expect(share?.rows).toHaveLength(5);
-  expect(share?.rows[0]).toMatchObject({ rank: 1, handle: "yapper7", value: 700 });
+  expect(share?.rows[0]).toMatchObject({ rank: 1, handle: "yapper7", value: null });
   expect(share?.dataAsOf).toBe(SYNCED_AT + 7);
 
   await t.run(async (ctx) => {
