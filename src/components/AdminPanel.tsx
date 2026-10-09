@@ -387,6 +387,7 @@ function sanitizeHandleInput(value: string): string {
 export function AdminPanel() {
   const profiles = useQuery(api.profiles.listAdmin, { limit: BOARD_MAX });
   const setup = useQuery(api.profiles.getSetupStatus, {});
+  const syncHealth = useQuery(api.profiles.getSyncHealth, {});
   const addProfile = useMutation(api.profiles.add);
   const setActive = useMutation(api.profiles.setActive);
   const setLegend = useMutation(api.profiles.setLegend);
@@ -399,23 +400,30 @@ export function AdminPanel() {
   const [busy, setBusy] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<Feedback>(null);
 
-  const shownProfiles = useMemo(
-    () => (profiles ?? []).filter((profile) => matchesYapperSearch(search, profile)),
-    [profiles, search],
-  );
+  // Join requests waiting on a decision sit at the top, oldest request first,
+  // so the admin works the queue in order. Everyone else keeps newest first.
+  const shownProfiles = useMemo(() => {
+    const matches = (profiles ?? []).filter((profile) => matchesYapperSearch(search, profile));
+    const pending = matches
+      .filter((profile) => profile.membershipStatus === "pending")
+      .sort((left, right) => (left.requestedAt ?? left.addedAt) - (right.requestedAt ?? right.addedAt));
+    return [...pending, ...matches.filter((profile) => profile.membershipStatus !== "pending")];
+  }, [profiles, search]);
   const searching = search.trim().length > 0;
   // Splits the roster the way the public board does, so the heading explains
   // why its total differs from the hero count.
   const rosterBreakdown = useMemo(() => {
     let onBoard = 0;
     let legends = 0;
+    let pending = 0;
     let offBoard = 0;
     for (const profile of profiles ?? []) {
-      if (!profile.active) offBoard += 1;
+      if (profile.membershipStatus === "pending") pending += 1;
+      else if (!profile.active) offBoard += 1;
       else if (profile.legendAt !== undefined) legends += 1;
       else onBoard += 1;
     }
-    return { onBoard, legends, offBoard };
+    return { onBoard, legends, pending, offBoard };
   }, [profiles]);
   // Remove is destructive, so the button arms on the first click and only
   // deletes on the second. Any other row action disarms it.
@@ -586,7 +594,7 @@ export function AdminPanel() {
         message: result.missingKey
           ? "Add X_BEARER_TOKEN to Convex before syncing."
           : result.haltedReason
-            ? `X sync stopped after ${result.processed} profile${result.processed === 1 ? "" : "s"}: ${result.haltedReason} Check the X developer console billing cycle cap. Everyone else keeps their last synced numbers.`
+            ? `X sync stopped after ${result.processed} profile${result.processed === 1 ? "" : "s"}: ${result.haltedReason} Check the X developer console billing cycle cap. Everyone else keeps their last synced numbers${result.retryScheduled ? ", and the board retries in 2 hours" : ""}.`
             : `Synced ${result.synced} of ${result.processed} active profiles${result.failed ? `; ${result.failed} need attention` : ""}.${result.remainderScheduled ? " The rest of the board is refreshing in the background." : ""}`,
       });
     } catch (error) {
@@ -663,6 +671,21 @@ export function AdminPanel() {
             {setup?.authEnabled && setup.adminAllowlistConfigured ? <CheckCircleIcon aria-hidden="true" /> : <WarningCircleIcon aria-hidden="true" />}
             <span><strong>Convex Auth</strong>{setup?.authEnabled && setup.adminAllowlistConfigured ? "X login and allowlist ready" : "Finish X login or allowlist setup"}</span>
           </div>
+          {/* Full board pass state. A halted pass leaves rows marked synced,
+              so this is where a spend cap stop shows up. */}
+          {syncHealth ? (
+            <div className="readiness-row">
+              {syncHealth.haltedAt !== null ? <WarningCircleIcon aria-hidden="true" /> : <CheckCircleIcon aria-hidden="true" />}
+              <span>
+                <strong>Board sync</strong>
+                {syncHealth.haltedAt !== null
+                  ? `Stopped by X ${formatSyncTime(syncHealth.haltedAt)}: ${syncHealth.haltedReason ?? "request refused."} Retries every 2 hours, or press Sync everyone.`
+                  : syncHealth.boardSyncedAt !== null
+                    ? `Last full pass ${formatSyncTime(syncHealth.boardSyncedAt)}`
+                    : "No full pass tracked yet"}
+              </span>
+            </div>
+          ) : null}
           {/* Setup guide link hidden for now; the page still lives at /admin/setup.
           <Link className="text-link" to="/admin/setup">Open setup guide</Link> */}
         </div>
@@ -692,8 +715,13 @@ export function AdminPanel() {
             {profiles !== undefined ? (
               <p
                 className="admin-list-breakdown"
-                title="On the board matches the homepage count. Off the board covers archived, pending, and declined profiles."
+                title="On the board matches the homepage count. Off the board covers archived and declined profiles."
               >
+                {rosterBreakdown.pending > 0 ? (
+                  <span className="admin-list-breakdown-pending">
+                    {rosterBreakdown.pending} waiting for review
+                  </span>
+                ) : null}
                 <span>{rosterBreakdown.onBoard} on the board</span>
                 <span>{rosterBreakdown.legends} {rosterBreakdown.legends === 1 ? "legend" : "legends"}</span>
                 <span>{rosterBreakdown.offBoard} off the board</span>
@@ -734,10 +762,19 @@ export function AdminPanel() {
             <div className="admin-empty">No yappers match that search.</div>
           ) : (
             shownProfiles.map((profile) => (
-              <article className="admin-row" key={profile._id}>
+              <article
+                className={`admin-row${profile.membershipStatus === "pending" ? " admin-row--pending" : ""}`}
+                key={profile._id}
+              >
                 <div className="admin-identity">
                   <span className={`status-dot status-${profile.syncStatus}`} aria-hidden="true" />
                   <span>
+                    {profile.membershipStatus === "pending" ? (
+                      <span className="admin-review-tag">
+                        Waiting for review
+                        {profile.requestedAt !== undefined ? ` · asked ${formatSyncTime(profile.requestedAt)}` : ""}
+                      </span>
+                    ) : null}
                     <strong>{profile.displayName}</strong>
                     <a href={`https://x.com/${profile.handle}`} target="_blank" rel="noreferrer noopener">@{profile.handle}</a>
                   </span>

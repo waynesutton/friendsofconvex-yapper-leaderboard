@@ -507,13 +507,18 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
   const visibleProfiles = sortedProfiles.slice(0, visibleCount);
   const remainingCount = sortedProfiles.length - visibleProfiles.length;
   const syncedProfiles = profiles?.filter(hasMetrics) ?? [];
-  const latestSync = syncedProfiles.reduce<number | null>(
-    (latest, profile) =>
-      profile.lastSyncedAt !== null && (latest === null || profile.lastSyncedAt > latest)
-        ? profile.lastSyncedAt
-        : latest,
-    null
-  );
+  // Freshness comes from the last full board pass, so one admin rescan never
+  // reads as a board wide update. Before the first tracked pass it falls back
+  // to the newest row.
+  const latestSync =
+    syncHealth?.boardSyncedAt ??
+    syncedProfiles.reduce<number | null>(
+      (latest, profile) =>
+        profile.lastSyncedAt !== null && (latest === null || profile.lastSyncedAt > latest)
+          ? profile.lastSyncedAt
+          : latest,
+      null
+    );
 
   // Convex mode help states.
   const hasUnscannedRows =
@@ -835,10 +840,10 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
                   ? `X is rejecting sync requests: ${syncHealth.lastError} Metrics fill in once X accepts requests again.`
                   : "Handles are live in Convex. The first X sync has not run yet; metrics arrive after the daily refresh or an admin sync."}
             </div>
-          ) : syncHealth.syncedCount === 0 && syncHealth.lastError ? (
+          ) : syncHealth.haltedAt !== null || (syncHealth.syncedCount === 0 && syncHealth.lastError) ? (
             <div className="data-notice" role="status">
               <span className="notice-mark" aria-hidden="true" />
-              {`Showing the last synced numbers from ${formatSyncTime(latestSync)}. The latest X sync failed: ${syncHealth.lastError}`}
+              {`Showing the last synced numbers from ${formatSyncTime(latestSync)}. The latest X sync failed: ${syncHealth.haltedReason ?? syncHealth.lastError}${syncHealth.haltedAt !== null ? " The board retries every 2 hours." : ""}`}
             </div>
           ) : null
         ) : null}

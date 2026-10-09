@@ -229,6 +229,34 @@ export const listMembers = query({
   },
 });
 
+// Members a group rescan should hit: active and not legends, in join order.
+export const listSyncTargets = internalQuery({
+  args: { groupId: v.id("groups") },
+  returns: v.union(
+    v.object({
+      name: v.string(),
+      targets: v.array(v.object({ profileId: v.id("profiles"), handle: v.string() })),
+    }),
+    v.null(),
+  ),
+  handler: async (ctx, args) => {
+    const group = await ctx.db.get("groups", args.groupId);
+    if (!group) return null;
+    const memberships = await ctx.db
+      .query("groupMemberships")
+      .withIndex("by_group_and_added_at", (q) => q.eq("groupId", args.groupId))
+      .take(MAX_GROUP_MEMBERS);
+    const targets = [];
+    for (const membership of memberships) {
+      const profile = await ctx.db.get("profiles", membership.profileId);
+      if (profile && profile.active && profile.legendAt === undefined) {
+        targets.push({ profileId: profile._id, handle: profile.handle });
+      }
+    }
+    return { name: group.name, targets };
+  },
+});
+
 export const create = mutation({
   args: {
     name: v.string(),

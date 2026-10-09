@@ -2,6 +2,8 @@
 
 ## To Do
 
+- [ ] Refill prod today: press Sync everyone on friendsofconvex.dev/admin (the cap is raised; three rescans after 22:00 UTC succeeded). Then deploy this change with `npx convex deploy`, then `npm run deploy -- --skip-convex`. The chip keeps the newest row fallback until the first tracked full pass finishes.
+
 - [ ] Deploy board snapshot share cards to production: `npx convex deploy`, then `npm run deploy -- --skip-convex` so `/render/fonts` and `/render/resvg.wasm` exist on production static hosting. Without the static upload every card falls back to the site wide image.
 - [ ] Post a real board snapshot on X from production and check the card in the post preview (X caches the first fetch per URL).
 - [ ] Deploy the Legends rename to production, then run the backfill, in that order. `npx convex run migrations:backfillLegendFields --prod` fails today with "Could not find function for 'migrations:backfillLegendFields'" because production still runs the pre-rename code: its function list shows `profiles:getRetired` and `profiles:setRetired` and no `migrations:*`. Run `npx convex deploy` first, then the backfill. Still a no-op unless somebody is retired on production between now and the deploy.
@@ -11,6 +13,14 @@
 - [ ] Signed in admin header pass on a real phone and in the Studio theme: tab strip swipes, active tab stays in view, Sign out icon reads correctly.
 - [ ] Signed in check of `/admin/team`: board search, Look up on X, Grant admin access, then sign in as the new admin in another browser, then Remove. Deploy to production with `npx convex deploy`, then `npm run deploy -- --skip-convex`.
 - [ ] Deploy the board count fix to production (`npx convex deploy`, then `npm run deploy -- --skip-convex`). Expect the hero to read 264 and the admin heading 267 profiles with 264 on the board, 2 legends, 1 off the board. After the next 8:17 AM Pacific sync, every profile has a stored Convex trend and the Convex board stops reading snapshot history.
+
+## Completed — 2026-10-09 23:17 UTC (stale board after spend cap, group rescan)
+
+- [x] Root cause from prod: the Oct 9 15:17 UTC cron halted on the spend cap at the first profile, and the Oct 8 run halted at @Hamzaa_i, so most rows are from Oct 8 and 34 are from Oct 7. Luke's post landed after his Oct 8 sync. New `syncRuns` table and `convex/syncRuns.ts`; `xSync.ts` records passes, retries a halt every 2 hours (max 6), and adds `refreshGroup` plus `refreshTargetsContinuation`; `groups.listSyncTargets`; `getSyncHealth` returns `boardSyncedAt`, `haltedAt`, and `haltedReason`. Board chip, hero, and notice use them; admin Integration status gets a Board sync row; group cards get Rescan. `tests/syncRuns.test.ts`. `npx convex dev --once`, `npx tsc -b`, eslint, `npx vitest run` (64 pass), and `npm run build` pass. PRD: prds/stale-board-after-spend-cap.md.
+
+## Completed — 2026-10-09 22:38 UTC (join requests pinned to the roster top)
+
+- [x] Pending profiles sort first in the `/admin` roster (oldest `requestedAt` first) with `.admin-row--pending`, an `.admin-review-tag`, and "N waiting for review" in the heading breakdown (`#a33f2c`, 5.4:1 or better on paper). `listAdmin` merges up to 100 pending rows from `by_membership_status_and_added_at` with the newest rows, deduped. `convex/profiles.ts`, `src/components/AdminPanel.tsx`, `src/globals.css`, `tests/adminRoster.test.ts`. `npx convex dev --once`, `npx tsc -b`, eslint, `npx vitest run` (61 pass), and `npm run build` pass. Deploy with the board count fix.
 
 ## Completed — 2026-10-09 22:10 UTC (Join the board button)
 

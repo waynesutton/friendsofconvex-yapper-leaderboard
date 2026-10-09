@@ -7,6 +7,7 @@ import {
   type ActionCtx,
   internalAction,
 } from "./_generated/server";
+import { HALT_RETRY_DELAY_MS, MAX_HALT_RETRIES } from "./syncRuns";
 import { syncResultValidator } from "./validators";
 import {
   isRecord,
@@ -278,6 +279,8 @@ type SyncBatchOutcome = {
   // (billing cycle spend cap). Profiles not yet reached keep their previous
   // status and metrics, so the board shows the last good numbers.
   haltedReason: string | null;
+  // Cursor of the page that halted, so a retry resumes there.
+  haltCursor: string | null;
 };
 
 // Drains listForSync pages from the given cursor. Sequential requests keep
@@ -307,15 +310,50 @@ async function syncBatchesFrom(
         console.warn(
           `X sync halted at @${target.handle}: ${result.message} Remaining profiles keep their last synced metrics.`,
         );
-        return { nextCursor: null, haltedReason: result.message };
+        return { nextCursor: null, haltedReason: result.message, haltCursor: cursor };
       }
     }
-    if (page.isDone) return { nextCursor: null, haltedReason: null };
+    if (page.isDone) return { nextCursor: null, haltedReason: null, haltCursor: null };
     cursor = page.continueCursor;
     if (Date.now() - startedAt > SYNC_DEADLINE_MS) {
-      return { nextCursor: cursor, haltedReason: null };
+      return { nextCursor: cursor, haltedReason: null, haltCursor: null };
     }
   }
+}
+
+// Records how a full pass segment ended: schedules the next segment, a halt
+// retry, or marks the pass finished. Returns whether a retry was scheduled.
+async function settleFullPass(
+  ctx: ActionCtx,
+  runStartedAt: number,
+  outcome: SyncBatchOutcome,
+  totals: RefreshTotals,
+): Promise<boolean> {
+  if (outcome.haltedReason !== null) {
+    const { retry, retryCount } = await ctx.runMutation(internal.syncRuns.halt, {
+      runStartedAt,
+      reason: outcome.haltedReason,
+    });
+    if (retry) {
+      await ctx.scheduler.runAfter(HALT_RETRY_DELAY_MS, internal.xSync.refreshAllContinuation, {
+        cursor: outcome.haltCursor,
+        runStartedAt,
+        ...totals,
+      });
+      console.warn(`refreshAll halt retry ${retryCount} of ${MAX_HALT_RETRIES} scheduled in 2 hours.`);
+    }
+    return retry;
+  }
+  if (outcome.nextCursor !== null) {
+    await ctx.scheduler.runAfter(0, internal.xSync.refreshAllContinuation, {
+      cursor: outcome.nextCursor,
+      runStartedAt,
+      ...totals,
+    });
+    return false;
+  }
+  await ctx.runMutation(internal.syncRuns.finish, { runStartedAt });
+  return false;
 }
 
 async function syncAllProfiles(ctx: ActionCtx): Promise<{
@@ -325,6 +363,7 @@ async function syncAllProfiles(ctx: ActionCtx): Promise<{
   missingKey: boolean;
   remainderScheduled: boolean;
   haltedReason: string | null;
+  retryScheduled: boolean;
 }> {
   if (!process.env.X_BEARER_TOKEN) {
     return {
@@ -334,24 +373,46 @@ async function syncAllProfiles(ctx: ActionCtx): Promise<{
       missingKey: true,
       remainderScheduled: false,
       haltedReason: null,
+      retryScheduled: false,
     };
   }
 
+  const runStartedAt = Date.now();
+  await ctx.runMutation(internal.syncRuns.start, { runStartedAt });
   const totals: RefreshTotals = { processed: 0, synced: 0, failed: 0 };
-  const { nextCursor, haltedReason } = await syncBatchesFrom(ctx, null, totals);
-  if (nextCursor !== null) {
-    await ctx.scheduler.runAfter(0, internal.xSync.refreshAllContinuation, {
-      cursor: nextCursor,
-      ...totals,
-    });
-  }
+  const outcome = await syncBatchesFrom(ctx, null, totals);
+  const retryScheduled = await settleFullPass(ctx, runStartedAt, outcome, totals);
 
   return {
     ...totals,
     missingKey: false,
-    remainderScheduled: nextCursor !== null,
-    haltedReason,
+    remainderScheduled: outcome.nextCursor !== null,
+    haltedReason: outcome.haltedReason,
+    retryScheduled,
   };
+}
+
+// Syncs an explicit list of profiles, used by group rescans. Same deadline
+// and spend cap rules as the full pass; leftovers continue in the background.
+async function syncTargetList(
+  ctx: ActionCtx,
+  targets: Array<SyncTarget>,
+  totals: RefreshTotals,
+): Promise<{ remaining: Array<SyncTarget>; haltedReason: string | null }> {
+  const startedAt = Date.now();
+  for (let index = 0; index < targets.length; index += 1) {
+    if (Date.now() - startedAt > SYNC_DEADLINE_MS) {
+      return { remaining: targets.slice(index), haltedReason: null };
+    }
+    const result = await syncProfile(ctx, targets[index]);
+    totals.processed += 1;
+    if (result.status === "synced") totals.synced += 1;
+    else totals.failed += 1;
+    if (result.status === "error" && isSpendCapError(result.message)) {
+      return { remaining: [], haltedReason: result.message };
+    }
+  }
+  return { remaining: [], haltedReason: null };
 }
 
 export const refreshOne = action({
@@ -398,6 +459,7 @@ const refreshAllResultValidator = v.object({
   missingKey: v.boolean(),
   remainderScheduled: v.boolean(),
   haltedReason: v.union(v.string(), v.null()),
+  retryScheduled: v.boolean(),
 });
 
 export const refreshAll = action({
@@ -415,44 +477,123 @@ export const refreshAllScheduled = internalAction({
   handler: async (ctx) => await syncAllProfiles(ctx),
 });
 
-// Picks up a refresh that ran out of action time, resuming from the stored
-// cursor with the running totals. Reschedules itself until every active
-// profile has been attempted once.
+// Picks up a full pass that ran out of action time or halted on a spend cap,
+// resuming from the stored cursor with the running totals. Reschedules itself
+// until every active profile has been attempted once. A chain whose pass was
+// replaced by a newer one (next cron or Sync everyone) stops right away.
 export const refreshAllContinuation = internalAction({
   args: {
-    cursor: v.string(),
+    cursor: v.union(v.string(), v.null()),
+    // Optional so continuations scheduled before run tracking still finish.
+    runStartedAt: v.optional(v.number()),
     processed: v.number(),
     synced: v.number(),
     failed: v.number(),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
+    if (args.runStartedAt !== undefined) {
+      const current: boolean = await ctx.runQuery(internal.syncRuns.isCurrent, {
+        runStartedAt: args.runStartedAt,
+      });
+      if (!current) return null;
+    }
     const totals: RefreshTotals = {
       processed: args.processed,
       synced: args.synced,
       failed: args.failed,
     };
-    const { nextCursor, haltedReason } = await syncBatchesFrom(
-      ctx,
-      args.cursor,
-      totals,
-    );
-    if (haltedReason !== null) {
-      console.log(
-        `refreshAll halted: ${haltedReason} ${totals.synced} synced, ${totals.failed} failed, ${totals.processed} processed.`,
-      );
-      return null;
-    }
-    if (nextCursor !== null) {
+    const outcome = await syncBatchesFrom(ctx, args.cursor, totals);
+    if (args.runStartedAt !== undefined) {
+      await settleFullPass(ctx, args.runStartedAt, outcome, totals);
+    } else if (outcome.nextCursor !== null) {
       await ctx.scheduler.runAfter(0, internal.xSync.refreshAllContinuation, {
-        cursor: nextCursor,
+        cursor: outcome.nextCursor,
         ...totals,
       });
-      return null;
     }
     console.log(
-      `refreshAll complete: ${totals.synced} synced, ${totals.failed} failed, ${totals.processed} processed.`,
+      `refreshAll ${outcome.haltedReason ? `halted: ${outcome.haltedReason}` : outcome.nextCursor ? "continuing" : "complete"}: ${totals.synced} synced, ${totals.failed} failed, ${totals.processed} processed.`,
     );
+    return null;
+  },
+});
+
+type GroupRescanResult = {
+  groupName: string;
+  processed: number;
+  synced: number;
+  failed: number;
+  missingKey: boolean;
+  remainingScheduled: number;
+  haltedReason: string | null;
+};
+
+const refreshGroupResultValidator = v.object({
+  groupName: v.string(),
+  processed: v.number(),
+  synced: v.number(),
+  failed: v.number(),
+  missingKey: v.boolean(),
+  remainingScheduled: v.number(),
+  haltedReason: v.union(v.string(), v.null()),
+});
+
+// Rescans one group's members (active, not legends) without touching the
+// rest of the board or the board freshness label.
+export const refreshGroup = action({
+  args: { groupId: v.id("groups") },
+  returns: refreshGroupResultValidator,
+  handler: async (ctx, args): Promise<GroupRescanResult> => {
+    await requireAdminAction(ctx);
+    const group: { name: string; targets: Array<SyncTarget> } | null =
+      await ctx.runQuery(internal.groups.listSyncTargets, { groupId: args.groupId });
+    if (!group) throw new Error("This group no longer exists.");
+    const empty: Omit<GroupRescanResult, "missingKey"> = {
+      groupName: group.name,
+      processed: 0,
+      synced: 0,
+      failed: 0,
+      remainingScheduled: 0,
+      haltedReason: null,
+    };
+    if (!process.env.X_BEARER_TOKEN) return { ...empty, missingKey: true };
+    const totals: RefreshTotals = { processed: 0, synced: 0, failed: 0 };
+    const { remaining, haltedReason } = await syncTargetList(ctx, group.targets, totals);
+    if (remaining.length > 0) {
+      await ctx.scheduler.runAfter(0, internal.xSync.refreshTargetsContinuation, {
+        profileIds: remaining.map((target) => target.profileId),
+      });
+    }
+    return {
+      ...empty,
+      ...totals,
+      missingKey: false,
+      remainingScheduled: remaining.length,
+      haltedReason,
+    };
+  },
+});
+
+// Background leftovers of a group rescan that ran past the action deadline.
+export const refreshTargetsContinuation = internalAction({
+  args: { profileIds: v.array(v.id("profiles")) },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const targets: Array<SyncTarget> = [];
+    for (const profileId of args.profileIds) {
+      const target: SyncTarget | null = await ctx.runQuery(internal.profiles.getForSync, {
+        profileId,
+      });
+      if (target) targets.push(target);
+    }
+    const totals: RefreshTotals = { processed: 0, synced: 0, failed: 0 };
+    const { remaining } = await syncTargetList(ctx, targets, totals);
+    if (remaining.length > 0) {
+      await ctx.scheduler.runAfter(0, internal.xSync.refreshTargetsContinuation, {
+        profileIds: remaining.map((target) => target.profileId),
+      });
+    }
     return null;
   },
 });

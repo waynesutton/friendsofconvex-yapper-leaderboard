@@ -37,6 +37,7 @@ import type * as siteDirectory from "../siteDirectory.js";
 import type * as siteFiles from "../siteFiles.js";
 import type * as siteSettings from "../siteSettings.js";
 import type * as slack from "../slack.js";
+import type * as syncRuns from "../syncRuns.js";
 import type * as validators from "../validators.js";
 import type * as xAccountActivity from "../xAccountActivity.js";
 import type * as xAccountActivityActions from "../xAccountActivityActions.js";
@@ -81,6 +82,7 @@ declare const fullApi: ApiFromModules<{
   siteFiles: typeof siteFiles;
   siteSettings: typeof siteSettings;
   slack: typeof slack;
+  syncRuns: typeof syncRuns;
   validators: typeof validators;
   xAccountActivity: typeof xAccountActivity;
   xAccountActivityActions: typeof xAccountActivityActions;

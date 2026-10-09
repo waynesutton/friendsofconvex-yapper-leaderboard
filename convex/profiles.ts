@@ -10,6 +10,7 @@ import {
 } from "./_generated/server";
 import { getXViewer, isAdminViewer, requireAdmin } from "./authz";
 import { BOARD_MAX } from "./boardLimits";
+import { readSyncRun } from "./syncRuns";
 import {
   convexPostValidator,
   importEntryValidator,
@@ -459,11 +460,19 @@ export const listAdmin = query({
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
     const limit = Math.min(Math.max(Math.floor(args.limit ?? 200), 1), BOARD_MAX);
-    return await ctx.db
-      .query("profiles")
-      .withIndex("by_added_at")
-      .order("desc")
-      .take(limit);
+    const [recent, pending] = await Promise.all([
+      ctx.db.query("profiles").withIndex("by_added_at").order("desc").take(limit),
+      // A re-request keeps the profile's original addedAt, so pending rows
+      // are read on their own and can never fall past the row cap.
+      ctx.db
+        .query("profiles")
+        .withIndex("by_membership_status_and_added_at", (q) =>
+          q.eq("membershipStatus", "pending"),
+        )
+        .take(100),
+    ]);
+    const seen = new Set(recent.map((profile) => profile._id));
+    return [...recent, ...pending.filter((profile) => !seen.has(profile._id))];
   },
 });
 
@@ -501,14 +510,24 @@ export const getSyncHealth = query({
     failedCount: v.number(),
     neverSyncedCount: v.number(),
     lastError: v.union(v.string(), v.null()),
+    // Start of the last full pass that reached every active profile. Null
+    // before the first tracked pass, so the board falls back to row times.
+    boardSyncedAt: v.union(v.number(), v.null()),
+    // Set while the newest full pass is stopped by X (spend cap). Rows it did
+    // not reach still say synced, so this is the only honest signal.
+    haltedAt: v.union(v.number(), v.null()),
+    haltedReason: v.union(v.string(), v.null()),
   }),
   handler: async (ctx) => {
-    const profiles = await ctx.db
-      .query("profiles")
-      .withIndex("by_active_and_current_impressions", (q) =>
-        q.eq("active", true),
-      )
-      .take(250);
+    const [profiles, run] = await Promise.all([
+      ctx.db
+        .query("profiles")
+        .withIndex("by_active_and_current_impressions", (q) =>
+          q.eq("active", true),
+        )
+        .take(BOARD_MAX),
+      readSyncRun(ctx),
+    ]);
     let syncedCount = 0;
     let failedCount = 0;
     let neverSyncedCount = 0;
@@ -541,6 +560,9 @@ export const getSyncHealth = query({
       failedCount,
       neverSyncedCount,
       lastError,
+      boardSyncedAt: run?.lastFinishedRunStartedAt ?? null,
+      haltedAt: run?.haltedAt ?? null,
+      haltedReason: run?.haltedReason ?? null,
     };
   },
 });

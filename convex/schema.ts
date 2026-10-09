@@ -234,6 +234,21 @@ export default defineSchema({
     updatedAt: v.number(),
   }).index("by_key", ["key"]),
 
+  // Singleton (key "board") for the full board X sync. The board freshness
+  // label reads lastFinishedRunStartedAt, so a single admin rescan never
+  // passes as a board wide update. haltedAt is set when a pass stopped early
+  // (spend cap) and cleared when a pass finishes.
+  syncRuns: defineTable({
+    key: v.string(),
+    runStartedAt: v.number(),
+    lastFinishedRunStartedAt: v.union(v.number(), v.null()),
+    lastFinishedAt: v.union(v.number(), v.null()),
+    haltedAt: v.union(v.number(), v.null()),
+    haltedReason: v.union(v.string(), v.null()),
+    retryCount: v.number(),
+    updatedAt: v.number(),
+  }).index("by_key", ["key"]),
+
   // Singleton (key "board") controlling which metric columns the public
   // leaderboard shows in each mode. Missing doc means everything is visible.
   boardDisplaySettings: defineTable({

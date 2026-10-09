@@ -1,4 +1,5 @@
 import {
+  ArrowClockwiseIcon,
   ArrowDownIcon,
   ArrowUpIcon,
   ArrowUUpLeftIcon,
@@ -512,6 +513,36 @@ function GroupCard({
   const [note, setNote] = useState<Feedback>(null);
   // Delete arms on the first click and only removes on the second.
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const refreshGroup = useAction(api.xSync.refreshGroup);
+
+  // Re-pulls X metrics for this group's active members only.
+  async function rescan() {
+    setBusy("rescan");
+    setNote(null);
+    try {
+      const result = await refreshGroup({ groupId: group._id });
+      setNote(
+        result.missingKey
+          ? { tone: "error", message: "Add X_BEARER_TOKEN to Convex before rescanning." }
+          : result.haltedReason
+            ? {
+                tone: "error",
+                message: `Rescan stopped after ${result.processed} of ${group.activeMemberCount}: ${result.haltedReason} Check the X developer console billing cycle cap.`,
+              }
+            : {
+                tone: result.failed > 0 ? "info" : "success",
+                message: `Rescanned ${result.synced} of ${result.processed} members of ${result.groupName}${result.failed ? `; ${result.failed} need attention on the main admin page` : ""}.${result.remainingScheduled ? ` ${result.remainingScheduled} more are rescanning in the background.` : ""}`,
+              },
+      );
+    } catch (error) {
+      setNote({
+        tone: "error",
+        message: error instanceof Error ? error.message : "The rescan failed.",
+      });
+    } finally {
+      setBusy(null);
+    }
+  }
 
   async function saveDetails(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -698,6 +729,17 @@ function GroupCard({
             onClick={() => void move("down")}
           >
             <ArrowDownIcon aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className="icon-text-button"
+            disabled={busy !== null || group.activeMemberCount === 0}
+            aria-busy={busy === "rescan" || undefined}
+            title="Re-pull the last 7 days of X posts for this group's active members. Uses one X API request per member, plus one per 100 posts."
+            onClick={() => void rescan()}
+          >
+            <ArrowClockwiseIcon aria-hidden="true" />
+            {busy === "rescan" ? "Rescanning" : "Rescan"}
           </button>
           <button
             type="button"
