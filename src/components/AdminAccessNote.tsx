@@ -1,5 +1,6 @@
 import { LockKeyIcon } from "@phosphor-icons/react";
 import { useQuery } from "convex/react";
+import { Link } from "react-router-dom";
 import { api } from "../../convex/_generated/api";
 
 // Shared admin-only notice for /admin and /admin/gifts. Marks the signed in
@@ -19,12 +20,18 @@ export function AdminAccessNote() {
         ) : null}
       </div>
       <p>
-        This page and the Gift studio never appear to regular visitors. Access
-        is granted by the <code>ADMIN_X_USER_IDS</code> allowlist checked on
-        every request by Convex Auth.
+        This page and the Gift studio never appear to regular visitors. Convex
+        Auth checks every request against two lists: owners in the{" "}
+        <code>ADMIN_X_USER_IDS</code> env var, and admins granted on the{" "}
+        <Link className="text-link" to="/admin/team">Admins</Link> page.
       </p>
       <details>
         <summary>How to make another user an admin</summary>
+        <p>
+          The quick way: open <Link className="text-link" to="/admin/team">Admins</Link>,
+          search the board or type their @handle, and press Grant admin access.
+          To make someone a permanent owner instead, use the env var:
+        </p>
         <ol>
           <li>
             Get the person&apos;s numeric X user ID. A lookup tool like{" "}

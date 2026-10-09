@@ -1,9 +1,10 @@
 // Pure builders for live discovery files. HTTP routes and the directory
 // query both import these. No Convex function registrations here.
 
+import { BOARD_MAX } from "./boardLimits";
 import { DEFAULT_BRANDING, type SiteBranding } from "./brandingDefaults";
 
-export const DIRECTORY_CAP = 250;
+export const DIRECTORY_CAP = BOARD_MAX;
 
 export function sitePages(branding: SiteBranding): Array<{
   title: string;

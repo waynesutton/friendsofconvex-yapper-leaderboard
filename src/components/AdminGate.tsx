@@ -63,7 +63,7 @@ export function AdminGate({
       <main className="access-state">
         <p className="eyebrow">Restricted board operations</p>
         <h1>Admin sign-in</h1>
-        <p>Continue with the X account listed in the Convex admin allowlist.</p>
+        <p>Continue with an X account that has admin access.</p>
         <button
           className="primary-button"
           type="button"
@@ -92,8 +92,8 @@ export function AdminGate({
         <p className="eyebrow">Access denied</p>
         <h1>This X account is not an admin.</h1>
         <p>
-          Signed in as @{viewer.xUsername ?? "unknown"}. Ask the operator to add
-          your stable X user ID to <code>ADMIN_X_USER_IDS</code>.
+          Signed in as @{viewer.xUsername ?? "unknown"}. Ask an existing admin
+          to add @{viewer.xUsername ?? "you"} on the Admins page, then reload.
         </p>
         <button className="secondary-button" type="button" onClick={() => void signOut()}>
           Sign out

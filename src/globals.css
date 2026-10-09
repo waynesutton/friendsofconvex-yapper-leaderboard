@@ -703,6 +703,21 @@ button:disabled {
   gap: 32px;
 }
 
+.admin-list-breakdown {
+  margin: 10px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 0;
+  color: var(--caption-ink);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-list-breakdown span + span::before {
+  content: "\00B7";
+  margin: 0 8px;
+}
+
 .admin-list-heading-actions {
   display: flex;
   flex-wrap: wrap;
@@ -2029,7 +2044,202 @@ html[data-theme="convex"] .metric-info-trigger[aria-expanded="true"] {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
+  align-items: center;
   gap: 8px;
+}
+
+/* /admin/team: admin access ledger. Reuses the admin row grid and the add
+   handle panel; these rules only add avatars, search results, the confirm
+   card, and the owner / granted tier labels. */
+.team-avatar {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  display: inline-grid;
+  place-items: center;
+  object-fit: cover;
+  background: var(--studio-paper-deep);
+  border: 1px solid var(--line-standard);
+  border-radius: 50%;
+  color: var(--caption-ink);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.team-avatar--large {
+  width: 52px;
+  height: 52px;
+  font-size: 17px;
+}
+
+.team-search-icon {
+  display: inline-flex;
+}
+
+.team-search-icon svg {
+  width: 17px;
+  height: 17px;
+}
+
+.team-results {
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--line-standard);
+  border-radius: var(--radius-small);
+  overflow: hidden;
+}
+
+.team-results li + li {
+  border-top: 1px solid var(--line-whisper);
+}
+
+.team-results-note {
+  padding: 14px 16px;
+  color: var(--caption-ink);
+  font-size: 13px;
+}
+
+.team-result {
+  width: 100%;
+  min-height: 56px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: transparent;
+  border: 0;
+  color: var(--broadcast-ink);
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 150ms ease;
+}
+
+.team-result:hover:not(:disabled),
+.team-result:focus-visible {
+  background: var(--control-inset);
+}
+
+.team-result:focus-visible {
+  outline: 2px solid var(--control-focus);
+  outline-offset: -2px;
+}
+
+.team-result:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.team-result-name {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.team-result-name strong,
+.team-result-name small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.team-result-name strong {
+  font-size: 14px;
+}
+
+.team-result-name small,
+.team-identity-note {
+  color: var(--caption-ink);
+  font-size: 12px;
+}
+
+.team-tag {
+  flex: 0 0 auto;
+  padding: 4px 9px;
+  border: 1px solid var(--line-standard);
+  border-radius: 999px;
+  color: var(--caption-ink);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.team-tag--admin {
+  border-color: var(--signal-green);
+  color: var(--signal-green);
+}
+
+.team-confirm {
+  margin-top: 14px;
+  padding: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  background: var(--control-inset);
+  border: 1px solid var(--line-emphasis);
+  border-left: 4px solid var(--signal-coral);
+  border-radius: var(--radius-small);
+}
+
+.team-confirm-body {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.team-confirm-body strong {
+  font-size: 16px;
+}
+
+.team-confirm-body a,
+.team-confirm-body small {
+  color: var(--caption-ink);
+  font-size: 12px;
+}
+
+.team-confirm-body small {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.team-confirm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.team-tier--owner {
+  color: var(--broadcast-ink);
+}
+
+.team-tier--granted {
+  color: var(--signal-green);
+}
+
+.team-locked {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--caption-ink);
+  font-size: 12px;
+  font-weight: 650;
+  cursor: help;
+}
+
+.team-locked svg,
+.team-help-icon {
+  width: 15px;
+  height: 15px;
+  vertical-align: -2px;
 }
 
 /* Inline legend note editor: opens under the row it belongs to and spans the

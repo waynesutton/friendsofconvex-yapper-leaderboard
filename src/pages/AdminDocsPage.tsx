@@ -233,12 +233,22 @@ export function AdminDocsPage() {
           <section>
             <span className="method-number">08</span>
             <div>
-              <h2>Revoking access</h2>
+              <h2>Adding and revoking admins</h2>
               <p>
-                Remove a person&apos;s X user ID from{" "}
-                <code>ADMIN_X_USER_IDS</code> in the Convex dashboard and save.
-                Every admin read and write rechecks the allowlist, so access
-                ends immediately. No deploy needed.
+                <Link className="text-link" to="/admin/team">/admin/team</Link>{" "}
+                lists everyone with admin access. Search the board by name or
+                @handle, or type any X handle and press Look up on X, then
+                confirm with Grant admin access. Any admin can add or remove
+                granted admins, up to 50. Nobody can remove themselves, so the
+                last person in the room can&apos;t lock themselves out by
+                accident.
+              </p>
+              <p>
+                Owners are the X user IDs in <code>ADMIN_X_USER_IDS</code>.
+                They are always admins and show a lock on the Admins page; to
+                remove one, edit the env var in the Convex dashboard. Every
+                admin read and write rechecks both lists, so changes apply on
+                the next request. No deploy needed.
               </p>
             </div>
           </section>

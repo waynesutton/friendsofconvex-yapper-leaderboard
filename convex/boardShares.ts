@@ -8,6 +8,7 @@ import {
   query,
   type QueryCtx,
 } from "./_generated/server";
+import { BOARD_MAX } from "./boardLimits";
 import { DEFAULT_DISPLAY } from "./boardSettings";
 import { hasSyncedMetrics, loadBoardRows, type PublicLeaderboardRow } from "./profiles";
 import { boardShareRowValidator } from "./validators";
@@ -22,7 +23,7 @@ export const SHARE_ROW_LIMIT = 5;
 // Same pool the public board subscribes to. Yappers and Convex mentions pick
 // their top rows by impressions before re-sorting, so a smaller pool could
 // rank someone the board does not.
-const BOARD_POOL = 250;
+const BOARD_POOL = BOARD_MAX;
 
 // Board ids match the `?board=` URL values the leaderboard uses.
 export const YAPPERS_BOARD = "impressions";

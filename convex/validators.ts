@@ -36,6 +36,9 @@ export const profileValidator = v.object({
   currentConvexImpressions: v.optional(v.number()),
   currentConvexEngagements: v.optional(v.number()),
   convexScannedAt: v.optional(v.number()),
+  convexWeeklyChange: v.optional(v.union(v.number(), v.null())),
+  convexStreak: v.optional(v.number()),
+  convexPostsStored: v.optional(v.number()),
   addedAt: v.number(),
   updatedAt: v.number(),
   membershipStatus: v.optional(

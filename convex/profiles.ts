@@ -9,6 +9,7 @@ import {
   type QueryCtx,
 } from "./_generated/server";
 import { getXViewer, isAdminViewer, requireAdmin } from "./authz";
+import { BOARD_MAX } from "./boardLimits";
 import {
   convexPostValidator,
   importEntryValidator,
@@ -159,10 +160,102 @@ export function compareYapperRows(
   );
 }
 
+type ConvexTrend = {
+  convexPostCount: number;
+  convexImpressions: number;
+  convexEngagements: number;
+  convexScanned: boolean;
+  convexPostsStored: number;
+  convexWeeklyChange: number | null;
+  convexStreak: number;
+};
+
+// Convex mention trend from a profile's snapshot history, newest first.
+// Every time comparison anchors to snapshot timestamps so the result is
+// deterministic. Runs at sync time; the board only falls back to it for
+// profiles that have not synced since stored trends shipped.
+export function computeConvexTrend(
+  history: Array<Doc<"snapshots">>,
+): ConvexTrend {
+  const latest = history[0];
+  const scanned = latest !== undefined && latest.convexPostCount !== undefined;
+
+  // Weekly change: latest scan count minus the closest scanned snapshot at
+  // least seven days older, anchored to the latest snapshot's window end.
+  let weeklyChange: number | null = null;
+  if (latest && scanned) {
+    const prior = history.find(
+      (snapshot) =>
+        snapshot.windowEnd <= latest.windowEnd - WEEK_MS &&
+        snapshot.convexPostCount !== undefined,
+    );
+    if (prior) {
+      weeklyChange =
+        (latest.convexPostCount ?? 0) - (prior.convexPostCount ?? 0);
+    }
+  }
+
+  // Streak: consecutive seven day buckets, walking back from the latest
+  // snapshot time, that contain a snapshot with at least one Convex post.
+  let streak = 0;
+  if (latest && scanned) {
+    for (let week = 0; week < STREAK_LOOKBACK_WEEKS; week += 1) {
+      const bucketEnd = latest.windowEnd - week * WEEK_MS;
+      const bucket = history.filter(
+        (snapshot) =>
+          snapshot.windowEnd > bucketEnd - WEEK_MS &&
+          snapshot.windowEnd <= bucketEnd,
+      );
+      if (bucket.length === 0) break;
+      if (!bucket.some((snapshot) => (snapshot.convexPostCount ?? 0) >= 1)) {
+        break;
+      }
+      streak += 1;
+    }
+  }
+
+  return {
+    convexPostCount: latest?.convexPostCount ?? 0,
+    convexImpressions: latest?.convexImpressions ?? 0,
+    convexEngagements: latest?.convexEngagements ?? 0,
+    convexScanned: scanned,
+    convexPostsStored: latest?.convexPosts?.length ?? 0,
+    convexWeeklyChange: weeklyChange,
+    convexStreak: streak,
+  };
+}
+
+async function loadSnapshotHistory(
+  ctx: QueryCtx,
+  profileId: Id<"profiles">,
+): Promise<Array<Doc<"snapshots">>> {
+  return await ctx.db
+    .query("snapshots")
+    .withIndex("by_profile_id_and_window_end", (q) =>
+      q.eq("profileId", profileId),
+    )
+    .order("desc")
+    .take(SNAPSHOT_HISTORY_LIMIT);
+}
+
+// The trend stored on the profile at sync time mirrors the latest snapshot,
+// so reading it costs nothing beyond the profile row itself.
+function storedConvexTrend(profile: Doc<"profiles">): ConvexTrend | null {
+  if (profile.convexStreak === undefined) return null;
+  return {
+    convexPostCount: profile.currentConvexPosts ?? 0,
+    convexImpressions: profile.currentConvexImpressions ?? 0,
+    convexEngagements: profile.currentConvexEngagements ?? 0,
+    convexScanned: profile.convexScannedAt !== undefined,
+    convexPostsStored: profile.convexPostsStored ?? 0,
+    convexWeeklyChange: profile.convexWeeklyChange ?? null,
+    convexStreak: profile.convexStreak,
+  };
+}
+
 // Builds the Convex mentions ranking from the same active profile index as the
-// default board plus each profile's snapshot history (per profile index, no
-// table scans). Every time comparison anchors to snapshot timestamps so the
-// query stays deterministic and cacheable.
+// default board. Trends come from the profile row; only profiles that have
+// not synced since stored trends shipped read their snapshot history.
 async function buildConvexLeaderboard(
   ctx: QueryCtx,
   limit: number,
@@ -179,60 +272,10 @@ async function buildConvexLeaderboard(
   for (const profile of profiles) {
     // Legends leave every ranking, including Convex mentions.
     if (profile.legendAt !== undefined) continue;
-    const history = await ctx.db
-      .query("snapshots")
-      .withIndex("by_profile_id_and_window_end", (q) =>
-        q.eq("profileId", profile._id),
-      )
-      .order("desc")
-      .take(SNAPSHOT_HISTORY_LIMIT);
-    const latest = history[0];
-    const scanned = latest !== undefined && latest.convexPostCount !== undefined;
-
-    // Weekly change: latest scan count minus the closest scanned snapshot at
-    // least seven days older, anchored to the latest snapshot's window end.
-    let weeklyChange: number | null = null;
-    if (latest && scanned) {
-      const prior = history.find(
-        (snapshot) =>
-          snapshot.windowEnd <= latest.windowEnd - WEEK_MS &&
-          snapshot.convexPostCount !== undefined,
-      );
-      if (prior) {
-        weeklyChange =
-          (latest.convexPostCount ?? 0) - (prior.convexPostCount ?? 0);
-      }
-    }
-
-    // Streak: consecutive seven day buckets, walking back from the latest
-    // snapshot time, that contain a snapshot with at least one Convex post.
-    let streak = 0;
-    if (latest && scanned) {
-      for (let week = 0; week < STREAK_LOOKBACK_WEEKS; week += 1) {
-        const bucketEnd = latest.windowEnd - week * WEEK_MS;
-        const bucket = history.filter(
-          (snapshot) =>
-            snapshot.windowEnd > bucketEnd - WEEK_MS &&
-            snapshot.windowEnd <= bucketEnd,
-        );
-        if (bucket.length === 0) break;
-        if (!bucket.some((snapshot) => (snapshot.convexPostCount ?? 0) >= 1)) {
-          break;
-        }
-        streak += 1;
-      }
-    }
-
-    rows.push({
-      ...profile,
-      convexPostCount: latest?.convexPostCount ?? 0,
-      convexImpressions: latest?.convexImpressions ?? 0,
-      convexEngagements: latest?.convexEngagements ?? 0,
-      convexScanned: scanned,
-      convexPostsStored: latest?.convexPosts?.length ?? 0,
-      convexWeeklyChange: weeklyChange,
-      convexStreak: streak,
-    });
+    const trend =
+      storedConvexTrend(profile) ??
+      computeConvexTrend(await loadSnapshotHistory(ctx, profile._id));
+    rows.push({ ...profile, ...trend });
   }
 
   rows.sort(
@@ -276,7 +319,7 @@ export async function loadBoardRows(
     groupId?: Id<"groups">;
   },
 ): Promise<Array<PublicLeaderboardRow>> {
-  const limit = Math.min(Math.max(Math.floor(args.limit ?? 200), 1), 250);
+  const limit = Math.min(Math.max(Math.floor(args.limit ?? 200), 1), BOARD_MAX);
   if (args.groupId !== undefined) {
     // Internal boards are admin only. Visitors get an empty board, which
     // the frontend never hits because listPublic hides the pill too.
@@ -331,7 +374,7 @@ export async function loadBoardRows(
       .withIndex("by_active_and_current_impressions", (q) =>
         q.eq("active", true),
       )
-      .take(250);
+      .take(BOARD_MAX);
     return legends
       .filter((profile) => profile.legendAt !== undefined)
       .sort((left, right) => (right.legendAt ?? 0) - (left.legendAt ?? 0))
@@ -398,7 +441,7 @@ export const listTopConvexYappers = internalQuery({
   ),
   handler: async (ctx, args) => {
     const limit = Math.min(Math.max(Math.floor(args.limit), 1), 25);
-    const rows = await buildConvexLeaderboard(ctx, 250);
+    const rows = await buildConvexLeaderboard(ctx, BOARD_MAX);
     return rows.slice(0, limit).map((row) => ({
       handle: row.handle,
       displayName: row.displayName,
@@ -415,7 +458,7 @@ export const listAdmin = query({
   returns: v.array(profileValidator),
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
-    const limit = Math.min(Math.max(Math.floor(args.limit ?? 200), 1), 250);
+    const limit = Math.min(Math.max(Math.floor(args.limit ?? 200), 1), BOARD_MAX);
     return await ctx.db
       .query("profiles")
       .withIndex("by_added_at")
@@ -1101,6 +1144,16 @@ export const recordSyncSuccess = internalMutation({
     } else {
       await ctx.db.insert("snapshots", snapshot);
     }
+
+    // Store the trend now so the Convex board reads it from the profile.
+    const trend = computeConvexTrend(
+      await loadSnapshotHistory(ctx, args.profileId),
+    );
+    await ctx.db.patch("profiles", args.profileId, {
+      convexWeeklyChange: trend.convexWeeklyChange,
+      convexStreak: trend.convexStreak,
+      convexPostsStored: trend.convexPostsStored,
+    });
     return null;
   },
 });

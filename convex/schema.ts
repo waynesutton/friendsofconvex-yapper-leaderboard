@@ -93,6 +93,11 @@ export default defineSchema({
     currentConvexImpressions: v.optional(v.number()),
     currentConvexEngagements: v.optional(v.number()),
     convexScannedAt: v.optional(v.number()),
+    // Trend from snapshot history, stored at sync so the Convex board never
+    // reads history on page load. Missing means "not computed yet".
+    convexWeeklyChange: v.optional(v.union(v.number(), v.null())),
+    convexStreak: v.optional(v.number()),
+    convexPostsStored: v.optional(v.number()),
     addedAt: v.number(),
     updatedAt: v.number(),
     membershipStatus: v.optional(
@@ -137,7 +142,23 @@ export default defineSchema({
     .index("by_membership_status_and_added_at", [
       "membershipStatus",
       "addedAt",
-    ]),
+    ])
+    .searchIndex("search_display_name", { searchField: "displayName" }),
+
+  // Admins granted from /admin/team. The ADMIN_X_USER_IDS env list stays the
+  // owner tier: always admin and never removable from the UI, so a bad grant
+  // or removal can't lock everyone out.
+  adminGrants: defineTable({
+    xUserId: v.string(),
+    handle: v.string(),
+    displayName: v.string(),
+    profileImageUrl: v.union(v.string(), v.null()),
+    grantedByUserId: v.id("users"),
+    grantedByHandle: v.union(v.string(), v.null()),
+    grantedAt: v.number(),
+  })
+    .index("by_x_user_id", ["xUserId"])
+    .index("by_granted_at", ["grantedAt"]),
 
   snapshots: defineTable({
     profileId: v.id("profiles"),

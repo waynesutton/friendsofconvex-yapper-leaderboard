@@ -26,6 +26,7 @@ import {
 import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
+import { BOARD_MAX } from "../../convex/boardLimits";
 import { DEFAULT_BRANDING } from "../../convex/brandingDefaults";
 import { useScrollActiveIntoView } from "../lib/useScrollActiveIntoView";
 import { BoardSearch } from "./BoardSearch";
@@ -255,16 +256,16 @@ function formatWeeklyChange(row: LeaderboardRow): string {
 
 export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) {
   // Both modes stay subscribed so toggling re-sorts instantly with no refetch.
-  // 250 is the backend cap, so Load more can walk through the whole board.
-  const profiles = useQuery(api.profiles.listLeaderboard, { limit: 250 });
+  // BOARD_MAX is the backend cap, so Load more can walk through the whole board.
+  const profiles = useQuery(api.profiles.listLeaderboard, { limit: BOARD_MAX });
   const convexProfiles = useQuery(api.profiles.listLeaderboard, {
-    limit: 250,
+    limit: BOARD_MAX,
     mode: "convex",
   });
   // Always subscribed, because its length is what decides whether the Legends
   // pill exists at all. Empty on a board where nobody has been retired.
   const legendProfiles = useQuery(api.profiles.listLeaderboard, {
-    limit: 250,
+    limit: BOARD_MAX,
     mode: "legends",
   });
   const rankBadges = useQuery(api.badges.listRankBadges, {});
@@ -364,7 +365,7 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
   // Group boards subscribe only while a group pill is active.
   const groupProfiles = useQuery(
     api.profiles.listLeaderboard,
-    activeGroup ? { limit: 250, groupId: activeGroup._id } : "skip",
+    activeGroup ? { limit: BOARD_MAX, groupId: activeGroup._id } : "skip",
   );
 
   const convexMode = activeBoard === "convex";

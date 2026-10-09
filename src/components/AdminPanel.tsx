@@ -16,6 +16,7 @@ import { FormEvent, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
+import { BOARD_MAX } from "../../convex/boardLimits";
 import { matchesYapperSearch } from "../lib/yapperSearch";
 import { formatSyncTime } from "./formatters";
 import { ImportPanel } from "./ImportPanel";
@@ -384,7 +385,7 @@ function sanitizeHandleInput(value: string): string {
 }
 
 export function AdminPanel() {
-  const profiles = useQuery(api.profiles.listAdmin, { limit: 250 });
+  const profiles = useQuery(api.profiles.listAdmin, { limit: BOARD_MAX });
   const setup = useQuery(api.profiles.getSetupStatus, {});
   const addProfile = useMutation(api.profiles.add);
   const setActive = useMutation(api.profiles.setActive);
@@ -403,6 +404,19 @@ export function AdminPanel() {
     [profiles, search],
   );
   const searching = search.trim().length > 0;
+  // Splits the roster the way the public board does, so the heading explains
+  // why its total differs from the hero count.
+  const rosterBreakdown = useMemo(() => {
+    let onBoard = 0;
+    let legends = 0;
+    let offBoard = 0;
+    for (const profile of profiles ?? []) {
+      if (!profile.active) offBoard += 1;
+      else if (profile.legendAt !== undefined) legends += 1;
+      else onBoard += 1;
+    }
+    return { onBoard, legends, offBoard };
+  }, [profiles]);
   // Remove is destructive, so the button arms on the first click and only
   // deletes on the second. Any other row action disarms it.
   const [confirmRemoveId, setConfirmRemoveId] = useState<Id<"profiles"> | null>(null);
@@ -675,6 +689,17 @@ export function AdminPanel() {
                   ? `${shownProfiles.length} of ${profiles.length} profiles`
                   : `${profiles.length} profiles`}
             </h2>
+            {profiles !== undefined ? (
+              <p
+                className="admin-list-breakdown"
+                title="On the board matches the homepage count. Off the board covers archived, pending, and declined profiles."
+              >
+                <span>{rosterBreakdown.onBoard} on the board</span>
+                <span>{rosterBreakdown.legends} {rosterBreakdown.legends === 1 ? "legend" : "legends"}</span>
+                <span>{rosterBreakdown.offBoard} off the board</span>
+                {profiles.length >= BOARD_MAX ? <span>Showing the newest {BOARD_MAX}</span> : null}
+              </p>
+            ) : null}
           </div>
           <div className="admin-list-heading-actions">
             <div className="gift-ledger-search">

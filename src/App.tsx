@@ -11,6 +11,7 @@ import { AdminQueuePage } from "./pages/AdminQueuePage";
 import { AdminPage } from "./pages/AdminPage";
 import { AdminSettingsPage } from "./pages/AdminSettingsPage";
 import { AdminSetupPage } from "./pages/AdminSetupPage";
+import { AdminTeamPage } from "./pages/AdminTeamPage";
 import { BoardSharePage } from "./pages/BoardSharePage";
 import { GiftLabPassPage } from "./pages/GiftLabPassPage";
 import { GiftPassPage } from "./pages/GiftPassPage";
@@ -43,6 +44,7 @@ export function App() {
           <Route path="/admin/groups" element={<AdminGroupsPage />} />
           <Route path="/admin/queue" element={<AdminQueuePage />} />
           <Route path="/admin/settings" element={<AdminSettingsPage />} />
+          <Route path="/admin/team" element={<AdminTeamPage />} />
           <Route path="/admin/docs" element={<AdminDocsPage />} />
           <Route path="/admin/setup" element={<AdminSetupPage />} />
           <Route path="/admin/gifts" element={<AdminGiftsPage />} />

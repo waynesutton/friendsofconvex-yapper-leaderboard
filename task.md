@@ -9,6 +9,18 @@
 - [ ] Deploy the mention queue to production (`npx convex deploy`, then `npm run deploy -- --skip-convex`). Scans default to on every 6 hours, so production starts reading X once deployed; uncheck Scan X for new mentions on `/admin/queue` to pause it.
 - [ ] Signed in check of `/admin/queue`: Add to board, Dismiss, Restore, Load more, and the Automatic scans controls need an admin X session.
 - [ ] Signed in admin header pass on a real phone and in the Studio theme: tab strip swipes, active tab stays in view, Sign out icon reads correctly.
+- [ ] Signed in check of `/admin/team`: board search, Look up on X, Grant admin access, then sign in as the new admin in another browser, then Remove. Deploy to production with `npx convex deploy`, then `npm run deploy -- --skip-convex`.
+- [ ] Deploy the board count fix to production (`npx convex deploy`, then `npm run deploy -- --skip-convex`). Expect the hero to read 264 and the admin heading 267 profiles with 264 on the board, 2 legends, 1 off the board. After the next 8:17 AM Pacific sync, every profile has a stored Convex trend and the Convex board stops reading snapshot history.
+
+## Completed — 2026-10-09 20:45 UTC (board counts past 250)
+
+- [x] Prod has 267 profiles (264 on the board, 2 legends, 1 pending), but the admin heading said 250 and the hero 248 because every board read capped at 250 and 16 members were missing from the public board. Shared `BOARD_MAX = 1000` in `convex/boardLimits.ts` for `loadBoardRows`, legends, `listAdmin`, `listTopConvexYappers`, `boardShares`, `siteDirectory`, and the client queries in `Leaderboard.tsx`, `AdminPanel.tsx`, `GiftAdminPanel.tsx`. The admin heading shows on the board, legends, and off the board. `recordSyncSuccess` stores `convexWeeklyChange`, `convexStreak`, `convexPostsStored` on the profile through the new `computeConvexTrend`, and the Convex board reads those, with a history fallback. PRD: prds/board-count-cap.md.
+- [x] Verified with `npx convex dev --once`, `npx tsc -b`, `npx eslint .`, `npx vitest run` (60 passing, 2 new in `tests/boardCount.test.ts`), and `npm run build`.
+
+## Completed — 2026-10-08 23:05 UTC (admins page)
+
+- [x] New `/admin/team` page (Admins tab) to grant and remove admin access without editing env vars. Board search by handle prefix (`by_normalized_handle` range) and display name (new `search_display_name` search index), Look up on X for any handle or x.com link, a confirm card, and the admin list with owner and granted tiers, two step Remove, and no self removal. `ADMIN_X_USER_IDS` stays the locked owner tier. New `adminGrants` table (cap 50); `requireAdmin`, `isAdminViewer`, `isAdminUser`, and `viewer` all go through `isAdminXUserId`. PRD: prds/admin-team-access.md. `convex/schema.ts`, `convex/authz.ts`, `convex/admins.ts`, `src/components/AdminTeamPanel.tsx`, `src/pages/AdminTeamPage.tsx`, `src/App.tsx`, `src/components/SiteHeader.tsx`, `src/globals.css`, copy in `AdminGate.tsx`, `AdminAccessNote.tsx`, `AdminDocsPage.tsx`, `AdminGiftsGuidePage.tsx`, README.
+- [x] Verified with `npx convex dev --once`, `npx tsc --noEmit`, eslint on touched files, `npx vitest run` (58 passing, 6 new in `tests/admins.test.ts`), and `npm run build`.
 
 ## Completed — 2026-10-07 19:14 UTC (top 3 handles in the share text)
 

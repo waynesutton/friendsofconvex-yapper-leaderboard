@@ -48,7 +48,7 @@ You will create accounts and paste **variable names** into Convex with `npx conv
 | Site origin | `SITE_URL` | Local: `http://localhost:5174`. Production: your public origin |
 | X OAuth 2.0 app (confidential client) | `AUTH_TWITTER_ID`, `AUTH_TWITTER_SECRET` | [X Developer Portal](https://developer.x.com) OAuth 2.0 Client ID and Client Secret |
 | X app only access | `X_BEARER_TOKEN` | Same X app: App only Bearer Token (read profiles, Lists, posts, metrics) |
-| First admin | `ADMIN_X_USER_IDS` | Comma separated **numeric** X user IDs (not handles). Read `xUserId` from the Convex `users` table after you sign in at `/join` |
+| First admin | `ADMIN_X_USER_IDS` | Comma separated **numeric** X user IDs (not handles). Read `xUserId` from the Convex `users` table after you sign in at `/join`. These are permanent owners; add everyone else from `/admin/team` |
 
 X OAuth callback URL to register on the X app (exact match, no trailing slash on the origin):
 
@@ -161,6 +161,7 @@ Useful scripts:
 | `/admin` | Board ops: add / archive / remove handles, imports, column and badge settings, the Convex mentions tab toggle |
 | `/admin/groups` | Custom groups: create, rename, reorder, show or hide, internal admin only boards, member management, X List import |
 | `/admin/settings` | Site branding: title, community name, board name, header title, logo, reset to defaults |
+| `/admin/team` | Admins: search the board or look up any X handle to grant admin access, remove granted admins. `ADMIN_X_USER_IDS` owners stay locked |
 | `/admin/gifts` | Gift studio: campaigns, product shelf, Dispatches log, X DM delivery |
 | `/admin/gift-lab` | Gift lab: named links for people off the board |
 | `/admin/gifts/guide` | Plain language Gift studio walkthrough |

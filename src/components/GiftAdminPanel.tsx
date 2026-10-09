@@ -22,6 +22,7 @@ import { Link } from "react-router-dom";
 import { FormEvent, useMemo, useState } from "react";
 import { api } from "../../convex/_generated/api";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
+import { BOARD_MAX } from "../../convex/boardLimits";
 import { FilterDropdown, type FilterDropdownOption } from "./FilterDropdown";
 import { GiftProductShelf } from "./GiftProductShelf";
 
@@ -420,7 +421,7 @@ function GiftRecipientRow({
 }
 
 export function GiftAdminPanel() {
-  const profiles = useQuery(api.profiles.listAdmin, { limit: 200 });
+  const profiles = useQuery(api.profiles.listAdmin, { limit: BOARD_MAX });
   const campaigns = useQuery(api.gifts.listCampaignsAdmin, { limit: 30 });
   const configuration = useQuery(api.gifts.getConfigurationAdmin, {});
   const giftIntents = useQuery(api.xAccountActivity.listIntentsAdmin, {

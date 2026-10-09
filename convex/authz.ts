@@ -9,14 +9,26 @@ import {
 } from "./_generated/server";
 
 type AuthDbCtx = Pick<QueryCtx, "auth" | "db"> | Pick<MutationCtx, "auth" | "db">;
+type DbCtx = Pick<QueryCtx, "db"> | Pick<MutationCtx, "db">;
 
-function adminIds(): Set<string> {
+// Owner tier: the env allowlist. Always admin, never removable from the UI.
+export function ownerXUserIds(): Set<string> {
   return new Set(
     (process.env.ADMIN_X_USER_IDS ?? "")
       .split(",")
       .map((value) => value.trim())
       .filter(Boolean),
   );
+}
+
+// The single admin check: env owners first, then grants made on /admin/team.
+export async function isAdminXUserId(ctx: DbCtx, xUserId: string): Promise<boolean> {
+  if (ownerXUserIds().has(xUserId)) return true;
+  const grant = await ctx.db
+    .query("adminGrants")
+    .withIndex("by_x_user_id", (q) => q.eq("xUserId", xUserId))
+    .first();
+  return grant !== null;
 }
 
 async function xAccountForUser(ctx: AuthDbCtx, userId: Id<"users">) {
@@ -55,13 +67,13 @@ export async function getXViewer(ctx: AuthDbCtx) {
 // admins (for example internal group pills) without failing for visitors.
 export async function isAdminViewer(ctx: AuthDbCtx): Promise<boolean> {
   const viewer = await getXViewer(ctx);
-  return viewer !== null && adminIds().has(viewer.xUserId);
+  return viewer !== null && (await isAdminXUserId(ctx, viewer.xUserId));
 }
 
 export async function requireAdmin(ctx: AuthDbCtx) {
   const viewer = await getXViewer(ctx);
   if (!viewer) throw new Error("Sign in with X to continue.");
-  if (!adminIds().has(viewer.xUserId)) {
+  if (!(await isAdminXUserId(ctx, viewer.xUserId))) {
     throw new Error("This X account is not on the admin allowlist.");
   }
   return viewer;
@@ -84,13 +96,14 @@ export const viewer = query({
   returns: viewerValidator,
   handler: async (ctx) => {
     const xViewer = await getXViewer(ctx);
+    const anyGrant = await ctx.db.query("adminGrants").first();
     return {
       authenticated: xViewer !== null,
       authConfigured: Boolean(
         process.env.AUTH_TWITTER_ID && process.env.AUTH_TWITTER_SECRET,
       ),
-      adminConfigured: adminIds().size > 0,
-      isAdmin: xViewer ? adminIds().has(xViewer.xUserId) : false,
+      adminConfigured: ownerXUserIds().size > 0 || anyGrant !== null,
+      isAdmin: xViewer ? await isAdminXUserId(ctx, xViewer.xUserId) : false,
       userId: xViewer?.userId ?? null,
       xUserId: xViewer?.xUserId ?? null,
       xUsername: xViewer?.xUsername || null,
@@ -105,6 +118,6 @@ export const isAdminUser = internalQuery({
   returns: v.boolean(),
   handler: async (ctx, args) => {
     const account = await xAccountForUser(ctx, args.userId);
-    return account ? adminIds().has(account.providerAccountId) : false;
+    return account ? await isAdminXUserId(ctx, account.providerAccountId) : false;
   },
 });

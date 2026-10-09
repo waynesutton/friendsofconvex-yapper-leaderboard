@@ -17,6 +17,7 @@ const ADMIN_LINKS = [
   { to: "/admin/gifts", label: "Gift studio" },
   { to: "/admin/gift-lab", label: "Gift lab" },
   { to: "/admin/gifts/guide", label: "Gifts guide" },
+  { to: "/admin/team", label: "Admins" },
   { to: "/admin/docs", label: "Admin docs" },
 ] as const;
 

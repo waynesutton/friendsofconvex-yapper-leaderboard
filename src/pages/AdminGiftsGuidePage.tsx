@@ -32,9 +32,10 @@ export function AdminGiftsGuidePage() {
               <h2>Who can use this page</h2>
               <p>
                 Only admins. The Gift studio checks your X account against the
-                admin allowlist on every action. If a teammate needs access,
-                add their X user ID to <code>ADMIN_X_USER_IDS</code> in the
-                Convex dashboard. The steps are on the{" "}
+                admin list on every action. If a teammate needs access, add
+                them on the{" "}
+                <Link className="text-link" to="/admin/team">Admins</Link>{" "}
+                page. The details are on the{" "}
                 <Link className="text-link" to="/admin/docs">Admin docs</Link>{" "}
                 page.
               </p>

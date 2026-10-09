@@ -8,9 +8,11 @@
  * @module
  */
 
+import type * as admins from "../admins.js";
 import type * as auth from "../auth.js";
 import type * as authz from "../authz.js";
 import type * as badges from "../badges.js";
+import type * as boardLimits from "../boardLimits.js";
 import type * as boardSettings from "../boardSettings.js";
 import type * as boardShareRender from "../boardShareRender.js";
 import type * as boardShares from "../boardShares.js";
@@ -50,9 +52,11 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  admins: typeof admins;
   auth: typeof auth;
   authz: typeof authz;
   badges: typeof badges;
+  boardLimits: typeof boardLimits;
   boardSettings: typeof boardSettings;
   boardShareRender: typeof boardShareRender;
   boardShares: typeof boardShares;
