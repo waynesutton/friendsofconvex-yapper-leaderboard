@@ -18,7 +18,7 @@ export const DEFAULT_BRANDING: SiteBranding = {
   siteDescription:
     "A people-only, seven-day X leaderboard for the Friends of Convex community.",
   communityName: "Friends of Convex",
-  boardName: "Yapper Leader Board",
+  boardName: "Yapper Leaderboard",
   eyebrowText: "people edition",
   headerTitle: "Friends who yap",
   // null means the header renders the built-in Convex wordmark asset.

@@ -100,7 +100,7 @@
 - `src/components/AdminAccessNote.tsx` — Shared admin-only notice with the signed-in admin chip and steps for adding another admin to `ADMIN_X_USER_IDS`.
 - `src/components/ImportPanel.tsx` — Bulk handle and public X List preview and import controls.
 - `src/components/JoinBoard.tsx` — X sign-in, membership request, and review status, with X in-app browser instructions, a mobile stay-in-this-browser hint, and a failed sign-in retry message.
-- `src/components/SiteHeader.tsx` — Wide header with the brandable lockup (custom logo and header title from site settings), public nav links with an active state and a hamburger menu on small screens, and on `/admin` routes the Admin @handle chip, Sign out, and a swipeable second row tab strip of every admin page plus Settings.
+- `src/components/SiteHeader.tsx` — Wide header with the brandable lockup (custom logo and header title from site settings), public nav links with an active state and a hamburger menu on small screens, a filled Join the board button that stays visible at every width, and on `/admin` routes the Admin @handle chip, Sign out, and a swipeable second row tab strip of every admin page plus Settings.
 - `src/components/ThemeSwitcher.tsx` — Icon-only round Convex/Studio theme toggle with persistence and an accessible name.
 - `src/components/BuiltWithFooter.tsx` — Cursor and Convex attribution, the open source board credit with a GitHub mark linking to the repo, `llms.txt` and `sitemap.md` links, and Convex social icons.
 - `src/components/formatters.ts` — Metric, date, and relative sync time formatting helpers.
@@ -176,7 +176,7 @@
 - `postcss.config.mjs` — Tailwind CSS 4 PostCSS integration.
 - `public/og-yapper-board.png` — Generated 1200×630 social preview card.
 - `public/og-yapper-board-convex.png` — Retired 1200×630 dark Convex-themed social preview card with people icons.
-- `public/og-friends-of-convex.png` — Default 1200×630 site social preview: Friends of Convex / Yapper / Leader board with racing stripes. Not the per-recipient share card.
+- `public/og-friends-of-convex.png` — Default 1200×630 site social preview: Friends of Convex / Yapper / Leaderboard with racing stripes. Not the per-recipient share card.
 - `public/background-image-sidebar.svg` — 16:9 (1200×675) card art: solid `#2A1E1D` field with racing stripe lines sweeping along the bottom edge, rising toward the right. Background of both gift cards and the geometry source for the share OG renderer.
 - `public/background-image.svg` and `public/background-image.png` — Dark radial wash from the earlier card design, kept as unused assets.
 - `public/render/resvg.wasm` and `public/render/fonts/inter-500.ttf`, `inter-700.ttf` — Renderer assets the share-image Node action fetches from static hosting.

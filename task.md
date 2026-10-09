@@ -12,6 +12,14 @@
 - [ ] Signed in check of `/admin/team`: board search, Look up on X, Grant admin access, then sign in as the new admin in another browser, then Remove. Deploy to production with `npx convex deploy`, then `npm run deploy -- --skip-convex`.
 - [ ] Deploy the board count fix to production (`npx convex deploy`, then `npm run deploy -- --skip-convex`). Expect the hero to read 264 and the admin heading 267 profiles with 264 on the board, 2 legends, 1 off the board. After the next 8:17 AM Pacific sync, every profile has a stored Convex trend and the Convex board stops reading snapshot history.
 
+## Completed — 2026-10-09 22:10 UTC (Join the board button)
+
+- [x] Header Join the board is a filled `.nav-cta` pill: ink in Studio, `#f26b1d` with `#211718` text in the Convex theme (5.7:1). Rendered outside `.site-nav` so it stays visible under 760px, shortened to "Join" under 420px with `aria-label` keeping the full name. Removed from the mobile menu since it is always in the header. `src/components/SiteHeader.tsx`, `src/globals.css`. Checked in the browser on desktop in both themes and at 375px; `npx tsc -b`, eslint, and `npm run build` pass.
+
+## Completed — 2026-10-09 21:18 UTC (leaderboard as one word)
+
+- [x] Default `boardName` is "Yapper Leaderboard" in `convex/brandingDefaults.ts`. `public/og-friends-of-convex.png` closes the gap between LEADER and BOARD (BOARD slid 17px left, original glyphs kept). README alt text, `files.md`, and the current changelog example updated; dated history in older PRDs and changelog entries left as written. Checked dev and prod `siteSettings`: no saved board name overrides the default. Verified with `npx tsc -b` and `npx vitest run` (60 passing). X caches link previews per URL, so old posts keep the old image.
+
 ## Completed — 2026-10-09 20:45 UTC (board counts past 250)
 
 - [x] Prod has 267 profiles (264 on the board, 2 legends, 1 pending), but the admin heading said 250 and the hero 248 because every board read capped at 250 and 16 members were missing from the public board. Shared `BOARD_MAX = 1000` in `convex/boardLimits.ts` for `loadBoardRows`, legends, `listAdmin`, `listTopConvexYappers`, `boardShares`, `siteDirectory`, and the client queries in `Leaderboard.tsx`, `AdminPanel.tsx`, `GiftAdminPanel.tsx`. The admin heading shows on the board, legends, and off the board. `recordSyncSuccess` stores `convexWeeklyChange`, `convexStreak`, `convexPostsStored` on the profile through the new `computeConvexTrend`, and the Convex board reads those, with a history fallback. PRD: prds/board-count-cap.md.

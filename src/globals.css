@@ -381,6 +381,60 @@ button:disabled {
   transform: translateY(1px);
 }
 
+/* Join the board: the header's only filled control, so it reads as the
+   next step on every page. Ink on paper here, orange in the Convex theme. */
+.nav-cta {
+  min-height: 44px;
+  padding: 0 18px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--broadcast-ink);
+  border-radius: 999px;
+  background: var(--broadcast-ink);
+  color: var(--studio-sheet);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  touch-action: manipulation;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease;
+}
+
+.nav-cta:hover {
+  background: var(--broadcast-ink-soft);
+  border-color: var(--broadcast-ink-soft);
+}
+
+.nav-cta:active {
+  transform: translateY(1px);
+}
+
+.nav-cta:focus-visible {
+  outline: 2px solid var(--control-focus);
+  outline-offset: 3px;
+}
+
+.nav-cta-short {
+  display: none;
+}
+
+@media (max-width: 420px) {
+  .nav-cta {
+    padding: 0 16px;
+  }
+
+  .nav-cta-long {
+    display: none;
+  }
+
+  .nav-cta-short {
+    display: inline;
+  }
+}
+
 .leaderboard-page,
 .admin-page,
 .editorial-page {
@@ -5736,6 +5790,22 @@ html[data-theme="convex"] .site-nav a:hover {
 
 html[data-theme="convex"] .site-nav a.active {
   color: #fffaf0;
+}
+
+/* Dark ink on the brand orange: about 5.7:1, where white text is about 3:1. */
+html[data-theme="convex"] .nav-cta {
+  background: #f26b1d;
+  border-color: #f26b1d;
+  color: #211718;
+}
+
+html[data-theme="convex"] .nav-cta:hover {
+  background: #ff8240;
+  border-color: #ff8240;
+}
+
+html[data-theme="convex"] .nav-cta:focus-visible {
+  outline-color: #fffaf0;
 }
 
 html[data-theme="convex"] .admin-tabs a {

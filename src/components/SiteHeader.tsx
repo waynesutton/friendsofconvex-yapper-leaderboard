@@ -21,10 +21,7 @@ const ADMIN_LINKS = [
   { to: "/admin/docs", label: "Admin docs" },
 ] as const;
 
-const PUBLIC_LINKS = [
-  { to: "/about", label: "About" },
-  { to: "/join", label: "Join the board" },
-] as const;
+const PUBLIC_LINKS = [{ to: "/about", label: "About" }] as const;
 
 export function SiteHeader() {
   const location = useLocation();
@@ -97,6 +94,14 @@ export function SiteHeader() {
               </NavLink>
             ))}
           </nav>
+        )}
+        {/* The one call to action, so it stays in the header at every width
+            instead of folding into the menu with About. */}
+        {showAdminNav ? null : (
+          <NavLink className="nav-cta" to="/join" end aria-label="Join the board">
+            <span className="nav-cta-long">Join the board</span>
+            <span className="nav-cta-short" aria-hidden="true">Join</span>
+          </NavLink>
         )}
         <ThemeSwitcher />
         {showAdminNav ? null : (

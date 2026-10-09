@@ -2,7 +2,7 @@
 
 A people only, seven day X leaderboard for the Friends of Convex community. Post about Convex, climb the board, earn a badge. That is the whole game.
 
-![Friends of Convex Yapper Leader Board](public/og-friends-of-convex.png)
+![Friends of Convex Yapper Leaderboard](public/og-friends-of-convex.png)
 
 Live at [friendsofconvex.dev](https://friendsofconvex.dev). Everything on the board updates in realtime through [Convex](https://convex.dev), so when the daily sync runs, every open browser tab watches the ranks shuffle at the same moment.
 
