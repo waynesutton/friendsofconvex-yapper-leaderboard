@@ -200,13 +200,25 @@ Remove the dark `rect` if you need the stripes on a transparent background. How 
 Placement in the app, three usages, all decorative and `pointer-events: none` where layered:
 
 ```css
-/* Hero band: art pinned right bottom, sized by width, never stretched */
-html[data-theme="convex"] .hero {
-  background-color: #211718;
-  background-image: url("/brand/convex-racing-lines.png");
-  background-position: right bottom;
-  background-repeat: no-repeat;
-  background-size: min(72vw, 1140px) auto;
+/* Hero band: inline SVG (src/components/RacingLines.tsx, source
+   /brand/convex-racing-lines-wide.svg) pinned right bottom, sized by height,
+   never stretched. --racing-lines-x centers the climb under the signal panel. */
+html[data-theme="convex"] .racing-lines {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: clamp(150px, 16vw, 230px);
+  overflow: hidden;
+}
+
+html[data-theme="convex"] .racing-lines svg {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  height: 100%;
+  width: auto;
+  transform: translateX(var(--racing-lines-x));
 }
 
 /* Editorial hero card: art slides in from the corner, sized by height */

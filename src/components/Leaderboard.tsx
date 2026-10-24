@@ -34,6 +34,7 @@ import { FilterDropdown, type FilterDropdownOption } from "./FilterDropdown";
 import { compactNumber, formatSyncTime, initials, relativeSyncTime } from "./formatters";
 import { MetricInfo } from "./MetricInfo";
 import { ProfilePeek } from "./ProfilePeek";
+import { RacingLines } from "./RacingLines";
 
 // Load-more step when the board is on "All yappers"; Top N picks step by N.
 const PAGE_SIZE = 30;
@@ -711,6 +712,7 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
   return (
     <div className="leaderboard-page">
       <section className="hero" aria-labelledby="hero-title">
+        <RacingLines />
         <div className="hero-copy">
           {/* <p className="eyebrow hero-eyebrow">
             <span>Friends of Convex · people edition</span>

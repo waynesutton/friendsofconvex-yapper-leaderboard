@@ -14,6 +14,14 @@
 - [ ] Signed in check of `/admin/team`: board search, Look up on X, Grant admin access, then sign in as the new admin in another browser, then Remove. Deploy to production with `npx convex deploy`, then `npm run deploy -- --skip-convex`.
 - [ ] Deploy the board count fix to production (`npx convex deploy`, then `npm run deploy -- --skip-convex`). Expect the hero to read 264 and the admin heading 267 profiles with 264 on the board, 2 legends, 1 off the board. After the next 8:17 AM Pacific sync, every profile has a stored Convex trend and the Convex board stops reading snapshot history.
 
+## Completed — 2026-10-24 22:05 UTC (hero copy clears the racing lines)
+
+- [x] Hero headline and subline sit fully above the flat bands. Headline `clamp(48px, 5vw, 74px)` to `clamp(40px, 4.2vw, 60px)`, subline to `clamp(15px, 1.3vw, 18px)`. Above 1000px `.hero-copy` gets a bottom margin tied to `--racing-lines-height` (now defined on `.hero`), leaving 14px of clearance at 1001, 1100, 1440, and 2560. Hero height unchanged. `src/globals.css`. Lint and build pass.
+
+## Completed — 2026-10-24 21:45 UTC (hero racing lines as inline SVG)
+
+- [x] Traced `public/brand/convex-racing-lines.png` into vector paths (0.37% pixel diff, edges only) and shipped `public/brand/convex-racing-lines-wide.svg` (viewBox `-3000 0 4729 455`). New `src/components/RacingLines.tsx` inlines the same paths in the hero, so the stripes paint with the page. `--racing-lines-x` centers the climb under the signal panel above 1000px (within 1px at 1001, 1440, 1920, and 2560) and stays 0 when the hero stacks. Clip-path reveal over 1.1s, once per page load, final state under reduced motion. `.hero` background image removed. `src/components/Leaderboard.tsx`, `src/globals.css`. `npm run check` passes. PRD: prds/hero-racing-lines-inline-svg.md.
+
 ## Completed — 2026-10-09 23:17 UTC (stale board after spend cap, group rescan)
 
 - [x] Root cause from prod: the Oct 9 15:17 UTC cron halted on the spend cap at the first profile, and the Oct 8 run halted at @Hamzaa_i, so most rows are from Oct 8 and 34 are from Oct 7. Luke's post landed after his Oct 8 sync. New `syncRuns` table and `convex/syncRuns.ts`; `xSync.ts` records passes, retries a halt every 2 hours (max 6), and adds `refreshGroup` plus `refreshTargetsContinuation`; `groups.listSyncTargets`; `getSyncHealth` returns `boardSyncedAt`, `haltedAt`, and `haltedReason`. Board chip, hero, and notice use them; admin Integration status gets a Board sync row; group cards get Rescan. `tests/syncRuns.test.ts`. `npx convex dev --once`, `npx tsc -b`, eslint, `npx vitest run` (64 pass), and `npm run build` pass. PRD: prds/stale-board-after-spend-cap.md.
