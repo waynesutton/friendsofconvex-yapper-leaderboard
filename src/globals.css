@@ -2268,6 +2268,128 @@ html[data-theme="convex"] .metric-info-trigger[aria-expanded="true"] {
   margin-top: 20px;
 }
 
+/* Live list of what Make snapshot freezes, so today's ranking shows before
+   anything is saved. */
+.share-video-live {
+  margin-top: 24px;
+  padding: 20px 22px;
+  background: var(--studio-sheet);
+  border: 1px solid var(--line-standard);
+  border-radius: var(--radius-medium);
+}
+
+.share-video-live-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.share-video-live-heading h2 {
+  margin: 6px 0 0;
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.share-video-live-status {
+  padding: 5px 10px;
+  border: 1px solid var(--line-standard);
+  border-radius: 999px;
+  color: var(--caption-ink);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.share-video-live-status.is-frozen {
+  border-color: var(--signal-coral);
+  color: var(--signal-coral);
+}
+
+.share-video-live-rows {
+  margin: 16px 0 0;
+  padding: 0;
+  display: grid;
+  list-style: none;
+}
+
+.share-video-live-rows li {
+  min-height: 48px;
+  display: grid;
+  grid-template-columns: 28px 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  border-top: 1px solid var(--line-standard);
+}
+
+.share-video-live-rank {
+  display: inline-flex;
+  color: var(--signal-coral);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.share-video-live-rank svg {
+  width: 16px;
+  height: 16px;
+}
+
+.share-video-live-rows img,
+.share-video-live-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  object-fit: cover;
+}
+
+.share-video-live-avatar {
+  display: grid;
+  place-items: center;
+  background: var(--control-inset);
+  color: var(--caption-ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.share-video-live-name {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.share-video-live-name strong {
+  overflow: hidden;
+  font-size: 14px;
+  text-overflow: ellipsis;
+}
+
+.share-video-live-name span,
+.share-video-live-value {
+  color: var(--caption-ink);
+  font-size: 12px;
+}
+
+.share-video-live-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.share-video-live-meta,
+.share-video-live-empty {
+  margin: 12px 0 0;
+  color: var(--caption-ink);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
 .share-video-stage {
   margin-top: 48px;
 }

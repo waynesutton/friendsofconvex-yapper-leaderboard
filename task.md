@@ -3,6 +3,7 @@
 ## To Do
 
 - [ ] Deploy daily board rankings to production: `npx convex deploy`, then `npm run deploy -- --skip-convex`. The first saved day appears after the next full pass (8:17 AM PT), or run `npx convex run boardRankings:captureNow --prod` once to seed today. The previous arrow stays disabled until a second day exists.
+- [ ] Deploy the share video live preview: `npm run deploy` (same flow as last time). Then on friendsofconvex.dev/admin/share-video pick Convex Team and confirm the panel lists @jamwt, @mikeysee, @waynesutton with "Not frozen yet".
 - [ ] Signed in check of the share video day picker on dev: pick Sat, Oct 24, Make snapshot, confirm the preview card reads "Top 3 on Sat, Oct 24, 2026", and the downloaded file name uses 2026-10-24.
 
 - [ ] Refill prod today: press Sync everyone on friendsofconvex.dev/admin (the cap is raised; three rescans after 22:00 UTC succeeded). Then deploy this change with `npx convex deploy`, then `npm run deploy -- --skip-convex`. The chip keeps the newest row fallback until the first tracked full pass finishes.
@@ -22,6 +23,10 @@
 - [ ] Render in Safari 26 on a Mac and confirm the file plays; older Safari should show "Video needs Chrome or Safari 26 or newer".
 - [ ] iPhone: Share video opens the share sheet with the MP4 and X is in it.
 - [ ] Paste a `/b/<id>` link with a video into iMessage and Discord and check it plays inline. Discord may want `og:type=video.other` (speculative, not changed).
+
+## Completed — 2026-10-26 05:00 UTC (share video page shows today's board)
+
+- [x] `/admin/share-video` showed no live rows until Make snapshot, so Recent snapshots (newest Oct 16 on prod) read as the current ranking. Added the "Make snapshot freezes" panel fed by the new admin only `boardShareVideo.previewSnapshot` query, an Already frozen / Not frozen yet status, an Open snapshot label when the ranking is already frozen, and an "older than the live board" tag on stale opened snapshots. `createBoardShare` now builds through the shared `buildBoardSnapshot` helper. Prod data checked: 2026-10-25 rankings saved for Yappers, Convex mentions, and Convex Team; no share was made today. `npm run check` passes (90 tests). Signed in visual check still needed.
 
 ## Completed — 2026-10-26 04:31 UTC (daily board rankings with a 7 day history)
 

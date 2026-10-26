@@ -288,6 +288,33 @@ test("a past day share freezes the saved rows and carries the day", async () => 
   ).toBeNull();
 });
 
+test("the video page preview shows today's rows before a snapshot exists", async () => {
+  const t = convexTest(schema, modules);
+  await seed(t);
+  await capture(t);
+  const admin = await asXUser(t, OWNER_X_ID);
+
+  await expect(t.query(api.boardShareVideo.previewSnapshot, { board: "crew" })).rejects.toThrow();
+
+  const live = await admin.query(api.boardShareVideo.previewSnapshot, { board: "crew" });
+  expect(live?.boardLabel).toBe("Crew");
+  expect(live?.rows.map((row) => row.handle)).toEqual(["yapper2", "yapper1"]);
+  expect(live?.rankingDay).toBeNull();
+  expect(live?.existingShareId).toBeNull();
+
+  const share = await admin.mutation(api.boardShares.createBoardShare, { board: "crew" });
+  const frozen = await admin.query(api.boardShareVideo.previewSnapshot, { board: "crew" });
+  expect(frozen?.existingShareId).toBe(share?.shareId);
+
+  const saved = await admin.query(api.boardShareVideo.previewSnapshot, {
+    board: "crew",
+    day: PASS_DAY,
+  });
+  expect(saved?.rankingDay).toBe(PASS_DAY);
+  expect(saved?.existingShareId).toBeNull();
+  expect(await admin.query(api.boardShareVideo.previewSnapshot, { board: "team" })).toBeNull();
+});
+
 test("removing a profile scrubs it from every saved day", async () => {
   const t = convexTest(schema, modules);
   const { profiles } = await seed(t);

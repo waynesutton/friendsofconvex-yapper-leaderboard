@@ -5,7 +5,9 @@ import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { action, mutation, query, type ActionCtx } from "./_generated/server";
 import { requireAdmin } from "./authz";
+import { buildBoardSnapshot } from "./boardShares";
 import type { SiteBranding } from "./brandingDefaults";
+import { boardShareRowValidator } from "./validators";
 
 // Admin only ranking videos for board snapshots. The admin's browser renders
 // the MP4 from the same SVG as the PNG card (src/lib/boardVideo.ts), uploads
@@ -118,6 +120,39 @@ export const getVideoInputs = action({
         avatar: avatars[index] ?? null,
         value: row.value,
       })),
+    };
+  },
+});
+
+// The rows Make snapshot would freeze for this board and day, kept live so
+// the admin sees today's ranking before anything is saved. `existingShareId`
+// is set when an identical snapshot already exists.
+export const previewSnapshot = query({
+  args: { board: v.string(), day: v.optional(v.string()) },
+  returns: v.union(
+    v.object({
+      boardLabel: v.string(),
+      kind: v.union(v.literal("ranked"), v.literal("legends")),
+      metricLabel: v.string(),
+      rows: v.array(boardShareRowValidator),
+      dataAsOf: v.union(v.number(), v.null()),
+      rankingDay: v.union(v.string(), v.null()),
+      existingShareId: v.union(v.id("boardShares"), v.null()),
+    }),
+    v.null(),
+  ),
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    const snapshot = await buildBoardSnapshot(ctx, args.board, args.day ?? null);
+    if (!snapshot) return null;
+    return {
+      boardLabel: snapshot.boardLabel,
+      kind: snapshot.kind,
+      metricLabel: snapshot.metricLabel,
+      rows: snapshot.rows,
+      dataAsOf: snapshot.dataAsOf,
+      rankingDay: snapshot.rankingDay,
+      existingShareId: snapshot.existingShareId,
     };
   },
 });

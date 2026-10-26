@@ -225,6 +225,61 @@ async function resolveSavedBoard(
   };
 }
 
+export type BoardSnapshot = {
+  board: string;
+  boardLabel: string;
+  kind: ShareKind;
+  metricLabel: string;
+  rows: Array<BoardShareRow>;
+  dataAsOf: number | null;
+  rankingDay: string | null;
+  contentHash: string;
+  existingShareId: Id<"boardShares"> | null;
+};
+
+// What a share of this board (and optional saved day) would freeze right
+// now, plus the id of an identical share that already exists. Null when the
+// tab is empty or not public.
+export async function buildBoardSnapshot(
+  ctx: QueryCtx,
+  rawBoard: string,
+  day: string | null,
+): Promise<BoardSnapshot | null> {
+  const board = rawBoard.trim().slice(0, 80);
+  if (!board) return null;
+  const saved = day ? await resolveSavedBoard(ctx, board, day) : null;
+  if (day && !saved) return null;
+  const resolved = saved ?? (await resolveBoard(ctx, board));
+  if (!resolved) return null;
+
+  const rows = buildShareRows(resolved.rows, resolved.metric);
+  if (rows.length === 0) return null;
+  const dataAsOf = saved ? saved.dataAsOf : newestSync(resolved.rows, rows);
+  const contentHash = hashShareRows({
+    boardLabel: resolved.boardLabel,
+    rows,
+    dataAsOf,
+    rankingDay: day,
+  });
+  const existing = await ctx.db
+    .query("boardShares")
+    .withIndex("by_board_and_content_hash", (q) =>
+      q.eq("board", board).eq("contentHash", contentHash),
+    )
+    .first();
+  return {
+    board,
+    boardLabel: resolved.boardLabel,
+    kind: resolved.kind,
+    metricLabel: resolved.metricLabel,
+    rows,
+    dataAsOf,
+    rankingDay: day,
+    contentHash,
+    existingShareId: existing?._id ?? null,
+  };
+}
+
 // Freezes the active tab and returns the share id plus the top handles for
 // the post text, or null when the tab is empty or not public. With `day`,
 // it freezes that day's saved ranking instead of the live board. Repeat
@@ -240,44 +295,22 @@ export const createBoardShare = mutation({
     ctx,
     args,
   ): Promise<{ shareId: Id<"boardShares">; topHandles: Array<string> } | null> => {
-    const board = args.board.trim().slice(0, 80);
-    if (!board) return null;
-    const rankingDay = args.day ?? null;
-    const saved = rankingDay ? await resolveSavedBoard(ctx, board, rankingDay) : null;
-    if (rankingDay && !saved) return null;
-    const resolved = saved ?? (await resolveBoard(ctx, board));
-    if (!resolved) return null;
-
-    const rows = buildShareRows(resolved.rows, resolved.metric);
-    if (rows.length === 0) return null;
-    const dataAsOf = saved ? saved.dataAsOf : newestSync(resolved.rows, rows);
-    const contentHash = hashShareRows({
-      boardLabel: resolved.boardLabel,
-      rows,
-      dataAsOf,
-      rankingDay,
-    });
-    const topHandles = rows
+    const snapshot = await buildBoardSnapshot(ctx, args.board, args.day ?? null);
+    if (!snapshot) return null;
+    const topHandles = snapshot.rows
       .slice(0, SHARE_TEXT_HANDLES)
       .map((row) => row.handle);
-
-    const existing = await ctx.db
-      .query("boardShares")
-      .withIndex("by_board_and_content_hash", (q) =>
-        q.eq("board", board).eq("contentHash", contentHash),
-      )
-      .first();
-    if (existing) return { shareId: existing._id, topHandles };
+    if (snapshot.existingShareId) return { shareId: snapshot.existingShareId, topHandles };
 
     const shareId = await ctx.db.insert("boardShares", {
-      board,
-      boardLabel: resolved.boardLabel,
-      kind: resolved.kind,
-      metricLabel: resolved.metricLabel,
-      rows,
-      dataAsOf,
-      contentHash,
-      ...(rankingDay ? { rankingDay } : {}),
+      board: snapshot.board,
+      boardLabel: snapshot.boardLabel,
+      kind: snapshot.kind,
+      metricLabel: snapshot.metricLabel,
+      rows: snapshot.rows,
+      dataAsOf: snapshot.dataAsOf,
+      contentHash: snapshot.contentHash,
+      ...(snapshot.rankingDay ? { rankingDay: snapshot.rankingDay } : {}),
     });
     // Prewarm the card so X's crawler gets a stored PNG on its first fetch.
     await ctx.scheduler.runAfter(0, internal.boardShareRender.renderAndStore, {

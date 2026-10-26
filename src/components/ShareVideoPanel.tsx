@@ -3,6 +3,7 @@ import {
   ArrowSquareOutIcon,
   CalendarBlankIcon,
   CaretDownIcon,
+  CrownSimpleIcon,
   DownloadSimpleIcon,
   FilmStripIcon,
   ShareNetworkIcon,
@@ -173,7 +174,21 @@ export function ShareVideoPanel() {
   const [removeArmed, setRemoveArmed] = useState(false);
   const [supported, setSupported] = useState<boolean | null>(null);
 
+  // Live view of what Make snapshot freezes for the picked board and day.
+  const preview = useQuery(
+    api.boardShareVideo.previewSnapshot,
+    activeDay === TODAY ? { board } : { board, day: activeDay },
+  );
+
   const shareId = inputs?.shareId ?? null;
+  // The open snapshot is this board's live tab, but the board has moved on.
+  const openIsStale =
+    inputs !== null &&
+    preview != null &&
+    activeDay === TODAY &&
+    inputs.board === board &&
+    inputs.rankingDay === null &&
+    preview.existingShareId !== inputs.shareId;
   const videoStatus = useQuery(
     api.boardShareVideo.getShareVideo,
     shareId ? { shareId } : "skip",
@@ -444,8 +459,81 @@ export function ShareVideoPanel() {
           disabled={busy !== null}
           onClick={makeSnapshot}>
           <ArrowClockwiseIcon aria-hidden="true" />
-          {busy === "snapshot" ? "Freezing" : "Make snapshot"}
+          {busy === "snapshot"
+            ? "Freezing"
+            : preview?.existingShareId && preview.existingShareId !== shareId
+              ? "Open snapshot"
+              : "Make snapshot"}
         </button>
+      </section>
+
+      <section className="share-video-live" aria-labelledby="share-video-live-title">
+        <div className="share-video-live-heading">
+          <div>
+            <p className="eyebrow">Make snapshot freezes</p>
+            <h2 id="share-video-live-title">
+              {preview === undefined
+                ? "Loading the board…"
+                : preview === null
+                  ? "Nothing public to freeze"
+                  : preview.rankingDay
+                    ? `${preview.boardLabel} on ${formatDayLabel(preview.rankingDay, true)}`
+                    : `${preview.boardLabel} right now`}
+            </h2>
+          </div>
+          {preview ? (
+            <span className={`share-video-live-status${preview.existingShareId ? " is-frozen" : ""}`}>
+              {preview.existingShareId === null
+                ? "Not frozen yet"
+                : preview.existingShareId === shareId
+                  ? "Open below"
+                  : "Already frozen"}
+            </span>
+          ) : null}
+        </div>
+        {preview === null ? (
+          <p className="share-video-live-empty">
+            {activeDay === TODAY
+              ? "This board has no synced, public rows to put on a card."
+              : `No public saved ranking for ${formatDayLabel(activeDay, true)} on this board.`}
+          </p>
+        ) : preview ? (
+          <>
+            <ol className="share-video-live-rows">
+              {preview.rows.map((row) => (
+                <li key={row.handle}>
+                  <span className="share-video-live-rank">
+                    {row.rank === null ? (
+                      <CrownSimpleIcon aria-label="Legend" />
+                    ) : (
+                      String(row.rank).padStart(2, "0")
+                    )}
+                  </span>
+                  {row.profileImageUrl ? (
+                    <img src={row.profileImageUrl} alt="" width={28} height={28} loading="lazy" />
+                  ) : (
+                    <span className="share-video-live-avatar" aria-hidden="true">
+                      {row.displayName.slice(0, 1)}
+                    </span>
+                  )}
+                  <span className="share-video-live-name">
+                    <strong>{row.displayName}</strong>
+                    <span>@{row.handle}</span>
+                  </span>
+                  {row.value !== null ? (
+                    <span className="share-video-live-value">
+                      {row.value} {preview.metricLabel.toLowerCase()}
+                    </span>
+                  ) : null}
+                </li>
+              ))}
+            </ol>
+            <p className="share-video-live-meta">
+              {preview.rankingDay ? "Saved ranking" : "Live board"}
+              {preview.dataAsOf ? ` · as of ${formatAsOf(preview.dataAsOf)}` : ""}
+            </p>
+          </>
+        ) : null}
       </section>
 
       {feedback ? (
@@ -463,6 +551,7 @@ export function ShareVideoPanel() {
                   ? `Saved ranking · ${formatDayLabel(inputs.rankingDay, true)}`
                   : "Snapshot"}
                 {inputs.dataAsOf ? ` · board as of ${formatAsOf(inputs.dataAsOf)}` : ""}
+                {openIsStale ? " · older than the live board" : ""}
               </p>
               <h2 id="share-video-stage-title">{inputs.boardLabel}</h2>
             </div>
