@@ -7,6 +7,7 @@ import { fourthwallWebhook, xDmCallback } from "./giftWebhooks";
 import {
   boardShareImage,
   boardSharePage,
+  boardShareVideo,
   giftShareImage,
   giftSharePage,
   legendSharePage,
@@ -92,6 +93,13 @@ http.route({
   pathPrefix: "/og/board/",
   method: "GET",
   handler: boardShareImage,
+});
+
+// Admin attached ranking videos for board snapshots (og:video on /b/:id).
+http.route({
+  pathPrefix: "/v/board/",
+  method: "GET",
+  handler: boardShareVideo,
 });
 
 // Agent Ready: agents.md, llms-full.txt, status, readiness, RSS, agent-skills.

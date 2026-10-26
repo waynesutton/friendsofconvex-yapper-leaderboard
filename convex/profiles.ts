@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import {
   internalMutation,
@@ -318,6 +319,10 @@ export async function loadBoardRows(
     limit?: number;
     mode?: "default" | "convex" | "legends";
     groupId?: Id<"groups">;
+    // Server only: skips the internal group viewer check for jobs with no
+    // signed-in viewer, like the daily ranking capture. Never exposed as a
+    // public argument.
+    trusted?: boolean;
   },
 ): Promise<Array<PublicLeaderboardRow>> {
   const limit = Math.min(Math.max(Math.floor(args.limit ?? 200), 1), BOARD_MAX);
@@ -326,7 +331,7 @@ export async function loadBoardRows(
     // the frontend never hits because listPublic hides the pill too.
     const group = await ctx.db.get("groups", args.groupId);
     if (!group) return [];
-    if ((group.internal ?? false) && !(await isAdminViewer(ctx))) {
+    if ((group.internal ?? false) && !args.trusted && !(await isAdminViewer(ctx))) {
       return [];
     }
     const memberships = await ctx.db
@@ -758,6 +763,11 @@ export const remove = mutation({
       await ctx.db.delete("groupMemberships", membership._id);
     }
     await ctx.db.delete("profiles", args.profileId);
+    // Saved daily rankings keep their own copies of each row; drop this
+    // person from them too.
+    await ctx.scheduler.runAfter(0, internal.boardRankings.scrubProfile, {
+      profileId: args.profileId,
+    });
     return null;
   },
 });

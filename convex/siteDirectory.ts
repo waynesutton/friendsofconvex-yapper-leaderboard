@@ -84,6 +84,10 @@ export function buildRobotsTxt(
     "",
     "User-agent: *",
     "Allow: /",
+    // Share cards: X and chat apps fetch these to unfurl posted links.
+    "Allow: /b/",
+    "Allow: /og/",
+    "Allow: /v/",
     "Disallow: /admin",
     "Disallow: /gift/",
     "",

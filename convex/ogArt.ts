@@ -75,7 +75,22 @@ export type BoardCardInput = {
   metricLabel: string;
   rows: Array<BoardCardRow>;
   dataAsOf: number | null;
+  // Pacific day (YYYY-MM-DD) of a saved daily ranking. Set means the card
+  // names that date instead of "right now".
+  rankingDay?: string | null;
 };
+
+// "Sat, Oct 24, 2026" from a YYYY-MM-DD key. Mirrors formatDayLabel in
+// rankingDays.ts, inlined so this file keeps no imports.
+function formatRankingDay(day: string): string {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: "UTC",
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(`${day}T12:00:00Z`));
+}
 
 const LEFT = 80;
 const RIGHT = 880;
@@ -95,17 +110,48 @@ function crown(x: number, y: number): string {
   </g>`;
 }
 
-function rowSvg(row: BoardCardRow, index: number, legends: boolean): string {
+// Frame values are written with at most 3 decimals so SVG strings stay short.
+function fmt(value: number): string {
+  return String(Math.round(value * 1000) / 1000);
+}
+
+// Wraps animated content in a group carrying its opacity, vertical offset,
+// and filter. Settled content comes back untouched, which is what keeps the
+// last video frame identical to the static card.
+function layer(content: string, opacity: number, offset = 0, filterId?: string): string {
+  const attrs: Array<string> = [];
+  if (opacity !== 1) attrs.push(`opacity="${fmt(opacity)}"`);
+  if (offset !== 0) attrs.push(`transform="translate(0 ${fmt(offset)})"`);
+  if (filterId) attrs.push(`filter="url(#${filterId})"`);
+  if (attrs.length === 0) return content;
+  return `<g ${attrs.join(" ")}>${content}</g>`;
+}
+
+type RowFrame = { opacity: number; offset: number; dividerX2: number; pulseScale: number };
+
+const SETTLED_ROW: RowFrame = { opacity: 1, offset: 0, dividerX2: RIGHT, pulseScale: 1 };
+
+function rowSvg(
+  row: BoardCardRow,
+  index: number,
+  legends: boolean,
+  frame: RowFrame = SETTLED_ROW,
+): string {
   const top = ROWS_TOP + index * ROW_HEIGHT;
   const cy = top + ROW_HEIGHT / 2;
   const avatarCx = LEFT + 76;
   const textX = avatarCx + AVATAR_RADIUS + 18;
   const clipId = `avatar-${index}`;
 
-  const marker = legends
+  const rankMarker = legends
     ? crown(LEFT + 4, cy - 12)
     : `<text x="${LEFT + 18}" y="${cy + 9}" text-anchor="middle" font-family="Inter"
         font-weight="700" font-size="26" fill="${row.rank === 1 ? GOLD : CREAM}">${row.rank ?? ""}</text>`;
+  // The rank 1 pulse scales the number around its own center.
+  const marker =
+    frame.pulseScale === 1
+      ? rankMarker
+      : `<g transform="translate(${LEFT + 18} ${cy}) scale(${fmt(frame.pulseScale)}) translate(${-(LEFT + 18)} ${-cy})">${rankMarker}</g>`;
 
   const avatar = row.avatar
     ? `<clipPath id="${clipId}"><circle cx="${avatarCx}" cy="${cy}" r="${AVATAR_RADIUS}" /></clipPath>
@@ -127,10 +173,9 @@ function rowSvg(row: BoardCardRow, index: number, legends: boolean): string {
   const divider =
     index === 0
       ? ""
-      : `<line x1="${LEFT}" y1="${top}" x2="${RIGHT}" y2="${top}" stroke="${FAINT}" stroke-width="1" />`;
+      : `<line x1="${LEFT}" y1="${top}" x2="${fmt(frame.dividerX2)}" y2="${top}" stroke="${FAINT}" stroke-width="1" />`;
 
-  return `${divider}
-    ${marker}
+  const body = `${marker}
     ${avatar}
     <circle cx="${avatarCx}" cy="${cy}" r="${AVATAR_RADIUS + 3}" fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="1.25" />
     <text x="${textX}" y="${cy - 2}" font-family="Inter" font-weight="700" font-size="21"
@@ -138,44 +183,295 @@ function rowSvg(row: BoardCardRow, index: number, legends: boolean): string {
     <text x="${textX}" y="${cy + 19}" font-family="Inter" font-weight="500" font-size="15"
       fill="${MUTED}">@${escapeXml(fitLabel(row.handle, 40))}</text>
     ${value}`;
+
+  return `${divider}
+    ${layer(body, frame.opacity, frame.offset)}`;
+}
+
+// Everything the card and its video frames derive from the input.
+function cardLayout(input: BoardCardInput) {
+  const legends = input.kind === "legends";
+  const rows = input.rows.slice(0, 5);
+  const label = fitLabel(input.boardLabel, 28);
+  const day = legends ? null : (input.rankingDay ?? null);
+  return {
+    legends,
+    rows,
+    label,
+    // Split keeping the whitespace, so word layers rebuild the exact label.
+    labelTokens: label.split(/(\s+)/).filter((token) => token !== ""),
+    subtitle: legends
+      ? "Retired undefeated"
+      : day
+        ? rows.length === 1
+          ? "Leading on "
+          : `Top ${rows.length} on `
+        : rows.length === 1
+          ? "Leading right now"
+          : `Top ${rows.length} right now`,
+    // A saved day's date, drawn bold right after the subtitle.
+    subtitleDate: day ? formatRankingDay(day) : null,
+    asOf:
+      input.dataAsOf === null
+        ? ""
+        : day
+          ? `Saved ranking, last 7 days as of ${formatAsOf(input.dataAsOf)}`
+          : `Board as of ${formatAsOf(input.dataAsOf)}`,
+    labelSize: Math.min(48, Math.max(30, Math.floor(760 / (input.boardLabel.length * 0.6)))),
+    showMetric: !(legends || rows.every((row) => row.value === null)),
+  };
+}
+
+function isWord(token: string): boolean {
+  return !/^\s+$/.test(token);
+}
+
+// Board share video motion, ported from the TWIC renderer's timeline.
+export const VIDEO_FPS = 30;
+const HOLD_SECONDS = 3;
+
+export type VideoBeat = { start: number; duration: number };
+
+export type BoardVideoTimeline = {
+  // Seconds from the empty canvas to the end of the hold.
+  duration: number;
+  buildEnd: number;
+  beats: {
+    stripes: VideoBeat;
+    lockup: VideoBeat;
+    words: Array<VideoBeat>;
+    subtitle: VideoBeat;
+    rows: Array<VideoBeat>;
+    dividers: Array<VideoBeat>;
+    pulse: VideoBeat;
+    asOf: VideoBeat;
+  };
+};
+
+function beatEnd(beat: VideoBeat): number {
+  return beat.start + beat.duration;
+}
+
+export function boardVideoTimeline(input: BoardCardInput): BoardVideoTimeline {
+  const layout = cardLayout(input);
+  const wordCount = Math.max(1, layout.labelTokens.filter(isWord).length);
+  const words = Array.from({ length: wordCount }, (_, index) => ({
+    start: 0.45 + index * 0.09,
+    duration: 0.45,
+  }));
+  // The panel keys off the start of the last label word, as in TWIC.
+  const panel = words[wordCount - 1]!.start + 0.25;
+  const rows = layout.rows.map((_, index) => ({
+    start: panel + 0.25 + index * 0.12,
+    duration: 0.4,
+  }));
+  const dividers = rows.map((row) => ({ start: row.start, duration: 0.3 }));
+  const lastRowEnd = rows.length > 0 ? beatEnd(rows[rows.length - 1]!) : panel + 0.25;
+  const beats = {
+    stripes: { start: 0, duration: 1.1 },
+    lockup: { start: 0.1, duration: 0.5 },
+    words,
+    subtitle: { start: panel, duration: 0.45 },
+    rows,
+    dividers,
+    pulse: { start: lastRowEnd + 0.15, duration: 0.35 },
+    asOf: { start: lastRowEnd + 0.3, duration: 0.4 },
+  };
+  const buildEnd = Math.max(
+    beatEnd(beats.stripes),
+    beatEnd(words[wordCount - 1]!),
+    beatEnd(beats.subtitle),
+    lastRowEnd,
+    beatEnd(beats.pulse),
+    beatEnd(beats.asOf),
+  );
+  return { duration: buildEnd + HOLD_SECONDS, buildEnd, beats };
+}
+
+function progress(beat: VideoBeat, t: number): number {
+  return Math.min(1, Math.max(0, (t - beat.start) / beat.duration));
+}
+
+// Ease out cubic and ease in out cubic, the two curves the TWIC engine uses.
+function eo(x: number): number {
+  return 1 - (1 - x) ** 3;
+}
+
+function eio(x: number): number {
+  return x < 0.5 ? 4 * x ** 3 : 1 - (-2 * x + 2) ** 3 / 2;
+}
+
+export type BoardVideoFrameState = {
+  stripesWidth: number;
+  lockupOpacity: number;
+  words: Array<{ opacity: number; offset: number; blur: number }>;
+  subtitle: { opacity: number; offset: number };
+  rows: Array<{ opacity: number; offset: number; dividerX2: number }>;
+  pulseScale: number;
+  asOfOpacity: number;
+};
+
+// Numeric state of every animated element at time t. Past the build every
+// value is settled exactly (opacity 1, offset 0, blur 0, scale 1).
+export function boardVideoFrameState(
+  input: BoardCardInput,
+  t: number,
+  timeline: BoardVideoTimeline = boardVideoTimeline(input),
+): BoardVideoFrameState {
+  const { beats } = timeline;
+  const pulse = progress(beats.pulse, t);
+  return {
+    stripesWidth: OG_WIDTH * eio(progress(beats.stripes, t)),
+    lockupOpacity: eo(progress(beats.lockup, t)),
+    words: beats.words.map((beat) => {
+      const eased = eo(progress(beat, t));
+      return { opacity: eased, offset: 18 * (1 - eased), blur: 3 * (1 - eased) };
+    }),
+    subtitle: (() => {
+      const eased = eo(progress(beats.subtitle, t));
+      return { opacity: eased, offset: 30 * (1 - eased) };
+    })(),
+    rows: beats.rows.map((beat, index) => {
+      const eased = eo(progress(beat, t));
+      const line = eo(progress(beats.dividers[index]!, t));
+      return {
+        opacity: eased,
+        offset: 16 * (1 - eased),
+        dividerX2: LEFT + (RIGHT - LEFT) * line,
+      };
+    }),
+    pulseScale: pulse <= 0 || pulse >= 1 ? 1 : 1 + 0.12 * Math.sin(Math.PI * pulse),
+    asOfOpacity: eo(progress(beats.asOf, t)),
+  };
+}
+
+// One renderer for the static card and every video frame. A null frame is
+// the settled card.
+function renderBoardCard(
+  input: BoardCardInput,
+  frame: BoardVideoFrameState | null,
+  fontFaces?: string,
+): string {
+  const {
+    legends,
+    rows,
+    label,
+    labelTokens,
+    subtitle,
+    subtitleDate,
+    asOf,
+    labelSize,
+    showMetric,
+  } = cardLayout(input);
+  const defs: Array<string> = [];
+  if (fontFaces) defs.push(`<style><![CDATA[${fontFaces}]]></style>`);
+
+  let stripes = BOTTOM_STRIPES;
+  if (frame && frame.stripesWidth < OG_WIDTH) {
+    defs.push(
+      `<clipPath id="stripes-reveal"><rect x="0" y="0" width="${fmt(frame.stripesWidth)}" height="${OG_HEIGHT}" /></clipPath>`,
+    );
+    stripes = `<g clip-path="url(#stripes-reveal)">${BOTTOM_STRIPES}</g>`;
+  }
+
+  const labelOpen = `<text x="${LEFT - 2}" y="152" font-family="Inter" font-weight="700" font-size="${labelSize}"
+    letter-spacing="${(-0.02 * labelSize).toFixed(1)}" fill="${CREAM}">`;
+  const wordFrames = frame?.words ?? [];
+  const labelSettled = wordFrames.every(
+    (word) => word.opacity === 1 && word.offset === 0 && word.blur === 0,
+  );
+  let labelSvg = `${labelOpen}${escapeXml(label)}</text>`;
+  if (!labelSettled) {
+    // Each word draws on its own layer holding the full label with the other
+    // words transparent, so glyph positions match the static text exactly.
+    const wordIndexes = labelTokens.flatMap((token, index) => (isWord(token) ? [index] : []));
+    labelSvg = wordIndexes
+      .map((tokenIndex, wordIndex) => {
+        const word = wordFrames[wordIndex] ?? { opacity: 1, offset: 0, blur: 0 };
+        const before = labelTokens.slice(0, tokenIndex).join("");
+        const after = labelTokens.slice(tokenIndex + 1).join("");
+        const hidden = (text: string) =>
+          text ? `<tspan fill-opacity="0">${escapeXml(text)}</tspan>` : "";
+        let filterId: string | undefined;
+        if (word.blur > 0) {
+          filterId = `word-blur-${wordIndex}`;
+          defs.push(
+            `<filter id="${filterId}" x="-5%" y="-40%" width="110%" height="180%"><feGaussianBlur stdDeviation="${fmt(word.blur)}" /></filter>`,
+          );
+        }
+        return layer(
+          `${labelOpen}${hidden(before)}${escapeXml(labelTokens[tokenIndex]!)}${hidden(after)}</text>`,
+          word.opacity,
+          word.offset,
+          filterId,
+        );
+      })
+      .join("\n  ");
+  }
+
+  const subtitleSvg = `<text x="${LEFT}" y="186" font-family="Inter" font-weight="500" font-size="17"
+    fill="${MUTED}">${escapeXml(subtitle)}${
+      subtitleDate
+        ? `<tspan font-weight="700" fill="${CREAM}">${escapeXml(subtitleDate)}</tspan>`
+        : ""
+    }</text>
+  ${
+    showMetric
+      ? `<text x="${RIGHT}" y="186" text-anchor="end" font-family="Inter" font-weight="700"
+    font-size="13" letter-spacing="2" fill="${MUTED}">${escapeXml(input.metricLabel.toUpperCase())}</text>`
+      : ""
+  }`;
+
+  const rowsSvg = rows
+    .map((row, index) => {
+      if (!frame) return rowSvg(row, index, legends);
+      const rowFrame = frame.rows[index] ?? SETTLED_ROW;
+      return rowSvg(row, index, legends, {
+        ...rowFrame,
+        pulseScale: row.rank === 1 ? frame.pulseScale : 1,
+      });
+    })
+    .join("\n");
+
+  const asOfSvg = `<text x="${LEFT}" y="${ROWS_TOP + Math.max(rows.length, 1) * ROW_HEIGHT + 30}" font-family="Inter" font-weight="500"
+    font-size="14" fill="${MUTED}">${escapeXml(asOf)}</text>`;
+
+  return `<svg width="${OG_WIDTH}" height="${OG_HEIGHT}" viewBox="0 0 ${OG_WIDTH} ${OG_HEIGHT}" xmlns="http://www.w3.org/2000/svg">${
+    defs.length > 0 ? `\n  <defs>${defs.join("")}</defs>` : ""
+  }
+  <rect width="${OG_WIDTH}" height="${OG_HEIGHT}" fill="#2A1E1D" />
+  ${stripes}
+
+  ${layer(
+    `<g transform="translate(62, 38) scale(0.3)">${CONVEX_SYMBOL}</g>
+  <text x="132" y="78" font-family="Inter" font-weight="700" font-size="18"
+    letter-spacing="3.2" fill="${CREAM}">${escapeXml(fitLabel(input.communityName.toUpperCase(), 40))}</text>`,
+    frame?.lockupOpacity ?? 1,
+  )}
+
+  ${labelSvg}
+  ${layer(subtitleSvg, frame?.subtitle.opacity ?? 1, frame?.subtitle.offset ?? 0)}
+
+  ${rowsSvg}
+
+  ${layer(asOfSvg, frame?.asOfOpacity ?? 1)}
+</svg>`;
 }
 
 // The 1200x630 board share card: lockup, board name, up to five rows, and
 // an as-of line, all left of the rising stripes so nothing overlaps them.
 export function buildBoardCardSvg(input: BoardCardInput): string {
-  const legends = input.kind === "legends";
-  const rows = input.rows.slice(0, 5);
-  const subtitle = legends
-    ? "Retired undefeated"
-    : rows.length === 1
-      ? "Leading right now"
-      : `Top ${rows.length} right now`;
-  const asOf =
-    input.dataAsOf === null ? "" : `Board as of ${formatAsOf(input.dataAsOf)}`;
-  const labelSize = Math.min(48, Math.max(30, Math.floor(760 / (input.boardLabel.length * 0.6))));
+  return renderBoardCard(input, null);
+}
 
-  return `<svg width="${OG_WIDTH}" height="${OG_HEIGHT}" viewBox="0 0 ${OG_WIDTH} ${OG_HEIGHT}" xmlns="http://www.w3.org/2000/svg">
-  <rect width="${OG_WIDTH}" height="${OG_HEIGHT}" fill="#2A1E1D" />
-  ${BOTTOM_STRIPES}
-
-  <g transform="translate(62, 38) scale(0.3)">${CONVEX_SYMBOL}</g>
-  <text x="132" y="78" font-family="Inter" font-weight="700" font-size="18"
-    letter-spacing="3.2" fill="${CREAM}">${escapeXml(fitLabel(input.communityName.toUpperCase(), 40))}</text>
-
-  <text x="${LEFT - 2}" y="152" font-family="Inter" font-weight="700" font-size="${labelSize}"
-    letter-spacing="${(-0.02 * labelSize).toFixed(1)}" fill="${CREAM}">${escapeXml(fitLabel(input.boardLabel, 28))}</text>
-  <text x="${LEFT}" y="186" font-family="Inter" font-weight="500" font-size="17"
-    fill="${MUTED}">${escapeXml(subtitle)}</text>
-  ${
-    legends || rows.every((row) => row.value === null)
-      ? ""
-      : `<text x="${RIGHT}" y="186" text-anchor="end" font-family="Inter" font-weight="700"
-    font-size="13" letter-spacing="2" fill="${MUTED}">${escapeXml(input.metricLabel.toUpperCase())}</text>`
-  }
-
-  ${rows.map((row, index) => rowSvg(row, index, legends)).join("\n")}
-
-  <text x="${LEFT}" y="${ROWS_TOP + Math.max(rows.length, 1) * ROW_HEIGHT + 30}" font-family="Inter" font-weight="500"
-    font-size="14" fill="${MUTED}">${escapeXml(asOf)}</text>
-</svg>`;
+// One frame of the board share video at time t (seconds). At or past
+// timeline.duration this is buildBoardCardSvg(input), byte for byte, when no
+// fontFaces are passed. fontFaces is CSS with embedded @font-face rules,
+// needed when a browser draws the SVG as an image and cannot see page fonts.
+export function buildBoardCardFrameSvg(
+  input: BoardCardInput,
+  t: number,
+  options: { fontFaces?: string } = {},
+): string {
+  return renderBoardCard(input, boardVideoFrameState(input, t), options.fontFaces);
 }

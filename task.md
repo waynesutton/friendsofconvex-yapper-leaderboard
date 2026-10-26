@@ -2,6 +2,9 @@
 
 ## To Do
 
+- [ ] Deploy daily board rankings to production: `npx convex deploy`, then `npm run deploy -- --skip-convex`. The first saved day appears after the next full pass (8:17 AM PT), or run `npx convex run boardRankings:captureNow --prod` once to seed today. The previous arrow stays disabled until a second day exists.
+- [ ] Signed in check of the share video day picker on dev: pick Sat, Oct 24, Make snapshot, confirm the preview card reads "Top 3 on Sat, Oct 24, 2026", and the downloaded file name uses 2026-10-24.
+
 - [ ] Refill prod today: press Sync everyone on friendsofconvex.dev/admin (the cap is raised; three rescans after 22:00 UTC succeeded). Then deploy this change with `npx convex deploy`, then `npm run deploy -- --skip-convex`. The chip keeps the newest row fallback until the first tracked full pass finishes.
 
 - [ ] Deploy board snapshot share cards to production: `npx convex deploy`, then `npm run deploy -- --skip-convex` so `/render/fonts` and `/render/resvg.wasm` exist on production static hosting. Without the static upload every card falls back to the site wide image.
@@ -13,6 +16,20 @@
 - [ ] Signed in admin header pass on a real phone and in the Studio theme: tab strip swipes, active tab stays in view, Sign out icon reads correctly.
 - [ ] Signed in check of `/admin/team`: board search, Look up on X, Grant admin access, then sign in as the new admin in another browser, then Remove. Deploy to production with `npx convex deploy`, then `npm run deploy -- --skip-convex`.
 - [ ] Deploy the board count fix to production (`npx convex deploy`, then `npm run deploy -- --skip-convex`). Expect the hero to read 264 and the admin heading 267 profiles with 264 on the board, 2 legends, 1 off the board. After the next 8:17 AM Pacific sync, every profile has a stored Convex trend and the Convex board stops reading snapshot history.
+
+- [ ] Deploy the board share video to production, in this order: `npx convex deploy`, then `npm run deploy -- --skip-convex`. The static step matters: the admin page fetches `/render/fonts/inter-*.ttf` from static hosting. Not run.
+- [ ] Signed in check of `/admin/share-video` on dev: Make snapshot, Render video, Attach to share link, then `curl -i -H "Range: bytes=0-1" <site>/v/board/<id>.mp4?v=<stamp>` expects 206, and `/b/<id>` shows six `og:video` tags. Then Remove video and confirm the tags go away. Do not post to X while testing.
+- [ ] Render in Safari 26 on a Mac and confirm the file plays; older Safari should show "Video needs Chrome or Safari 26 or newer".
+- [ ] iPhone: Share video opens the share sheet with the MP4 and X is in it.
+- [ ] Paste a `/b/<id>` link with a video into iMessage and Discord and check it plays inline. Discord may want `og:type=video.other` (speculative, not changed).
+
+## Completed — 2026-10-26 04:31 UTC (daily board rankings with a 7 day history)
+
+- [x] After every full sync pass, `syncRuns.finish` schedules `boardRankings.captureAll`, which fans out one job per board (Yappers, Convex mentions, visible groups) and saves that Pacific day's ranking from `loadBoardRows`, with zero extra X API calls. Light `boardRankings` metadata plus a separate `boardRankingRows` document, same day upserts, prune past 7 days, removed profiles scrubbed. Board gets a day navigator next to the freshness chip with `?day=`, a past day notice, and Back to today. `createBoardShare({ board, day })` freezes saved rows and stores `rankingDay`; the card, `/b/` meta, canonical, and video carry the date. The share video page gets a Which day to freeze picker. `npm run check` passes (89 tests), `npx convex dev --once`, verified arrows, past view, Back to today, dated card PNG, and dated meta in the browser and with curl on dev. PRD: prds/daily-board-rankings.md.
+
+## Completed — 2026-10-26 00:55 UTC (admin ranking video for board shares)
+
+- [x] Admins turn a board snapshot into a 5.5s 1200x630 H.264 MP4 at `/admin/share-video`, rendered in the browser with mediabunny from the same SVG code as the PNG card (`buildBoardCardFrameSvg`; the last frame equals the card). Attach uploads to Convex storage and `/b/<id>` adds `og:video` tags pointing at `/v/board/<id>.mp4?v=<stamp>` (Range support, 8 MB cap, MP4 only); `twitter:card` stays `summary_large_image`. Download, Share video, Open X post, and Remove video. Every new Convex function checks admin on the server. Board toolbar gets a Video link for admins only. New `convex/boardShareVideo.ts`, `src/lib/boardVideo.ts`, `src/components/ShareVideoPanel.tsx`, `src/pages/AdminShareVideoPage.tsx`, tests. `npm run check` passes (78 tests), `npx convex dev --once`, real module render checked with ffprobe in Chromium, signed out toolbar and `/b/` tags unchanged on dev. PRD: prds/admin-board-share-video.md.
 
 ## Completed — 2026-10-24 22:05 UTC (hero copy clears the racing lines)
 

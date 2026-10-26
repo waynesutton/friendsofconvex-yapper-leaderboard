@@ -635,6 +635,76 @@ button:disabled {
   cursor: default;
 }
 
+/* Day navigator beside the freshness chip: two quiet round arrows around
+   the date. A saved past day inks the date in the signal color so it never
+   passes for today. */
+.board-day-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--line-standard);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.board-day-nav button {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--broadcast-ink-soft);
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+.board-day-nav button svg {
+  width: 13px;
+  height: 13px;
+}
+
+.board-day-nav button:hover:not(:disabled) {
+  background: var(--line-standard);
+}
+
+.board-day-nav button:focus-visible {
+  outline: 2px solid var(--signal-coral);
+  outline-offset: 1px;
+}
+
+.board-day-nav button:disabled {
+  color: var(--quiet-ink);
+  opacity: 0.45;
+  cursor: default;
+}
+
+.board-day-label {
+  min-width: 9ch;
+  padding: 0 4px;
+  color: var(--broadcast-ink-soft);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-align: center;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+}
+
+.board-day-nav[data-past] {
+  border-color: var(--signal-coral);
+}
+
+.board-day-nav[data-past] .board-day-label {
+  color: var(--signal-coral-dark);
+}
+
 /* Tools ride the kicker row, pushed right. They stay on one line; the open
    search field gives up width before anything wraps. */
 .board-toolbar .share-toolbar {
@@ -947,6 +1017,37 @@ button:disabled {
   height: 9px;
   border-radius: 50%;
   background: var(--signal-coral);
+}
+
+/* Saved day notice: the date reads at full ink and the way back to today
+   sits on the right. */
+.data-notice--past strong {
+  color: var(--broadcast-ink-soft);
+  font-weight: 700;
+}
+
+.data-notice--past .notice-action {
+  margin-left: auto;
+  flex: 0 0 auto;
+  padding: 6px 12px;
+  border: 1px solid var(--line-emphasis);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--broadcast-ink-soft);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.data-notice--past .notice-action:hover {
+  border-color: var(--signal-coral);
+}
+
+.data-notice--past .notice-action:focus-visible {
+  outline: 2px solid var(--signal-coral);
+  outline-offset: 2px;
 }
 
 .leaderboard-table {
@@ -2122,6 +2223,212 @@ html[data-theme="convex"] .metric-info-trigger[aria-expanded="true"] {
   justify-content: flex-end;
   align-items: center;
   gap: 8px;
+}
+
+/* /admin/share-video: board picker, the video preview beside the link card,
+   render progress, and result actions. Recent snapshots reuse admin rows. */
+.share-video-controls {
+  margin-top: 56px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.share-video-boards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 3px;
+  background: var(--control-inset);
+  border: 1px solid var(--line-standard);
+  border-radius: 22px;
+}
+
+.share-video-boards button {
+  min-height: 36px;
+  padding: 0 14px;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  color: var(--caption-ink);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.share-video-boards button.is-active {
+  background: var(--studio-sheet);
+  color: var(--broadcast-ink);
+  box-shadow: 0 1px 2px rgba(20, 12, 10, 0.12);
+}
+
+.share-video-page .feedback-message {
+  margin-top: 20px;
+}
+
+.share-video-stage {
+  margin-top: 48px;
+}
+
+.share-video-previews,
+.share-video-result {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.share-video-previews figure {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.share-video-frame,
+.share-video-result video {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1200 / 630;
+  overflow: hidden;
+  background: #2a1e1d;
+  border: 1px solid var(--line-standard);
+  border-radius: var(--radius-medium);
+}
+
+.share-video-frame img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.share-video-previews figcaption {
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--caption-ink);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.share-video-previews .text-button {
+  min-height: 32px;
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 12px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.share-video-previews .text-button svg,
+.share-video-attached svg,
+.share-video-row .admin-sync-meta svg {
+  width: 15px;
+  height: 15px;
+}
+
+.share-video-actions {
+  margin-top: 24px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+
+.share-video-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--caption-ink);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.share-video-progress progress {
+  width: 220px;
+  height: 6px;
+  appearance: none;
+  overflow: hidden;
+  background: var(--control-inset);
+  border: 0;
+  border-radius: 999px;
+}
+
+.share-video-progress progress::-webkit-progress-bar {
+  background: var(--control-inset);
+}
+
+.share-video-progress progress::-webkit-progress-value {
+  background: var(--signal-coral);
+}
+
+.share-video-progress progress::-moz-progress-bar {
+  background: var(--signal-coral);
+}
+
+.share-video-meta {
+  color: var(--caption-ink);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 12px;
+}
+
+.share-video-result {
+  margin-top: 20px;
+  align-items: start;
+}
+
+.share-video-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 8px;
+}
+
+.share-video-result .field-help {
+  grid-column: 2;
+  margin: 0;
+}
+
+.share-video-attached {
+  margin-top: 24px;
+  padding-top: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  border-top: 1px solid var(--line-standard);
+  color: var(--caption-ink);
+  font-size: 13px;
+}
+
+.share-video-attached > span,
+.share-video-row .admin-sync-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.share-video-handles {
+  overflow: hidden;
+  color: var(--caption-ink);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .share-video-previews,
+  .share-video-result {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .share-video-result .field-help {
+    grid-column: auto;
+  }
 }
 
 /* /admin/team: admin access ledger. Reuses the admin row grid and the add

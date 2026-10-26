@@ -27,6 +27,9 @@ export default defineConfig(({ mode }) => {
             "/feed.xml": convexSite,
             "/llms-status": convexSite,
             "/llms-readiness": convexSite,
+            // Board share card and video previews on /admin/share-video.
+            "/og/board/": convexSite,
+            "/v/board/": convexSite,
           }
         : undefined,
     },

@@ -1,11 +1,14 @@
 import {
   ArrowSquareOutIcon,
   CaretDownIcon,
+  CaretLeftIcon,
+  CaretRightIcon,
   CaretUpIcon,
   ChatCircleTextIcon,
   CheckIcon,
   CopyIcon,
   CrownSimpleIcon,
+  FilmStripIcon,
   FunnelSimpleIcon,
   LockSimpleIcon,
   ShareNetworkIcon,
@@ -28,10 +31,17 @@ import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { BOARD_MAX } from "../../convex/boardLimits";
 import { DEFAULT_BRANDING } from "../../convex/brandingDefaults";
+import { formatDayLabel, isDayKey, pacificDay } from "../../convex/rankingDays";
 import { useScrollActiveIntoView } from "../lib/useScrollActiveIntoView";
 import { BoardSearch } from "./BoardSearch";
 import { FilterDropdown, type FilterDropdownOption } from "./FilterDropdown";
-import { compactNumber, formatSyncTime, initials, relativeSyncTime } from "./formatters";
+import {
+  compactNumber,
+  formatPacificTime,
+  formatSyncTime,
+  initials,
+  relativeSyncTime,
+} from "./formatters";
 import { MetricInfo } from "./MetricInfo";
 import { ProfilePeek } from "./ProfilePeek";
 import { RacingLines } from "./RacingLines";
@@ -276,6 +286,9 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
   const display = useQuery(api.boardSettings.getBoardDisplay, {}) ?? ALL_VISIBLE;
   const groups = useQuery(api.groups.listPublic, {});
   const branding = useQuery(api.siteSettings.getSiteBranding, {}) ?? BRANDING_FALLBACK;
+  // Already subscribed by SiteHeader, so this is a cache hit. Only gates the
+  // admin Video link; visitors get the toolbar unchanged.
+  const viewer = useQuery(api.authz.viewer, {});
   const [searchParams, setSearchParams] = useSearchParams();
   // The active pill lives in the URL so boards are shareable. An unknown or
   // hidden board value falls back to the first visible pill.
@@ -372,13 +385,60 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
   const convexMode = activeBoard === "convex";
   const legendsMode = activeBoard === LEGENDS_BOARD;
   const groupMode = activeGroup !== undefined;
-  const activeRows = convexMode
+  const liveRows = convexMode
     ? convexProfiles
     : legendsMode
       ? legendProfiles
       : groupMode
         ? groupProfiles
         : profiles;
+
+  // Saved daily rankings. Today is always the live board; ?day= opens a
+  // saved past day. Legends has no daily ranking, so it never takes a day.
+  const [todayKey] = useState(() => pacificDay(Date.now()));
+  const dayParam = searchParams.get("day");
+  const requestedDay =
+    !legendsMode && dayParam !== null && isDayKey(dayParam) && dayParam < todayKey
+      ? dayParam
+      : null;
+  const savedDays = useQuery(
+    api.boardRankings.listDays,
+    legendsMode ? "skip" : { board: activeBoard },
+  );
+  // Newest first. Today's saved copy is dropped, since today is live.
+  const pastDays = (savedDays ?? []).filter((entry) => entry.day < todayKey);
+  const savedRanking = useQuery(
+    api.boardRankings.getRanking,
+    requestedDay ? { board: activeBoard, day: requestedDay } : "skip",
+  );
+  // Still loading counts as the past day, so the table shows its skeleton
+  // instead of flashing today's rows.
+  const viewDay = requestedDay !== null && savedRanking !== null ? requestedDay : null;
+  const pastMode = viewDay !== null;
+  const missingDay = requestedDay !== null && savedRanking === null ? requestedDay : null;
+  const currentDay = viewDay ?? todayKey;
+  const olderDay = pastDays.find((entry) => entry.day < currentDay)?.day ?? null;
+  const newerDays = pastDays.filter((entry) => entry.day > currentDay);
+  // Next steps to the closest newer saved day, or back to today.
+  const newerDay = newerDays[newerDays.length - 1]?.day ?? null;
+
+  // Saved rows skip bios to stay small; fill bios and fresh avatars back in
+  // from the live board when the person is still on it.
+  const liveById = useMemo(
+    () => new Map((profiles ?? []).map((profile) => [profile._id, profile])),
+    [profiles],
+  );
+  const pastRows = useMemo(
+    () =>
+      savedRanking?.rows.map((row) => {
+        const live = liveById.get(row._id);
+        return live
+          ? { ...row, bio: live.bio, profileImageUrl: live.profileImageUrl ?? row.profileImageUrl }
+          : row;
+      }),
+    [savedRanking, liveById],
+  );
+  const activeRows = pastMode ? pastRows : liveRows;
   // Group boards can override the yappers columns; missing means inherit
   // the global board settings.
   const yappersColumns =
@@ -524,9 +584,11 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
   // Convex mode help states.
   const hasUnscannedRows =
     convexMode &&
+    !pastMode &&
     (convexProfiles ?? []).some((row) => hasMetrics(row) && !row.convexScanned);
   const impressionsFallback =
     convexMode &&
+    !pastMode &&
     (convexProfiles ?? []).some((row) => (row.convexPostCount ?? 0) > 0) &&
     (convexProfiles ?? []).every((row) => (row.convexImpressions ?? 0) === 0);
 
@@ -539,23 +601,36 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
   // Share text names the tab the visitor is on, so the post reads like the
   // card it unfurls into.
   const boardTitle = `${branding.communityName} ${branding.boardName}`;
+  // A saved day names its date, so the post never reads as today's ranking.
+  const when = viewDay ? `on ${formatDayLabel(viewDay)}` : "right now";
   const shareText = convexMode
-    ? `Top Convex mentions right now on the ${boardTitle}`
+    ? `Top Convex mentions ${when} on the ${boardTitle}`
     : legendsMode
       ? `The legends of the ${boardTitle}, retired undefeated`
       : activeGroup
-        ? `Who leads ${activeGroup.name} right now on the ${boardTitle}`
-        : `Top yappers right now on the ${boardTitle}`;
+        ? `Who ${viewDay ? "led" : "leads"} ${activeGroup.name} ${when} on the ${boardTitle}`
+        : `Top yappers ${when} on the ${boardTitle}`;
+
+  // The page URL for Copy link. A ?day= that found no saved ranking is
+  // dropped so the copied link matches what is on screen.
+  function currentBoardUrl(): string {
+    const url = new URL(window.location.href);
+    if (!pastMode) url.searchParams.delete("day");
+    return url.toString();
+  }
 
   // Freezes the active tab's top 5 into a /b/:id link whose X card shows the
-  // ranking at this moment, and names the top 3 handles in the post text.
-  // Internal boards and any failure fall back to the live board URL and the
-  // plain text so sharing always works.
+  // ranking at this moment (or the saved day being viewed), and names the top
+  // 3 handles in the post text. Internal boards and any failure fall back to
+  // the board URL and the plain text so sharing always works.
   async function boardShareLink(): Promise<{ url: string; text: string }> {
-    const fallback = { url: window.location.href, text: shareText };
+    const fallback = { url: currentBoardUrl(), text: shareText };
     if (activeGroup?.internal) return fallback;
     try {
-      const share = await createBoardShare({ board: activeBoard });
+      const share = await createBoardShare({
+        board: activeBoard,
+        ...(viewDay ? { day: viewDay } : {}),
+      });
       if (share) {
         const handles = share.topHandles.map((handle) => `@${handle}`).join(" ");
         return {
@@ -621,11 +696,43 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
     setVisibleCount(filterStep(topFilter));
   }
 
+  // Moves the board to a saved day, or back to today with null. The day
+  // lives in the URL so Copy link and the X card land on the same day.
+  function goToDay(day: string | null) {
+    setSearchParams(
+      (params) => {
+        const next = new URLSearchParams(params);
+        if (day) {
+          next.set("day", day);
+        } else {
+          next.delete("day");
+        }
+        return next;
+      },
+      { replace: true },
+    );
+    setVisibleCount(filterStep(topFilter));
+    setExpandedId(null);
+  }
+
+  // Left and Right step days from either arrow, like the pill switch.
+  function handleDayKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+    if (event.key === "ArrowLeft" && olderDay) {
+      event.preventDefault();
+      goToDay(olderDay);
+    } else if (event.key === "ArrowRight" && viewDay) {
+      event.preventDefault();
+      goToDay(newerDay);
+    }
+  }
+
   function changeBoard(nextBoard: BoardSelection) {
     if (nextBoard === activeBoard) return;
     setBoard(nextBoard);
     // Mirror the pill into the URL so the view is linkable. The default
-    // board keeps a clean URL with no param.
+    // board keeps a clean URL with no param. A saved day carries over to the
+    // next board (it falls back to today with a notice when that board has
+    // no copy), except Legends, which has no days.
     setSearchParams(
       (params) => {
         const next = new URLSearchParams(params);
@@ -634,6 +741,7 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
         } else {
           next.set("board", nextBoard);
         }
+        if (nextBoard === LEGENDS_BOARD) next.delete("day");
         return next;
       },
       { replace: true },
@@ -745,14 +853,64 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
               : "People, ranked by public engagement"}
         </h2>
         <div className="board-toolbar">
-          <p className="eyebrow board-kicker">
+          <div className="eyebrow board-kicker">
             {/* The label names the window so readers know the counts cover 7 days. */}
-            <span className="board-kicker-label">This week&apos;s board · Last 7 days</span>
-            {/* Freshness chip: relative label, absolute time in the tooltip. */}
-            <span className="board-sync-chip" title={formatSyncTime(latestSync)}>
-              {relativeSyncTime(latestSync)}
+            <span className="board-kicker-label">
+              {pastMode ? "Saved board" : "This week\u2019s board"} · Last 7 days
             </span>
-          </p>
+            {/* Day navigator: today is live, the arrows step through the
+                saved daily rankings. Legends has no days. */}
+            {legendsMode ? null : (
+              <div
+                className="board-day-nav"
+                role="group"
+                aria-label="Ranking day"
+                data-past={pastMode || undefined}>
+                <button
+                  type="button"
+                  onKeyDown={handleDayKeyDown}
+                  aria-label={
+                    olderDay
+                      ? `Previous day's ranking, ${formatDayLabel(olderDay)}`
+                      : "No earlier saved ranking"
+                  }
+                  title={olderDay ? formatDayLabel(olderDay) : "No earlier saved ranking"}
+                  disabled={!olderDay}
+                  onClick={() => olderDay && goToDay(olderDay)}>
+                  <CaretLeftIcon aria-hidden="true" />
+                </button>
+                <span className="board-day-label" aria-live="polite">
+                  {viewDay ? formatDayLabel(viewDay) : `Today · ${formatDayLabel(todayKey)}`}
+                </span>
+                <button
+                  type="button"
+                  aria-label={
+                    viewDay
+                      ? newerDay
+                        ? `Next day's ranking, ${formatDayLabel(newerDay)}`
+                        : "Back to today's live board"
+                      : "Already on today"
+                  }
+                  title={viewDay ? (newerDay ? formatDayLabel(newerDay) : "Today") : "Already on today"}
+                  disabled={!viewDay}
+                  onKeyDown={handleDayKeyDown}
+                  onClick={() => goToDay(newerDay)}>
+                  <CaretRightIcon aria-hidden="true" />
+                </button>
+              </div>
+            )}
+            {/* Freshness chip: relative label, absolute time in the tooltip.
+                A saved day shows when its board pass ran instead. */}
+            {pastMode && savedRanking ? (
+              <span className="board-sync-chip" title={formatSyncTime(savedRanking.dataAsOf)}>
+                Saved {formatPacificTime(savedRanking.dataAsOf)}
+              </span>
+            ) : (
+              <span className="board-sync-chip" title={formatSyncTime(latestSync)}>
+                {relativeSyncTime(latestSync)}
+              </span>
+            )}
+          </div>
           {/* Tools share the kicker row: search folds into an icon so the
               board header stays two rows. Search filters the active tab. */}
           <div
@@ -774,7 +932,7 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
               onChange={changeTopFilter}
               icon={<FunnelSimpleIcon aria-hidden="true" />}
             />
-            <button type="button" onClick={() => handleCopy("board", window.location.href)}>
+            <button type="button" onClick={() => handleCopy("board", currentBoardUrl())}>
               {copied === "board" ? (
                 <CheckIcon aria-hidden="true" />
               ) : (
@@ -794,6 +952,15 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
               aria-busy={sharing === "x" || undefined}>
               <XLogoIcon aria-hidden="true" /> <span className="share-label">Post on X</span>
             </button>
+            {viewer?.isAdmin ? (
+              <Link
+                to={`/admin/share-video?board=${encodeURIComponent(activeBoard)}${
+                  viewDay ? `&day=${viewDay}` : ""
+                }`}
+                title="Make a ranking video of this board (admins only)">
+                <FilmStripIcon aria-hidden="true" /> <span className="share-label">Video</span>
+              </Link>
+            ) : null}
           </div>
         </div>
 
@@ -830,9 +997,36 @@ export function Leaderboard({ initialSearch = "" }: { initialSearch?: string }) 
           </div>
         </div>
 
+        {/* Saved day notice: names the date and the window so a past ranking
+            never reads as today's. */}
+        {viewDay ? (
+          <div className="data-notice data-notice--past" role="status">
+            <span className="notice-mark" aria-hidden="true" />
+            <span>
+              Saved ranking for <strong>{formatDayLabel(viewDay, true)}</strong>
+              {savedRanking
+                ? `, the last 7 days as of ${formatPacificTime(savedRanking.dataAsOf)} that day.`
+                : "."}
+            </span>
+            <button type="button" className="notice-action" onClick={() => goToDay(null)}>
+              Back to today
+            </button>
+          </div>
+        ) : missingDay ? (
+          <div className="data-notice data-notice--past" role="status">
+            <span className="notice-mark" aria-hidden="true" />
+            <span>
+              No saved ranking for {formatDayLabel(missingDay, true)} on this board. Showing today.
+            </span>
+            <button type="button" className="notice-action" onClick={() => goToDay(null)}>
+              Dismiss
+            </button>
+          </div>
+        ) : null}
+
         {/* Board notice, only when something is off. Branches on the real
-            cause so an X outage never reads as a missing key. */}
-        {profiles && profiles.length > 0 && syncHealth ? (
+            cause so an X outage never reads as a missing key. Live only. */}
+        {!pastMode && profiles && profiles.length > 0 && syncHealth ? (
           syncedProfiles.length === 0 ? (
             <div className="data-notice" role="status">
               <span className="notice-mark" aria-hidden="true" />

@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import { internalMutation, internalQuery, type QueryCtx } from "./_generated/server";
 
@@ -93,6 +94,11 @@ export const finish = internalMutation({
       haltedAt: null,
       haltedReason: null,
       updatedAt: now,
+    });
+    // Every board now has fresh numbers: save today's rankings for the
+    // board's day arrows.
+    await ctx.scheduler.runAfter(0, internal.boardRankings.captureAll, {
+      runStartedAt: args.runStartedAt,
     });
     return null;
   },

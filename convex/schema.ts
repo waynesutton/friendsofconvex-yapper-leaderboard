@@ -1,7 +1,7 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { authTables } from "@convex-dev/auth/server";
-import { boardShareRowValidator } from "./validators";
+import { boardRankingRowValidator, boardShareRowValidator } from "./validators";
 
 const syncStatus = v.union(
   v.literal("pending"),
@@ -369,7 +369,40 @@ export default defineSchema({
     dataAsOf: v.union(v.number(), v.null()),
     contentHash: v.string(),
     imageStorageId: v.optional(v.id("_storage")),
+    // Ranking video an admin rendered in the browser and attached. Served at
+    // /v/board/:id.mp4 and announced as og:video on /b/:id.
+    videoStorageId: v.optional(v.id("_storage")),
+    // X user id of the admin who attached it.
+    videoRenderedBy: v.optional(v.string()),
+    videoRenderedAt: v.optional(v.number()),
+    // Pacific day (YYYY-MM-DD) when the share froze a saved daily ranking
+    // instead of the live board. Missing means a live share.
+    rankingDay: v.optional(v.string()),
   }).index("by_board_and_content_hash", ["board", "contentHash"]),
+
+  // One saved ranking per board per Pacific day, written after a full board
+  // sync pass and kept for RANKING_HISTORY_DAYS. Light on purpose: the day
+  // arrows list these, and the rows live in boardRankingRows.
+  boardRankings: defineTable({
+    board: v.string(),
+    boardLabel: v.string(),
+    day: v.string(),
+    capturedAt: v.number(),
+    // Start of the board pass the numbers came from.
+    dataAsOf: v.number(),
+    rowCount: v.number(),
+    rowsId: v.id("boardRankingRows"),
+  })
+    .index("by_board_and_day", ["board", "day"])
+    .index("by_day", ["day"]),
+
+  // The rows of one saved ranking, read only when someone opens that day.
+  // Bounded by BOARD_MAX.
+  boardRankingRows: defineTable({
+    board: v.string(),
+    day: v.string(),
+    rows: v.array(boardRankingRowValidator),
+  }),
 
   giftCampaigns: defineTable({
     title: v.string(),

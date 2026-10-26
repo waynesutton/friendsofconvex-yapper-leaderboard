@@ -1,8 +1,9 @@
-import { convexTest, type TestConvex } from "convex-test";
+import { convexTest } from "convex-test";
 import { afterEach, beforeEach, expect, test } from "vitest";
 import { api } from "../convex/_generated/api";
 import { cleanHandle } from "../convex/admins";
 import schema from "../convex/schema";
+import { asXUser } from "./asXUser";
 
 const modules = import.meta.glob([
   "../convex/**/*.{ts,js}",
@@ -10,7 +11,6 @@ const modules = import.meta.glob([
 ]);
 
 const OWNER_X_ID = "900001";
-const DAY_MS = 24 * 60 * 60 * 1000;
 const previousAdmins = process.env.ADMIN_X_USER_IDS;
 
 beforeEach(() => {
@@ -20,24 +20,6 @@ beforeEach(() => {
 afterEach(() => {
   process.env.ADMIN_X_USER_IDS = previousAdmins;
 });
-
-// Signed in client for any X account, admin or not.
-async function asXUser(t: TestConvex<typeof schema>, xUserId: string) {
-  const subject = await t.run(async (ctx) => {
-    const userId = await ctx.db.insert("users", { xUserId, xUsername: `user${xUserId}` });
-    await ctx.db.insert("authAccounts", {
-      userId,
-      provider: "twitter",
-      providerAccountId: xUserId,
-    });
-    const sessionId = await ctx.db.insert("authSessions", {
-      userId,
-      expirationTime: Date.now() + DAY_MS,
-    });
-    return `${userId}|${sessionId}`;
-  });
-  return t.withIdentity({ subject });
-}
 
 const teammate = {
   xUserId: "700007",

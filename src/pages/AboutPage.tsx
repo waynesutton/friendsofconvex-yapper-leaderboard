@@ -68,7 +68,8 @@ export function AboutPage() {
               rel="noreferrer noopener">
               Convex cron job
             </a>
-            .
+            . After each run the board saves that day&apos;s ranking and keeps the last 7 days, so
+            the arrows next to the date show where everyone stood earlier in the week.
           </p>
         </section>
         <section>

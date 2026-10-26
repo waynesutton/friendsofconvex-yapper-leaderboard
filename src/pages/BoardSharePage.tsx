@@ -7,8 +7,8 @@ import { usePageTitle } from "../lib/usePageTitle";
 const DEFAULT_BOARD = "impressions";
 
 // /b/:id is a frozen board share. Crawlers read its meta tags from the HTTP
-// route; people who tap the card land here and move to the live board for
-// that tab. Unknown ids go to the home board.
+// route; people who tap the card land here and move to the board for that
+// tab, on the saved day when the share froze one. Unknown ids go home.
 export function BoardSharePage() {
   const { shareId } = useParams<{ shareId: string }>();
   const share = useQuery(api.boardShares.getBoardShare, {
@@ -20,8 +20,12 @@ export function BoardSharePage() {
   if (share === undefined) {
     return <div className="gift-portal-state">Opening the board…</div>;
   }
-  if (share === null || share.board === DEFAULT_BOARD) {
+  if (share === null) {
     return <Navigate to="/" replace />;
   }
-  return <Navigate to={`/?board=${encodeURIComponent(share.board)}`} replace />;
+  const params = new URLSearchParams();
+  if (share.board !== DEFAULT_BOARD) params.set("board", share.board);
+  if (share.rankingDay) params.set("day", share.rankingDay);
+  const query = params.toString();
+  return <Navigate to={query ? `/?${query}` : "/"} replace />;
 }

@@ -17,6 +17,16 @@ export function formatSyncTime(timestamp: number | null): string {
   }).format(timestamp);
 }
 
+// "8:17 AM PT". Saved rankings follow the board's Pacific schedule.
+export function formatPacificTime(timestamp: number): string {
+  const time = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Los_Angeles",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(timestamp);
+  return `${time} PT`;
+}
+
 // Short relative freshness label for the board chip: "Updated 2h ago".
 export function relativeSyncTime(timestamp: number | null): string {
   if (timestamp === null) return "Awaiting first sync";

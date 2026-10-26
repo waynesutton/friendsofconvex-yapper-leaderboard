@@ -14,6 +14,7 @@ const ADMIN_LINKS = [
   { to: "/admin", label: "Board ops" },
   { to: "/admin/groups", label: "Groups" },
   { to: "/admin/queue", label: "Mention queue" },
+  { to: "/admin/share-video", label: "Share video" },
   { to: "/admin/gifts", label: "Gift studio" },
   { to: "/admin/gift-lab", label: "Gift lab" },
   { to: "/admin/gifts/guide", label: "Gifts guide" },

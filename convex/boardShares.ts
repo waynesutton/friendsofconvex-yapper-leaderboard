@@ -8,7 +8,8 @@ import {
   query,
   type QueryCtx,
 } from "./_generated/server";
-import { BOARD_MAX } from "./boardLimits";
+import { BOARD_MAX, CONVEX_BOARD, LEGENDS_BOARD, YAPPERS_BOARD } from "./boardLimits";
+import { readSavedRanking } from "./boardRankings";
 import { DEFAULT_DISPLAY } from "./boardSettings";
 import { hasSyncedMetrics, loadBoardRows, type PublicLeaderboardRow } from "./profiles";
 import { boardShareRowValidator } from "./validators";
@@ -25,10 +26,7 @@ export const SHARE_ROW_LIMIT = 5;
 // rank someone the board does not.
 const BOARD_POOL = BOARD_MAX;
 
-// Board ids match the `?board=` URL values the leaderboard uses.
-export const YAPPERS_BOARD = "impressions";
-export const CONVEX_BOARD = "convex";
-export const LEGENDS_BOARD = "legends";
+export { CONVEX_BOARD, LEGENDS_BOARD, YAPPERS_BOARD };
 
 export type BoardShareRow = {
   rank: number | null;
@@ -111,8 +109,12 @@ export function hashShareRows(args: {
   boardLabel: string;
   rows: Array<BoardShareRow>;
   dataAsOf: number | null;
+  rankingDay?: string | null;
 }): string {
-  return cyrb53(JSON.stringify([args.boardLabel, args.dataAsOf, args.rows]));
+  // Live shares keep their original hash input so existing ids still dedupe.
+  const parts: Array<unknown> = [args.boardLabel, args.dataAsOf, args.rows];
+  if (args.rankingDay) parts.push(args.rankingDay);
+  return cyrb53(JSON.stringify(parts));
 }
 
 type ResolvedBoard = {
@@ -196,12 +198,40 @@ function newestSync(
 // How many handles the post text names, taken from the frozen card rows.
 export const SHARE_TEXT_HANDLES = 3;
 
+// A saved daily ranking in the same shape as a live board, so one row
+// builder serves both. The as-of time is the pass the day was saved from.
+async function resolveSavedBoard(
+  ctx: QueryCtx,
+  board: string,
+  day: string,
+): Promise<(ResolvedBoard & { dataAsOf: number }) | null> {
+  // Share links are public, so internal groups stay unshareable even for
+  // the admins who can read their saved days.
+  const group = await ctx.db
+    .query("groups")
+    .withIndex("by_slug", (q) => q.eq("slug", board))
+    .first();
+  if (group?.internal) return null;
+  const saved = await readSavedRanking(ctx, board, day);
+  if (!saved) return null;
+  const convex = board === CONVEX_BOARD;
+  return {
+    boardLabel: saved.boardLabel,
+    kind: "ranked",
+    metric: convex ? "convexPosts" : "engagements",
+    metricLabel: convex ? "Convex posts" : "Engagements",
+    rows: saved.rows,
+    dataAsOf: saved.dataAsOf,
+  };
+}
+
 // Freezes the active tab and returns the share id plus the top handles for
-// the post text, or null when the tab is empty or not public. Repeat calls
-// with an unchanged ranking return the existing id, so the X card URL stays
-// stable and the table stays small.
+// the post text, or null when the tab is empty or not public. With `day`,
+// it freezes that day's saved ranking instead of the live board. Repeat
+// calls with an unchanged ranking return the existing id, so the X card URL
+// stays stable and the table stays small.
 export const createBoardShare = mutation({
-  args: { board: v.string() },
+  args: { board: v.string(), day: v.optional(v.string()) },
   returns: v.union(
     v.object({ shareId: v.id("boardShares"), topHandles: v.array(v.string()) }),
     v.null(),
@@ -212,16 +242,20 @@ export const createBoardShare = mutation({
   ): Promise<{ shareId: Id<"boardShares">; topHandles: Array<string> } | null> => {
     const board = args.board.trim().slice(0, 80);
     if (!board) return null;
-    const resolved = await resolveBoard(ctx, board);
+    const rankingDay = args.day ?? null;
+    const saved = rankingDay ? await resolveSavedBoard(ctx, board, rankingDay) : null;
+    if (rankingDay && !saved) return null;
+    const resolved = saved ?? (await resolveBoard(ctx, board));
     if (!resolved) return null;
 
     const rows = buildShareRows(resolved.rows, resolved.metric);
     if (rows.length === 0) return null;
-    const dataAsOf = newestSync(resolved.rows, rows);
+    const dataAsOf = saved ? saved.dataAsOf : newestSync(resolved.rows, rows);
     const contentHash = hashShareRows({
       boardLabel: resolved.boardLabel,
       rows,
       dataAsOf,
+      rankingDay,
     });
     const topHandles = rows
       .slice(0, SHARE_TEXT_HANDLES)
@@ -243,6 +277,7 @@ export const createBoardShare = mutation({
       rows,
       dataAsOf,
       contentHash,
+      ...(rankingDay ? { rankingDay } : {}),
     });
     // Prewarm the card so X's crawler gets a stored PNG on its first fetch.
     await ctx.scheduler.runAfter(0, internal.boardShareRender.renderAndStore, {
@@ -260,6 +295,7 @@ const publicShareValidator = v.object({
   metricLabel: v.string(),
   rows: v.array(boardShareRowValidator),
   dataAsOf: v.union(v.number(), v.null()),
+  rankingDay: v.union(v.string(), v.null()),
 });
 
 // Public read for the /b/:id redirect page and the crawler meta tags. Takes
@@ -280,16 +316,20 @@ export const getBoardShare = query({
       metricLabel: share.metricLabel,
       rows: share.rows,
       dataAsOf: share.dataAsOf,
+      rankingDay: share.rankingDay ?? null,
     };
   },
 });
 
-// Snapshot plus the stored image id, for the image route and the renderer.
+// Snapshot plus the stored image and video ids, for the image route, the
+// share page meta, and the renderers.
 export const getForRender = internalQuery({
   args: { shareId: v.string() },
   returns: v.union(
     publicShareValidator.extend({
       imageStorageId: v.union(v.id("_storage"), v.null()),
+      videoStorageId: v.union(v.id("_storage"), v.null()),
+      videoRenderedAt: v.union(v.number(), v.null()),
     }),
     v.null(),
   ),
@@ -306,7 +346,10 @@ export const getForRender = internalQuery({
       metricLabel: share.metricLabel,
       rows: share.rows,
       dataAsOf: share.dataAsOf,
+      rankingDay: share.rankingDay ?? null,
       imageStorageId: share.imageStorageId ?? null,
+      videoStorageId: share.videoStorageId ?? null,
+      videoRenderedAt: share.videoRenderedAt ?? null,
     };
   },
 });

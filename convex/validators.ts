@@ -15,6 +15,31 @@ export const syncStatusValidator = v.union(
   v.literal("error"),
 );
 
+// One person on a saved daily ranking. Bios stay out to keep the day small;
+// the board merges them back from the live rows. Muted rows carry no rank.
+export const boardRankingRowValidator = v.object({
+  profileId: v.id("profiles"),
+  rank: v.union(v.number(), v.null()),
+  handle: v.string(),
+  normalizedHandle: v.string(),
+  displayName: v.string(),
+  profileImageUrl: v.union(v.string(), v.null()),
+  syncStatus: syncStatusValidator,
+  currentImpressions: v.number(),
+  currentPosts: v.number(),
+  currentEngagements: v.number(),
+  currentFollowers: v.number(),
+  lastSyncedAt: v.union(v.number(), v.null()),
+  addedAt: v.number(),
+  muted: v.optional(v.boolean()),
+  convexPostCount: v.optional(v.number()),
+  convexImpressions: v.optional(v.number()),
+  convexEngagements: v.optional(v.number()),
+  convexScanned: v.optional(v.boolean()),
+  convexWeeklyChange: v.optional(v.union(v.number(), v.null())),
+  convexStreak: v.optional(v.number()),
+});
+
 export const profileValidator = v.object({
   _id: v.id("profiles"),
   _creationTime: v.number(),

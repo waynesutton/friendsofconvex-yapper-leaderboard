@@ -1,6 +1,7 @@
 import { api, internal } from "./_generated/api";
 import { httpAction } from "./_generated/server";
-import { YAPPERS_BOARD } from "./boardShares";
+import { YAPPERS_BOARD } from "./boardLimits";
+import { formatDayLabel } from "./rankingDays";
 
 // Crawler friendly share pages. The app is a Vite SPA served by the static
 // hosting component, so X and other crawlers never run React. These routes
@@ -150,10 +151,112 @@ export const legendSharePage = httpAction(async (ctx, request) => {
   });
 });
 
-// Live board URL for a board id; the default Yappers board has no param.
-function liveBoardUrl(origin: string, board: string): string {
-  if (board === YAPPERS_BOARD) return `${origin}/`;
-  return `${origin}/?board=${encodeURIComponent(board)}`;
+// Board URL for a board id; the default Yappers board has no board param.
+// A saved day adds ?day= so the link opens that day's ranking.
+function liveBoardUrl(origin: string, board: string, day: string | null = null): string {
+  const params = new URLSearchParams();
+  if (board !== YAPPERS_BOARD) params.set("board", board);
+  if (day) params.set("day", day);
+  const query = params.toString();
+  return query ? `${origin}/?${query}` : `${origin}/`;
+}
+
+type MetaTag = { attr: "property" | "name"; key: string; content: string };
+
+export type BoardShareMetaInput = {
+  _id: string;
+  board: string;
+  boardLabel: string;
+  kind: "ranked" | "legends";
+  rows: Array<{ rank: number | null; handle: string }>;
+  videoStorageId: string | null;
+  videoRenderedAt: number | null;
+  rankingDay?: string | null;
+};
+
+export type BoardShareMeta = {
+  title: string;
+  canonical: string;
+  // Applied before the canonical link, then `tags` after it.
+  headTags: Array<MetaTag>;
+  tags: Array<MetaTag>;
+};
+
+// Crawler tags for a board snapshot. og:video only appears once an admin
+// attaches a video, and twitter:card is never touched: it stays
+// summary_large_image from the shell, because X does not play og:video and
+// player cards are approval gated.
+export function boardShareMeta(
+  share: BoardShareMetaInput,
+  origin: string,
+  branding: { communityName: string; boardName: string },
+): BoardShareMeta {
+  const boardTitle = `${branding.communityName} ${branding.boardName}`;
+  const legends = share.kind === "legends";
+  const day = share.rankingDay ?? null;
+  const title = legends
+    ? `Legends of the ${boardTitle}`
+    : day
+      ? `Top ${share.rows.length} on ${share.boardLabel}, ${formatDayLabel(day)} | ${boardTitle}`
+      : `Top ${share.rows.length} on ${share.boardLabel} | ${boardTitle}`;
+  const leaders = share.rows
+    .slice(0, 3)
+    .map((row) => (legends ? `@${row.handle}` : `${row.rank}. @${row.handle}`))
+    .join(", ");
+  const description = legends
+    ? `${leaders} left the board undefeated.`
+    : day
+      ? `${leaders} led ${share.boardLabel} on the ${boardTitle} on ${formatDayLabel(day, true)}.`
+      : `${leaders} lead ${share.boardLabel} on the ${boardTitle}.`;
+  const pageUrl = `${origin}/b/${encodeURIComponent(share._id)}`;
+  const imageUrl = `${origin}/og/board/${encodeURIComponent(share._id)}.png`;
+  const imageAlt = `${share.boardLabel} leaderboard: ${share.rows
+    .map((row) => `@${row.handle}`)
+    .join(", ")}`;
+
+  const tags: Array<MetaTag> = [
+    { attr: "property", key: "og:title", content: title },
+    { attr: "property", key: "og:description", content: description },
+    { attr: "property", key: "og:url", content: pageUrl },
+    { attr: "property", key: "og:image", content: imageUrl },
+    { attr: "property", key: "og:image:alt", content: imageAlt },
+    { attr: "name", key: "twitter:title", content: title },
+    { attr: "name", key: "twitter:description", content: description },
+    { attr: "name", key: "twitter:image", content: imageUrl },
+    { attr: "name", key: "twitter:image:alt", content: imageAlt },
+  ];
+  if (share.videoStorageId !== null) {
+    const videoUrl = boardShareVideoUrl(origin, share._id, share.videoRenderedAt);
+    tags.push(
+      { attr: "property", key: "og:video", content: videoUrl },
+      { attr: "property", key: "og:video:url", content: videoUrl },
+      { attr: "property", key: "og:video:secure_url", content: videoUrl },
+      { attr: "property", key: "og:video:type", content: "video/mp4" },
+      { attr: "property", key: "og:video:width", content: "1200" },
+      { attr: "property", key: "og:video:height", content: "630" },
+    );
+  }
+
+  return {
+    title,
+    canonical: liveBoardUrl(origin, share.board, day),
+    headTags: [
+      { attr: "name", key: "description", content: description },
+      { attr: "name", key: "robots", content: "noindex" },
+    ],
+    tags,
+  };
+}
+
+// The ?v= stamp changes when a video is replaced, so chat apps and caches
+// fetch the new file even though the path stays the same.
+export function boardShareVideoUrl(
+  origin: string,
+  shareId: string,
+  videoRenderedAt: number | null,
+): string {
+  const base = `${origin}/v/board/${encodeURIComponent(shareId)}.mp4`;
+  return videoRenderedAt === null ? base : `${base}?v=${videoRenderedAt}`;
 }
 
 // GET /b/:id — a frozen board share. Crawlers get the snapshot title,
@@ -174,7 +277,7 @@ export const boardSharePage = httpAction(async (ctx, request) => {
   let html = await shellResponse.text();
 
   const share = shareId
-    ? await ctx.runQuery(api.boardShares.getBoardShare, { shareId })
+    ? await ctx.runQuery(internal.boardShares.getForRender, { shareId })
     : null;
 
   if (share) {
@@ -182,37 +285,11 @@ export const boardSharePage = httpAction(async (ctx, request) => {
       internal.siteSettings.getSiteBrandingInternal,
       {},
     );
-    const boardTitle = `${branding.communityName} ${branding.boardName}`;
-    const legends = share.kind === "legends";
-    const title = legends
-      ? `Legends of the ${boardTitle}`
-      : `Top ${share.rows.length} on ${share.boardLabel} | ${boardTitle}`;
-    const leaders = share.rows
-      .slice(0, 3)
-      .map((row) => (legends ? `@${row.handle}` : `${row.rank}. @${row.handle}`))
-      .join(", ");
-    const description = legends
-      ? `${leaders} left the board undefeated.`
-      : `${leaders} lead ${share.boardLabel} on the ${boardTitle}.`;
-    const pageUrl = `${origin}/b/${encodeURIComponent(share._id)}`;
-    const imageUrl = `${origin}/og/board/${encodeURIComponent(share._id)}.png`;
-    const imageAlt = `${share.boardLabel} leaderboard: ${share.rows
-      .map((row) => `@${row.handle}`)
-      .join(", ")}`;
-
-    html = setTitle(html, title);
-    html = setMetaTag(html, "name", "description", description);
-    html = setMetaTag(html, "name", "robots", "noindex");
-    html = setCanonical(html, liveBoardUrl(origin, share.board));
-    html = setMetaTag(html, "property", "og:title", title);
-    html = setMetaTag(html, "property", "og:description", description);
-    html = setMetaTag(html, "property", "og:url", pageUrl);
-    html = setMetaTag(html, "property", "og:image", imageUrl);
-    html = setMetaTag(html, "property", "og:image:alt", imageAlt);
-    html = setMetaTag(html, "name", "twitter:title", title);
-    html = setMetaTag(html, "name", "twitter:description", description);
-    html = setMetaTag(html, "name", "twitter:image", imageUrl);
-    html = setMetaTag(html, "name", "twitter:image:alt", imageAlt);
+    const meta = boardShareMeta(share, origin, branding);
+    html = setTitle(html, meta.title);
+    for (const tag of meta.headTags) html = setMetaTag(html, tag.attr, tag.key, tag.content);
+    html = setCanonical(html, meta.canonical);
+    for (const tag of meta.tags) html = setMetaTag(html, tag.attr, tag.key, tag.content);
   }
 
   return new Response(html, {
@@ -269,6 +346,76 @@ export const boardShareImage = httpAction(async (ctx, request) => {
     });
     return fallback();
   }
+});
+
+// Parses a single `bytes=` range. null means serve the whole file; "invalid"
+// means the range starts past the end (416). Multi range requests get the
+// whole file.
+export function parseByteRange(
+  header: string | null,
+  size: number,
+): { start: number; end: number } | null | "invalid" {
+  if (!header) return null;
+  const match = /^bytes=(\d*)-(\d*)$/.exec(header.trim());
+  if (!match) return null;
+  const [, startText, endText] = match;
+  if (startText === "" && endText === "") return null;
+  if (startText === "") {
+    const suffix = Number(endText);
+    if (suffix === 0) return "invalid";
+    return { start: Math.max(0, size - suffix), end: size - 1 };
+  }
+  const start = Number(startText);
+  if (start >= size) return "invalid";
+  const end = endText === "" ? size - 1 : Math.min(Number(endText), size - 1);
+  if (end < start) return "invalid";
+  return { start, end };
+}
+
+// GET /v/board/:id.mp4 — the ranking video an admin attached to a snapshot.
+// Only ever serves attached files; everything else is a 404. Range requests
+// get 206, which Safari and iMessage need before they play anything.
+export const boardShareVideo = httpAction(async (ctx, request) => {
+  const url = new URL(request.url);
+  const shareId = tokenFromPath(url.pathname, "/v/board/").replace(/\.mp4$/, "");
+  const notFound = () =>
+    new Response("Not found", { status: 404, headers: { "Cache-Control": "no-store" } });
+
+  const share = shareId
+    ? await ctx.runQuery(internal.boardShares.getForRender, { shareId })
+    : null;
+  if (!share?.videoStorageId) return notFound();
+  const video = await ctx.storage.get(share.videoStorageId);
+  if (!video) return notFound();
+
+  const headers: Record<string, string> = {
+    "Content-Type": "video/mp4",
+    "Accept-Ranges": "bytes",
+    // A replaced video gets a new ?v= stamp, so the bytes behind one URL
+    // never change.
+    "Cache-Control": "public, max-age=31536000, immutable",
+  };
+  const range = parseByteRange(request.headers.get("Range"), video.size);
+  if (range === "invalid") {
+    return new Response(null, {
+      status: 416,
+      headers: { ...headers, "Content-Range": `bytes */${video.size}` },
+    });
+  }
+  if (range) {
+    return new Response(video.slice(range.start, range.end + 1), {
+      status: 206,
+      headers: {
+        ...headers,
+        "Content-Range": `bytes ${range.start}-${range.end}/${video.size}`,
+        "Content-Length": String(range.end - range.start + 1),
+      },
+    });
+  }
+  return new Response(video, {
+    status: 200,
+    headers: { ...headers, "Content-Length": String(video.size) },
+  });
 });
 
 // GET /og/gift/:token.png — the personalized 1200x630 share image.

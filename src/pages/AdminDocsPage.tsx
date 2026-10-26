@@ -57,8 +57,21 @@ export function AdminDocsPage() {
                 the ranking when it was shared, not whatever it says later.
                 Posting an unchanged board again reuses the same link.
                 Internal groups and hidden tabs never get a card; those
-                buttons share the plain board link instead. Copy link always
-                copies the live board.
+                buttons share the plain board link instead. Copy link copies
+                the board you are looking at, including the day.
+              </p>
+              <p>
+                Past rankings: after every full sync, Convex saves each board
+                (Yappers, Convex mentions, and every visible group) as that
+                Pacific day&apos;s ranking and keeps the last 7 days. The
+                arrows next to the freshness chip step through them, and the
+                URL gets a ?day= so a past board is linkable. Post on X and
+                Share on a past day freeze that day&apos;s saved rows, and the
+                card prints the date. Saving costs no extra X API calls. Legends
+                has no daily ranking, internal group days are admin only and
+                never get a card, and removing a person also scrubs them from
+                saved days. To save today by hand, run{" "}
+                <code>npx convex run boardRankings:captureNow</code>.
               </p>
             </div>
           </section>
@@ -94,6 +107,41 @@ export function AdminDocsPage() {
 
           <section>
             <span className="method-number">03</span>
+            <div>
+              <h2>Share video</h2>
+              <p>
+                <Link className="text-link" to="/admin/share-video">/admin/share-video</Link>{" "}
+                turns a board snapshot into a 5.5 second MP4 of the board
+                building itself: the racing lines draw in, the title rises,
+                rows land in rank order, first place pulses, and the finished
+                card holds. The first frame is the finished card, so the
+                thumbnail reads well. Pick a board (or press Video on the
+                board toolbar, which only admins see), press Make snapshot,
+                check the live preview next to the static card, then press
+                Render video. It renders in your browser and needs Chrome or
+                Safari 26 or newer.
+              </p>
+              <p>
+                X does not play videos from links, so post the file by hand.
+                On a phone, Share video opens the share sheet with the MP4. On
+                a desktop, Download MP4, press Open X post, and attach the
+                file in the composer. Attach to share link puts the video on
+                the /b/ link, so iMessage, Discord, and other chat apps play
+                it inline; X keeps showing the static card. Attach before you
+                post, since link previews are cached for a day. Remove video
+                takes the video off the link and deletes the file. Recent
+                snapshots lists earlier links and whether they have a video.
+              </p>
+              <p>
+                Which day to freeze picks today&apos;s live board or any saved
+                day from the last week. A past day video shows that date on
+                the card, and the file name uses it too.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <span className="method-number">04</span>
             <div>
               <h2>Groups</h2>
               <p>
@@ -137,7 +185,7 @@ export function AdminDocsPage() {
           </section>
 
           <section>
-            <span className="method-number">04</span>
+            <span className="method-number">05</span>
             <div>
               <h2>Public vs internal groups</h2>
               <p>
@@ -155,7 +203,7 @@ export function AdminDocsPage() {
           </section>
 
           <section>
-            <span className="method-number">05</span>
+            <span className="method-number">06</span>
             <div>
               <h2>Legends</h2>
               <p>
@@ -197,7 +245,7 @@ export function AdminDocsPage() {
           </section>
 
           <section>
-            <span className="method-number">06</span>
+            <span className="method-number">07</span>
             <div>
               <h2>Site settings</h2>
               <p>
@@ -214,7 +262,7 @@ export function AdminDocsPage() {
           </section>
 
           <section>
-            <span className="method-number">07</span>
+            <span className="method-number">08</span>
             <div>
               <h2>Gift studio</h2>
               <p>
@@ -231,7 +279,7 @@ export function AdminDocsPage() {
           </section>
 
           <section>
-            <span className="method-number">08</span>
+            <span className="method-number">09</span>
             <div>
               <h2>Adding and revoking admins</h2>
               <p>
