@@ -88,6 +88,32 @@ export function AboutPage() {
             devs, and keeping the Convex corner fun.
           </p>
         </section>
+        {/* Keep in step with the sort rules in convex/profiles.ts. */}
+        <section className="method-wide">
+          <span className="method-number">07</span>
+          <h2>How the ranking works</h2>
+          <p>
+            <strong>Yappers.</strong> Everyone is ranked by public engagement on their posts from
+            the last seven days. A tie goes to the higher impression count, then the most posts,
+            then whoever joined the board first. Anyone still waiting on their first X sync sits
+            below every row with real numbers.
+          </p>
+          <p>
+            <strong>Convex mentions.</strong> Here the order is the number of posts that mention
+            Convex. A tie goes to more impressions on those Convex posts, then more engagement on
+            them, then more impressions across all posts. People with zero mentions this week stay
+            on the list, faded out, below everyone who posted about Convex.
+          </p>
+          <p>
+            <strong>Groups.</strong> A group board shows only the people in that group, ranked with
+            the same rules as the Yappers board. The numbers come from the same daily sync, so your
+            engagement matches on every board you appear on. Only your rank changes, since it
+            counts from 01 inside each group. An admin can mute someone in one group. That person
+            stays listed under a divider with no rank, everyone below moves up a spot, and their
+            rank on every other board stays put. Legends leave every ranking and only show up in a
+            group when you search for them.
+          </p>
+        </section>
       </div>
       <aside className="editorial-note">
         <p className="section-kicker">Keep yapping</p>

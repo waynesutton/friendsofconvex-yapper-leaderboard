@@ -3716,6 +3716,25 @@ html[data-theme="convex"] .metric-info-trigger[aria-expanded="true"] {
   border-right: 1px solid var(--line-emphasis);
 }
 
+/* Full width card for longer sections, so an odd count never leaves a gap. */
+.method-grid section.method-wide {
+  grid-column: 1 / -1;
+  border-right: 0;
+}
+
+.method-grid section.method-wide p {
+  max-width: 820px;
+}
+
+.method-grid section.method-wide p + p {
+  margin-top: 16px;
+}
+
+.method-grid section.method-wide strong {
+  color: var(--broadcast-ink);
+  font-weight: 600;
+}
+
 .method-number {
   color: var(--signal-coral-dark);
   font-family: var(--font-mono), ui-monospace, monospace;

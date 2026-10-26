@@ -2,6 +2,7 @@
 
 ## To Do
 
+- [ ] Ship About section 07 (frontend only): `npm run deploy -- --skip-convex`, then check friendsofconvex.dev/about shows "How the ranking works" full width on desktop and stacked on a phone.
 - [ ] Deploy daily board rankings to production: `npx convex deploy`, then `npm run deploy -- --skip-convex`. The first saved day appears after the next full pass (8:17 AM PT), or run `npx convex run boardRankings:captureNow --prod` once to seed today. The previous arrow stays disabled until a second day exists.
 - [ ] Deploy the share video live preview: `npm run deploy` (same flow as last time). Then on friendsofconvex.dev/admin/share-video pick Convex Team and confirm the panel lists @jamwt, @mikeysee, @waynesutton with "Not frozen yet".
 - [ ] Signed in check of the share video day picker on dev: pick Sat, Oct 24, Make snapshot, confirm the preview card reads "Top 3 on Sat, Oct 24, 2026", and the downloaded file name uses 2026-10-24.
@@ -23,6 +24,10 @@
 - [ ] Render in Safari 26 on a Mac and confirm the file plays; older Safari should show "Video needs Chrome or Safari 26 or newer".
 - [ ] iPhone: Share video opens the share sheet with the MP4 and X is in it.
 - [ ] Paste a `/b/<id>` link with a video into iMessage and Discord and check it plays inline. Discord may want `og:type=video.other` (speculative, not changed).
+
+## Completed — 2026-10-26 05:11 UTC (About section 07, how the ranking works)
+
+- [x] Added section 07 to `src/pages/AboutPage.tsx` covering Yappers, Convex mentions, and group ranking, tie breakers, unsynced rows, zero mention rows, per group mute, and legends. Copy checked against `compareYapperRows`, `buildConvexLeaderboard`, and the group branch of `loadBoardRows`. X API fields checked against docs.x.com metrics and `GET /2/users/{id}/tweets`. New `.method-wide` class in `src/globals.css` makes the card full width. `tsc --noEmit` and eslint are clean, and the layout was checked at 1280px on dev. Ships with the next `npm run deploy -- --skip-convex`.
 
 ## Completed — 2026-10-26 05:00 UTC (share video page shows today's board)
 

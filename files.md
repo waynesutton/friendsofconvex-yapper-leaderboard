@@ -75,7 +75,7 @@
 - `src/pages/AdminSettingsPage.tsx` — Admin-only site branding settings route.
 - `src/pages/AdminTeamPage.tsx` — Admin-only `/admin/team` route for managing who has admin access.
 - `src/pages/JoinPage.tsx` — Public X sign-in and join-request route.
-- `src/pages/AboutPage.tsx` — Methodology with the exact measurement rules (what counts as a post, the engagement and impression formulas), the daily 8:17 AM Pacific refresh, the 7 days of saved rankings, and a link to Convex cron jobs.
+- `src/pages/AboutPage.tsx` — Methodology with the exact measurement rules (what counts as a post, the engagement and impression formulas), the daily 8:17 AM Pacific refresh, the 7 days of saved rankings, a link to Convex cron jobs, and section 07 on how Yappers, Convex mentions, and group boards order people and break ties.
 - `src/pages/AdminSetupPage.tsx` — Admin-only in-product guide with the verified current state and production routes.
 - `src/pages/AdminGiftsPage.tsx` — Admin-only Fourthwall gift studio route.
 - `src/pages/AdminGiftLabPage.tsx` — Admin-only Gift lab route for named gift links.
