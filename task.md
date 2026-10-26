@@ -2,7 +2,7 @@
 
 ## To Do
 
-- [ ] Ship About section 07 (frontend only): `npm run deploy -- --skip-convex`, then check friendsofconvex.dev/about shows "How the ranking works" full width on desktop and stacked on a phone.
+- [ ] Ship About section 07 and the full width hero stripes (frontend only): `npm run deploy -- --skip-convex`, then check friendsofconvex.dev/about shows "How the ranking works" full width on desktop and stacked on a phone, and the hero stripes run to the box's left edge.
 - [ ] Deploy daily board rankings to production: `npx convex deploy`, then `npm run deploy -- --skip-convex`. The first saved day appears after the next full pass (8:17 AM PT), or run `npx convex run boardRankings:captureNow --prod` once to seed today. The previous arrow stays disabled until a second day exists.
 - [ ] Deploy the share video live preview: `npm run deploy` (same flow as last time). Then on friendsofconvex.dev/admin/share-video pick Convex Team and confirm the panel lists @jamwt, @mikeysee, @waynesutton with "Not frozen yet".
 - [ ] Signed in check of the share video day picker on dev: pick Sat, Oct 24, Make snapshot, confirm the preview card reads "Top 3 on Sat, Oct 24, 2026", and the downloaded file name uses 2026-10-24.
@@ -24,6 +24,10 @@
 - [ ] Render in Safari 26 on a Mac and confirm the file plays; older Safari should show "Video needs Chrome or Safari 26 or newer".
 - [ ] iPhone: Share video opens the share sheet with the MP4 and X is in it.
 - [ ] Paste a `/b/<id>` link with a video into iMessage and Discord and check it plays inline. Discord may want `og:type=video.other` (speculative, not changed).
+
+## Completed — 2026-10-26 05:48 UTC (About hero stripes run full width)
+
+- [x] The racing lines in the Convex theme editorial hero stopped at 58% of the box. The `::after` now spans the hero edge to edge and paints `public/brand/convex-racing-lines-wide.svg` pinned right, so the flat run reaches the left edge. Measured on dev: hero 540px on a narrow pane, 1152px at 1280, 1256px at 2560, all under the 1455px art width at 140px tall. Same style covers the admin docs, gifts guide, and setup pages.
 
 ## Completed — 2026-10-26 05:11 UTC (About section 07, how the ranking works)
 

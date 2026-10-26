@@ -6611,14 +6611,16 @@ html[data-theme="convex"] .editorial-hero {
   color: #fffaf0;
 }
 
+/* The wide art carries a long flat run on its left, so pinning the climb to
+   the right lets the stripes reach the box's left edge at any width. */
 html[data-theme="convex"] .editorial-hero::after {
   content: "";
   position: absolute;
   right: -2px;
   bottom: -2px;
-  width: min(58%, 720px);
+  left: -2px;
   height: 140px;
-  background: url("/brand/convex-racing-lines.png") right bottom / auto 100% no-repeat;
+  background: url("/brand/convex-racing-lines-wide.svg") right bottom / auto 100% no-repeat;
   pointer-events: none;
 }
 
@@ -6728,7 +6730,6 @@ html[data-theme="convex"] .site-footer .cursor-logomark {
   }
 
   html[data-theme="convex"] .editorial-hero::after {
-    width: 82%;
     height: 76px;
     opacity: 0.6;
   }
