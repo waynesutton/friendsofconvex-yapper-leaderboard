@@ -15,6 +15,7 @@ const ADMIN_LINKS = [
   { to: "/admin/groups", label: "Groups" },
   { to: "/admin/queue", label: "Mention queue" },
   { to: "/admin/share-video", label: "Share video" },
+  { to: "/admin/weekly", label: "Weekly" },
   { to: "/admin/gifts", label: "Gift studio" },
   { to: "/admin/gift-lab", label: "Gift lab" },
   { to: "/admin/gifts/guide", label: "Gifts guide" },
@@ -22,7 +23,10 @@ const ADMIN_LINKS = [
   { to: "/admin/docs", label: "Admin docs" },
 ] as const;
 
-const PUBLIC_LINKS = [{ to: "/about", label: "About" }] as const;
+const PUBLIC_LINKS = [
+  { to: "/weekly", label: "Weekly" },
+  { to: "/about", label: "About" },
+] as const;
 
 export function SiteHeader() {
   const location = useLocation();

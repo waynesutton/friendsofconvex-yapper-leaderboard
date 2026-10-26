@@ -18,6 +18,11 @@ export function sitePages(branding: SiteBranding): Array<{
       description: `People-only seven-day X leaderboard for ${branding.communityName}, ranked by public engagement.`,
     },
     {
+      title: "Weekly top 10",
+      path: "/weekly",
+      description: "Every board's top 10 for the week, saved each Friday and kept as an archive.",
+    },
+    {
       title: "About",
       path: "/about",
       description: "How the board scores a week of yaps and who it is for.",
@@ -143,6 +148,7 @@ export function buildLlmsTxt(
     `- [Markdown sitemap](${baseUrl}/sitemap.md): handle, X profile, and seven-day metrics for every public person`,
     `- [XML sitemap](${baseUrl}/sitemap.xml)`,
     `- [Homepage](${baseUrl}/)`,
+    `- [Weekly top 10](${baseUrl}/weekly)`,
     `- [About](${baseUrl}/about)`,
     `- [Join](${baseUrl}/join)`,
     `- [agents.md](${baseUrl}/agents.md)`,
@@ -280,6 +286,12 @@ export function buildSitemapXml(
       lastmod: homepageLastmod,
       changefreq: "daily",
       priority: "1.0",
+    },
+    {
+      loc: `${baseUrl}/weekly`,
+      lastmod: homepageLastmod,
+      changefreq: "weekly",
+      priority: "0.8",
     },
     {
       loc: `${baseUrl}/about`,

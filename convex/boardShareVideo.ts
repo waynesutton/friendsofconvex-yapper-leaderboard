@@ -64,6 +64,7 @@ type ShareForRender = {
   }>;
   dataAsOf: number | null;
   rankingDay: string | null;
+  period: "week" | null;
 };
 
 const videoInputsValidator = v.object({
@@ -76,6 +77,7 @@ const videoInputsValidator = v.object({
   metricLabel: v.string(),
   dataAsOf: v.union(v.number(), v.null()),
   rankingDay: v.union(v.string(), v.null()),
+  period: v.union(v.literal("week"), v.null()),
   rows: v.array(
     v.object({
       rank: v.union(v.number(), v.null()),
@@ -113,6 +115,7 @@ export const getVideoInputs = action({
       metricLabel: share.metricLabel,
       dataAsOf: share.dataAsOf,
       rankingDay: share.rankingDay,
+      period: share.period,
       rows: share.rows.map((row, index) => ({
         rank: row.rank,
         handle: row.handle,
@@ -254,6 +257,7 @@ const recentShareValidator = v.object({
   hasVideo: v.boolean(),
   videoRenderedAt: v.union(v.number(), v.null()),
   rankingDay: v.union(v.string(), v.null()),
+  period: v.union(v.literal("week"), v.null()),
 });
 
 function toRecentShare(share: Doc<"boardShares">) {
@@ -267,6 +271,7 @@ function toRecentShare(share: Doc<"boardShares">) {
     hasVideo: share.videoStorageId !== undefined,
     videoRenderedAt: share.videoRenderedAt ?? null,
     rankingDay: share.rankingDay ?? null,
+    period: share.period ?? null,
   };
 }
 

@@ -22,6 +22,7 @@ The board tracks public X activity for an approved list of people over a rolling
 - Gift studio: Fourthwall gift links to yappers over X DM, with consent first delivery, product shelf, Dispatches log (archive / restore / bulk delete / CSV), batch DM send, and 7 day link expiry with a live countdown
 - Gift lab: mint named Fourthwall gift links for people who are not on the board (full name greeting, optional 7 day expiry, no X handle and no public share card)
 - Personalized share cards rendered as a 1200 by 630 PNG on the backend
+- Weekly top 10: every Friday sync freezes each public board's top 10 as a permanent snapshot with a two column card. Browse past weeks at `/weekly`, and post, copy, or turn each board into a video from `/admin/weekly`
 - Two themes, live `llms.txt` / `sitemap.md` / `sitemap.xml` / `robots.txt` that rebuild whenever the board changes, and OpenGraph cards for sharing
 
 ## The stack

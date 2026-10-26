@@ -6,6 +6,7 @@ import {
   internalQuery,
   mutation,
   query,
+  type MutationCtx,
   type QueryCtx,
 } from "./_generated/server";
 import { BOARD_MAX, CONVEX_BOARD, LEGENDS_BOARD, YAPPERS_BOARD } from "./boardLimits";
@@ -20,6 +21,10 @@ import { boardShareRowValidator } from "./validators";
 // a share can never claim a ranking the board does not show.
 
 export const SHARE_ROW_LIMIT = 5;
+// Weekly top 10 shares freeze twice as many rows on a two column card.
+export const WEEKLY_ROW_LIMIT = 10;
+
+export type SharePeriod = "week";
 
 // Same pool the public board subscribes to. Yappers and Convex mentions pick
 // their top rows by impressions before re-sorting, so a smaller pool could
@@ -41,20 +46,21 @@ export type ShareKind = "ranked" | "legends";
 // The value each tab ranks by. Legends have no metric on the card.
 export type ShareMetric = "engagements" | "convexPosts" | "none";
 
-// Turns the board's own row order into at most five card rows. Ranks follow
-// the board: every unmuted, non-legend row takes the next number, and rows
-// still waiting on their first X sync keep their place in the count but are
-// left off the card so it never shows a fake zero.
+// Turns the board's own row order into at most `limit` card rows. Ranks
+// follow the board: every unmuted, non-legend row takes the next number, and
+// rows still waiting on their first X sync keep their place in the count but
+// are left off the card so it never shows a fake zero.
 export function buildShareRows(
   rows: Array<PublicLeaderboardRow>,
   metric: ShareMetric,
+  limit: number = SHARE_ROW_LIMIT,
 ): Array<BoardShareRow> {
   const out: Array<BoardShareRow> = [];
   if (metric === "none") {
     for (const row of rows) {
       if (!row.legend) continue;
       out.push(toShareRow(row, null, null));
-      if (out.length === SHARE_ROW_LIMIT) break;
+      if (out.length === limit) break;
     }
     return out;
   }
@@ -71,7 +77,7 @@ export function buildShareRows(
       if (!hasSyncedMetrics(row)) continue;
       out.push(toShareRow(row, rank, null));
     }
-    if (out.length === SHARE_ROW_LIMIT) break;
+    if (out.length === limit) break;
   }
   return out;
 }
@@ -110,10 +116,12 @@ export function hashShareRows(args: {
   rows: Array<BoardShareRow>;
   dataAsOf: number | null;
   rankingDay?: string | null;
+  period?: SharePeriod | null;
 }): string {
   // Live shares keep their original hash input so existing ids still dedupe.
   const parts: Array<unknown> = [args.boardLabel, args.dataAsOf, args.rows];
   if (args.rankingDay) parts.push(args.rankingDay);
+  if (args.period) parts.push(args.period);
   return cyrb53(JSON.stringify(parts));
 }
 
@@ -233,26 +241,35 @@ export type BoardSnapshot = {
   rows: Array<BoardShareRow>;
   dataAsOf: number | null;
   rankingDay: string | null;
+  period: SharePeriod | null;
   contentHash: string;
   existingShareId: Id<"boardShares"> | null;
 };
 
 // What a share of this board (and optional saved day) would freeze right
 // now, plus the id of an identical share that already exists. Null when the
-// tab is empty or not public.
+// tab is empty or not public. A weekly share needs a saved day: the week is
+// that day's rolling 7 day ranking, frozen at 10 rows.
 export async function buildBoardSnapshot(
   ctx: QueryCtx,
   rawBoard: string,
   day: string | null,
+  options: { period?: SharePeriod } = {},
 ): Promise<BoardSnapshot | null> {
   const board = rawBoard.trim().slice(0, 80);
   if (!board) return null;
+  const period = options.period ?? null;
+  if (period && !day) return null;
   const saved = day ? await resolveSavedBoard(ctx, board, day) : null;
   if (day && !saved) return null;
   const resolved = saved ?? (await resolveBoard(ctx, board));
   if (!resolved) return null;
 
-  const rows = buildShareRows(resolved.rows, resolved.metric);
+  const rows = buildShareRows(
+    resolved.rows,
+    resolved.metric,
+    period === "week" ? WEEKLY_ROW_LIMIT : SHARE_ROW_LIMIT,
+  );
   if (rows.length === 0) return null;
   const dataAsOf = saved ? saved.dataAsOf : newestSync(resolved.rows, rows);
   const contentHash = hashShareRows({
@@ -260,6 +277,7 @@ export async function buildBoardSnapshot(
     rows,
     dataAsOf,
     rankingDay: day,
+    period,
   });
   const existing = await ctx.db
     .query("boardShares")
@@ -275,9 +293,34 @@ export async function buildBoardSnapshot(
     rows,
     dataAsOf,
     rankingDay: day,
+    period,
     contentHash,
     existingShareId: existing?._id ?? null,
   };
+}
+
+// Stores a snapshot (or returns the identical one already stored) and
+// prewarms its card so X's crawler gets a stored PNG on its first fetch.
+export async function insertBoardShare(
+  ctx: MutationCtx,
+  snapshot: BoardSnapshot,
+): Promise<Id<"boardShares">> {
+  if (snapshot.existingShareId) return snapshot.existingShareId;
+  const shareId = await ctx.db.insert("boardShares", {
+    board: snapshot.board,
+    boardLabel: snapshot.boardLabel,
+    kind: snapshot.kind,
+    metricLabel: snapshot.metricLabel,
+    rows: snapshot.rows,
+    dataAsOf: snapshot.dataAsOf,
+    contentHash: snapshot.contentHash,
+    ...(snapshot.rankingDay ? { rankingDay: snapshot.rankingDay } : {}),
+    ...(snapshot.period ? { period: snapshot.period } : {}),
+  });
+  await ctx.scheduler.runAfter(0, internal.boardShareRender.renderAndStore, {
+    shareId,
+  });
+  return shareId;
 }
 
 // Freezes the active tab and returns the share id plus the top handles for
@@ -300,22 +343,7 @@ export const createBoardShare = mutation({
     const topHandles = snapshot.rows
       .slice(0, SHARE_TEXT_HANDLES)
       .map((row) => row.handle);
-    if (snapshot.existingShareId) return { shareId: snapshot.existingShareId, topHandles };
-
-    const shareId = await ctx.db.insert("boardShares", {
-      board: snapshot.board,
-      boardLabel: snapshot.boardLabel,
-      kind: snapshot.kind,
-      metricLabel: snapshot.metricLabel,
-      rows: snapshot.rows,
-      dataAsOf: snapshot.dataAsOf,
-      contentHash: snapshot.contentHash,
-      ...(snapshot.rankingDay ? { rankingDay: snapshot.rankingDay } : {}),
-    });
-    // Prewarm the card so X's crawler gets a stored PNG on its first fetch.
-    await ctx.scheduler.runAfter(0, internal.boardShareRender.renderAndStore, {
-      shareId,
-    });
+    const shareId = await insertBoardShare(ctx, snapshot);
     return { shareId, topHandles };
   },
 });
@@ -329,6 +357,7 @@ const publicShareValidator = v.object({
   rows: v.array(boardShareRowValidator),
   dataAsOf: v.union(v.number(), v.null()),
   rankingDay: v.union(v.string(), v.null()),
+  period: v.union(v.literal("week"), v.null()),
 });
 
 // Public read for the /b/:id redirect page and the crawler meta tags. Takes
@@ -350,6 +379,7 @@ export const getBoardShare = query({
       rows: share.rows,
       dataAsOf: share.dataAsOf,
       rankingDay: share.rankingDay ?? null,
+      period: share.period ?? null,
     };
   },
 });
@@ -380,6 +410,7 @@ export const getForRender = internalQuery({
       rows: share.rows,
       dataAsOf: share.dataAsOf,
       rankingDay: share.rankingDay ?? null,
+      period: share.period ?? null,
       imageStorageId: share.imageStorageId ?? null,
       videoStorageId: share.videoStorageId ?? null,
       videoRenderedAt: share.videoRenderedAt ?? null,

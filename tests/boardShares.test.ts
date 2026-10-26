@@ -133,6 +133,22 @@ test("the content hash is stable and moves with any row change", () => {
   );
 });
 
+test("a weekly share hashes apart from the same day's share, and live hashes stay put", () => {
+  const rows = buildShareRows([boardRow(1), boardRow(2)], "engagements");
+  const base = { boardLabel: "Yappers", rows, dataAsOf: SYNCED_AT };
+  const day = { ...base, rankingDay: "2026-10-23" };
+  expect(hashShareRows({ ...base, period: null })).toBe(hashShareRows(base));
+  expect(hashShareRows({ ...day, period: "week" })).not.toBe(hashShareRows(day));
+});
+
+test("weekly shares take up to 10 rows, regular shares stop at 5", () => {
+  const board = Array.from({ length: 12 }, (_, index) => boardRow(index + 1));
+  expect(buildShareRows(board, "engagements")).toHaveLength(5);
+  const weekly = buildShareRows(board, "engagements", 10);
+  expect(weekly).toHaveLength(10);
+  expect(weekly.map((row) => row.rank)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+});
+
 test("the card SVG escapes names and shows ranks", () => {
   const svg = buildBoardCardSvg({
     communityName: "Friends of Convex",

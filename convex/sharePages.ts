@@ -161,6 +161,12 @@ function liveBoardUrl(origin: string, board: string, day: string | null = null):
   return query ? `${origin}/?${query}` : `${origin}/`;
 }
 
+// Weekly archive URL for a weekly top 10 share, scrolled to its board.
+function weeklyUrl(origin: string, board: string, week: string): string {
+  const params = new URLSearchParams({ week, board });
+  return `${origin}/weekly?${params.toString()}`;
+}
+
 type MetaTag = { attr: "property" | "name"; key: string; content: string };
 
 export type BoardShareMetaInput = {
@@ -172,6 +178,7 @@ export type BoardShareMetaInput = {
   videoStorageId: string | null;
   videoRenderedAt: number | null;
   rankingDay?: string | null;
+  period?: "week" | null;
 };
 
 export type BoardShareMeta = {
@@ -194,20 +201,25 @@ export function boardShareMeta(
   const boardTitle = `${branding.communityName} ${branding.boardName}`;
   const legends = share.kind === "legends";
   const day = share.rankingDay ?? null;
+  const week = !legends && day !== null && share.period === "week";
   const title = legends
     ? `Legends of the ${boardTitle}`
-    : day
-      ? `Top ${share.rows.length} on ${share.boardLabel}, ${formatDayLabel(day)} | ${boardTitle}`
-      : `Top ${share.rows.length} on ${share.boardLabel} | ${boardTitle}`;
+    : week && day
+      ? `Top ${share.rows.length} on ${share.boardLabel}, week ending ${formatDayLabel(day)} | ${boardTitle}`
+      : day
+        ? `Top ${share.rows.length} on ${share.boardLabel}, ${formatDayLabel(day)} | ${boardTitle}`
+        : `Top ${share.rows.length} on ${share.boardLabel} | ${boardTitle}`;
   const leaders = share.rows
     .slice(0, 3)
     .map((row) => (legends ? `@${row.handle}` : `${row.rank}. @${row.handle}`))
     .join(", ");
   const description = legends
     ? `${leaders} left the board undefeated.`
-    : day
-      ? `${leaders} led ${share.boardLabel} on the ${boardTitle} on ${formatDayLabel(day, true)}.`
-      : `${leaders} lead ${share.boardLabel} on the ${boardTitle}.`;
+    : week && day
+      ? `${leaders} led ${share.boardLabel} on the ${boardTitle} for the week ending ${formatDayLabel(day, true)}.`
+      : day
+        ? `${leaders} led ${share.boardLabel} on the ${boardTitle} on ${formatDayLabel(day, true)}.`
+        : `${leaders} lead ${share.boardLabel} on the ${boardTitle}.`;
   const pageUrl = `${origin}/b/${encodeURIComponent(share._id)}`;
   const imageUrl = `${origin}/og/board/${encodeURIComponent(share._id)}.png`;
   const imageAlt = `${share.boardLabel} leaderboard: ${share.rows
@@ -239,7 +251,7 @@ export function boardShareMeta(
 
   return {
     title,
-    canonical: liveBoardUrl(origin, share.board, day),
+    canonical: week && day ? weeklyUrl(origin, share.board, day) : liveBoardUrl(origin, share.board, day),
     headTags: [
       { attr: "name", key: "description", content: description },
       { attr: "name", key: "robots", content: "noindex" },

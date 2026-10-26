@@ -32,6 +32,12 @@ export function shiftDay(day: string, days: number): string {
   return new Date(date.getTime() + days * DAY_MS).toISOString().slice(0, 10);
 }
 
+// Fridays get the weekly top 10. Read at UTC noon on the key so DST never
+// moves the weekday.
+export function isFriday(day: string): boolean {
+  return isDayKey(day) && new Date(`${day}T12:00:00Z`).getUTCDay() === 5;
+}
+
 // "Sat, Oct 24", or "Sat, Oct 24, 2026" with the year.
 export function formatDayLabel(day: string, withYear = false): string {
   return new Intl.DateTimeFormat("en-US", {

@@ -2,6 +2,10 @@
 
 ## To Do
 
+- [ ] Deploy the weekly top 10 to production: `npx convex deploy`, then `npm run deploy -- --skip-convex`. Then seed last week by hand with `npx convex run weeklyTops:captureWeek '{"day":"2026-10-23"}' --prod` if Oct 23 is still a saved day on prod (the 7 day prune drops it on Oct 31), or press Capture week on friendsofconvex.dev/admin/weekly for any saved day. From then on every Friday sync freezes the week on its own.
+- [ ] Signed in check of `/admin/weekly` on dev: Capture again on Fri, Oct 23, Copy all posts, Make video opens the Share video page with that week's snapshot, Render video, Attach, then the card shows Video attached. Do not post to X while testing.
+- [ ] First real Friday (Oct 30): after the 8:17 AM PT sync, confirm `/weekly` lists Oct 30 as Latest with every visible board, and post one board from `/admin/weekly` to check the X card preview.
+
 - [ ] Ship About section 07 and the full width hero stripes (frontend only): `npm run deploy -- --skip-convex`, then check friendsofconvex.dev/about shows "How the ranking works" full width on desktop and stacked on a phone, and the hero stripes run to the box's left edge.
 - [ ] Deploy daily board rankings to production: `npx convex deploy`, then `npm run deploy -- --skip-convex`. The first saved day appears after the next full pass (8:17 AM PT), or run `npx convex run boardRankings:captureNow --prod` once to seed today. The previous arrow stays disabled until a second day exists.
 - [ ] Deploy the share video live preview: `npm run deploy` (same flow as last time). Then on friendsofconvex.dev/admin/share-video pick Convex Team and confirm the panel lists @jamwt, @mikeysee, @waynesutton with "Not frozen yet".
@@ -24,6 +28,10 @@
 - [ ] Render in Safari 26 on a Mac and confirm the file plays; older Safari should show "Video needs Chrome or Safari 26 or newer".
 - [ ] iPhone: Share video opens the share sheet with the MP4 and X is in it.
 - [ ] Paste a `/b/<id>` link with a video into iMessage and Discord and check it plays inline. Discord may want `og:type=video.other` (speculative, not changed).
+
+## Completed — 2026-10-26 18:13 UTC (weekly top 10 for every board)
+
+- [x] Every Friday sync freezes a top 10 per public board as a `boardShares` snapshot with `period: "week"`, pointed to by the new `weeklyTops` table, which is never pruned. `boardRankings.captureBoard` schedules `weeklyTops.captureBoardWeek` on Fridays, so zero extra X API calls. The card splits into two columns above 5 rows with "Top 10 for the week ending" plus the date; the 5 row card is unchanged. New public `/weekly` page with a week picker, `?board=` focus, Post on X, and Copy link. New `/admin/weekly` to capture any saved day, copy every post at once, and open each board in the Share video page through `?share=`. `/b/` titles, descriptions, and canonicals read "week ending". `/weekly` added to llms.txt, sitemap, and agent-ready config; About section 08 and admin docs updated. `npm run check` passes (100 tests). Oct 23 week captured and checked on dev. PRD: prds/weekly-top-10.md.
 
 ## Completed — 2026-10-26 05:48 UTC (About hero stripes run full width)
 

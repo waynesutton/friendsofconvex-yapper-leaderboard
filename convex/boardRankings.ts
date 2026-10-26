@@ -6,7 +6,7 @@ import { isAdminViewer } from "./authz";
 import { BOARD_MAX, CONVEX_BOARD, LEGENDS_BOARD, YAPPERS_BOARD } from "./boardLimits";
 import { DEFAULT_DISPLAY } from "./boardSettings";
 import { loadBoardRows, type PublicLeaderboardRow } from "./profiles";
-import { isDayKey, pacificDay, RANKING_HISTORY_DAYS, shiftDay } from "./rankingDays";
+import { isDayKey, isFriday, pacificDay, RANKING_HISTORY_DAYS, shiftDay } from "./rankingDays";
 import { readSyncRun } from "./syncRuns";
 import { publicLeaderboardRowValidator } from "./validators";
 
@@ -230,22 +230,31 @@ export const captureBoard = internalMutation({
         dataAsOf: args.dataAsOf,
         rowCount: rows.length,
       });
-      return null;
+    } else {
+      const rowsId = await ctx.db.insert("boardRankingRows", {
+        board: args.board,
+        day: args.day,
+        rows,
+      });
+      await ctx.db.insert("boardRankings", {
+        board: args.board,
+        boardLabel: resolved.boardLabel,
+        day: args.day,
+        capturedAt: now,
+        dataAsOf: args.dataAsOf,
+        rowCount: rows.length,
+        rowsId,
+      });
     }
-    const rowsId = await ctx.db.insert("boardRankingRows", {
-      board: args.board,
-      day: args.day,
-      rows,
-    });
-    await ctx.db.insert("boardRankings", {
-      board: args.board,
-      boardLabel: resolved.boardLabel,
-      day: args.day,
-      capturedAt: now,
-      dataAsOf: args.dataAsOf,
-      rowCount: rows.length,
-      rowsId,
-    });
+    // Friday's ranking is the week: freeze it as the weekly top 10. Runs
+    // after this save commits, so it reads the finished numbers. Internal
+    // and hidden boards are refused inside the capture.
+    if (isFriday(args.day)) {
+      await ctx.scheduler.runAfter(0, internal.weeklyTops.captureBoardWeek, {
+        board: args.board,
+        day: args.day,
+      });
+    }
     return null;
   },
 });

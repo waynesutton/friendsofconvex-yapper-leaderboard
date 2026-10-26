@@ -13,6 +13,7 @@ import { AdminSettingsPage } from "./pages/AdminSettingsPage";
 import { AdminSetupPage } from "./pages/AdminSetupPage";
 import { AdminShareVideoPage } from "./pages/AdminShareVideoPage";
 import { AdminTeamPage } from "./pages/AdminTeamPage";
+import { AdminWeeklyPage } from "./pages/AdminWeeklyPage";
 import { BoardSharePage } from "./pages/BoardSharePage";
 import { GiftLabPassPage } from "./pages/GiftLabPassPage";
 import { GiftPassPage } from "./pages/GiftPassPage";
@@ -20,6 +21,7 @@ import { GiftSharePage } from "./pages/GiftSharePage";
 import { HomePage } from "./pages/HomePage";
 import { JoinPage } from "./pages/JoinPage";
 import { LegendPage } from "./pages/LegendPage";
+import { WeeklyPage } from "./pages/WeeklyPage";
 import { Providers } from "./providers";
 
 // Retire mode was renamed to Legends. Cards for the old URL are already out
@@ -37,6 +39,7 @@ export function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/about" element={<AboutPage />} />
+          <Route path="/weekly" element={<WeeklyPage />} />
           <Route path="/join" element={<JoinPage />} />
           <Route path="/b/:shareId" element={<BoardSharePage />} />
           <Route path="/legends/:handle" element={<LegendPage />} />
@@ -45,6 +48,7 @@ export function App() {
           <Route path="/admin/groups" element={<AdminGroupsPage />} />
           <Route path="/admin/queue" element={<AdminQueuePage />} />
           <Route path="/admin/share-video" element={<AdminShareVideoPage />} />
+          <Route path="/admin/weekly" element={<AdminWeeklyPage />} />
           <Route path="/admin/settings" element={<AdminSettingsPage />} />
           <Route path="/admin/team" element={<AdminTeamPage />} />
           <Route path="/admin/docs" element={<AdminDocsPage />} />

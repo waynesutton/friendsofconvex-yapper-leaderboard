@@ -78,6 +78,9 @@ export type BoardCardInput = {
   // Pacific day (YYYY-MM-DD) of a saved daily ranking. Set means the card
   // names that date instead of "right now".
   rankingDay?: string | null;
+  // "week" turns the subtitle into "Top 10 for the week ending" the
+  // ranking day. Needs rankingDay.
+  period?: "week" | null;
 };
 
 // "Sat, Oct 24, 2026" from a YYYY-MM-DD key. Mirrors formatDayLabel in
@@ -129,29 +132,46 @@ function layer(content: string, opacity: number, offset = 0, filterId?: string):
 
 type RowFrame = { opacity: number; offset: number; dividerX2: number; pulseScale: number };
 
-const SETTLED_ROW: RowFrame = { opacity: 1, offset: 0, dividerX2: RIGHT, pulseScale: 1 };
+// Up to 5 rows stack in one column. A weekly top 10 splits into two columns
+// of 5 (ranks 1 to 5 left, 6 to 10 right) inside the same text area, so the
+// card keeps clear of the rising stripes.
+const COLUMN_ROWS = 5;
+const COLUMN_GAP = 40;
+const COLUMN_WIDTH = (RIGHT - LEFT - COLUMN_GAP) / 2;
+
+type RowPlace = { left: number; right: number; slot: number; compact: boolean };
+
+function rowPlace(index: number, twoColumns: boolean): RowPlace {
+  if (!twoColumns) return { left: LEFT, right: RIGHT, slot: index, compact: false };
+  const column = Math.floor(index / COLUMN_ROWS);
+  const left = LEFT + column * (COLUMN_WIDTH + COLUMN_GAP);
+  return { left, right: left + COLUMN_WIDTH, slot: index % COLUMN_ROWS, compact: true };
+}
 
 function rowSvg(
   row: BoardCardRow,
   index: number,
   legends: boolean,
-  frame: RowFrame = SETTLED_ROW,
+  place: RowPlace,
+  frame?: RowFrame,
 ): string {
-  const top = ROWS_TOP + index * ROW_HEIGHT;
+  const settled = frame ?? { opacity: 1, offset: 0, dividerX2: place.right, pulseScale: 1 };
+  const { left, right } = place;
+  const top = ROWS_TOP + place.slot * ROW_HEIGHT;
   const cy = top + ROW_HEIGHT / 2;
-  const avatarCx = LEFT + 76;
+  const avatarCx = left + (place.compact ? 66 : 76);
   const textX = avatarCx + AVATAR_RADIUS + 18;
   const clipId = `avatar-${index}`;
 
   const rankMarker = legends
-    ? crown(LEFT + 4, cy - 12)
-    : `<text x="${LEFT + 18}" y="${cy + 9}" text-anchor="middle" font-family="Inter"
+    ? crown(left + 4, cy - 12)
+    : `<text x="${left + 18}" y="${cy + 9}" text-anchor="middle" font-family="Inter"
         font-weight="700" font-size="26" fill="${row.rank === 1 ? GOLD : CREAM}">${row.rank ?? ""}</text>`;
   // The rank 1 pulse scales the number around its own center.
   const marker =
-    frame.pulseScale === 1
+    settled.pulseScale === 1
       ? rankMarker
-      : `<g transform="translate(${LEFT + 18} ${cy}) scale(${fmt(frame.pulseScale)}) translate(${-(LEFT + 18)} ${-cy})">${rankMarker}</g>`;
+      : `<g transform="translate(${left + 18} ${cy}) scale(${fmt(settled.pulseScale)}) translate(${-(left + 18)} ${-cy})">${rankMarker}</g>`;
 
   const avatar = row.avatar
     ? `<clipPath id="${clipId}"><circle cx="${avatarCx}" cy="${cy}" r="${AVATAR_RADIUS}" /></clipPath>
@@ -165,15 +185,17 @@ function rowSvg(
   const value =
     row.value === null
       ? ""
-      : `<text x="${RIGHT}" y="${cy + 9}" text-anchor="end" font-family="Inter" font-weight="700"
+      : `<text x="${right}" y="${cy + 9}" text-anchor="end" font-family="Inter" font-weight="700"
           font-size="26" fill="${CREAM}">${escapeXml(formatCompact(row.value))}</text>`;
 
-  // Names get less room when a metric value sits on the right.
-  const nameMax = row.value === null ? 44 : 34;
+  // Names get less room when a metric value sits on the right, and half
+  // width columns get less again.
+  const nameMax = place.compact ? (row.value === null ? 21 : 15) : row.value === null ? 44 : 34;
+  const handleMax = place.compact ? 26 : 40;
   const divider =
-    index === 0
+    place.slot === 0
       ? ""
-      : `<line x1="${LEFT}" y1="${top}" x2="${fmt(frame.dividerX2)}" y2="${top}" stroke="${FAINT}" stroke-width="1" />`;
+      : `<line x1="${left}" y1="${top}" x2="${fmt(settled.dividerX2)}" y2="${top}" stroke="${FAINT}" stroke-width="1" />`;
 
   const body = `${marker}
     ${avatar}
@@ -181,42 +203,51 @@ function rowSvg(
     <text x="${textX}" y="${cy - 2}" font-family="Inter" font-weight="700" font-size="21"
       fill="${CREAM}">${escapeXml(fitLabel(row.displayName, nameMax))}</text>
     <text x="${textX}" y="${cy + 19}" font-family="Inter" font-weight="500" font-size="15"
-      fill="${MUTED}">@${escapeXml(fitLabel(row.handle, 40))}</text>
+      fill="${MUTED}">@${escapeXml(fitLabel(row.handle, handleMax))}</text>
     ${value}`;
 
   return `${divider}
-    ${layer(body, frame.opacity, frame.offset)}`;
+    ${layer(body, settled.opacity, settled.offset)}`;
 }
 
 // Everything the card and its video frames derive from the input.
 function cardLayout(input: BoardCardInput) {
   const legends = input.kind === "legends";
-  const rows = input.rows.slice(0, 5);
+  const rows = input.rows.slice(0, COLUMN_ROWS * 2);
+  const twoColumns = rows.length > COLUMN_ROWS;
   const label = fitLabel(input.boardLabel, 28);
   const day = legends ? null : (input.rankingDay ?? null);
+  const week = day !== null && input.period === "week";
   return {
     legends,
     rows,
+    twoColumns,
     label,
     // Split keeping the whitespace, so word layers rebuild the exact label.
     labelTokens: label.split(/(\s+)/).filter((token) => token !== ""),
     subtitle: legends
       ? "Retired undefeated"
-      : day
+      : week
         ? rows.length === 1
-          ? "Leading on "
-          : `Top ${rows.length} on `
-        : rows.length === 1
-          ? "Leading right now"
-          : `Top ${rows.length} right now`,
+          ? "Leading the week ending "
+          : `Top ${rows.length} for the week ending `
+        : day
+          ? rows.length === 1
+            ? "Leading on "
+            : `Top ${rows.length} on `
+          : rows.length === 1
+            ? "Leading right now"
+            : `Top ${rows.length} right now`,
     // A saved day's date, drawn bold right after the subtitle.
     subtitleDate: day ? formatRankingDay(day) : null,
     asOf:
       input.dataAsOf === null
         ? ""
-        : day
-          ? `Saved ranking, last 7 days as of ${formatAsOf(input.dataAsOf)}`
-          : `Board as of ${formatAsOf(input.dataAsOf)}`,
+        : week
+          ? `Last 7 days as of ${formatAsOf(input.dataAsOf)}`
+          : day
+            ? `Saved ranking, last 7 days as of ${formatAsOf(input.dataAsOf)}`
+            : `Board as of ${formatAsOf(input.dataAsOf)}`,
     labelSize: Math.min(48, Math.max(30, Math.floor(760 / (input.boardLabel.length * 0.6)))),
     showMetric: !(legends || rows.every((row) => row.value === null)),
   };
@@ -261,8 +292,10 @@ export function boardVideoTimeline(input: BoardCardInput): BoardVideoTimeline {
   }));
   // The panel keys off the start of the last label word, as in TWIC.
   const panel = words[wordCount - 1]!.start + 0.25;
+  // Ten rows cascade faster so the video stays about as long as a top 5.
+  const stagger = layout.twoColumns ? 0.06 : 0.12;
   const rows = layout.rows.map((_, index) => ({
-    start: panel + 0.25 + index * 0.12,
+    start: panel + 0.25 + index * stagger,
     duration: 0.4,
   }));
   const dividers = rows.map((row) => ({ start: row.start, duration: 0.3 }));
@@ -320,6 +353,7 @@ export function boardVideoFrameState(
 ): BoardVideoFrameState {
   const { beats } = timeline;
   const pulse = progress(beats.pulse, t);
+  const { twoColumns } = cardLayout(input);
   return {
     stripesWidth: OG_WIDTH * eio(progress(beats.stripes, t)),
     lockupOpacity: eo(progress(beats.lockup, t)),
@@ -334,10 +368,11 @@ export function boardVideoFrameState(
     rows: beats.rows.map((beat, index) => {
       const eased = eo(progress(beat, t));
       const line = eo(progress(beats.dividers[index]!, t));
+      const { left, right } = rowPlace(index, twoColumns);
       return {
         opacity: eased,
         offset: 16 * (1 - eased),
-        dividerX2: LEFT + (RIGHT - LEFT) * line,
+        dividerX2: left + (right - left) * line,
       };
     }),
     pulseScale: pulse <= 0 || pulse >= 1 ? 1 : 1 + 0.12 * Math.sin(Math.PI * pulse),
@@ -355,6 +390,7 @@ function renderBoardCard(
   const {
     legends,
     rows,
+    twoColumns,
     label,
     labelTokens,
     subtitle,
@@ -424,16 +460,18 @@ function renderBoardCard(
 
   const rowsSvg = rows
     .map((row, index) => {
-      if (!frame) return rowSvg(row, index, legends);
-      const rowFrame = frame.rows[index] ?? SETTLED_ROW;
-      return rowSvg(row, index, legends, {
+      const place = rowPlace(index, twoColumns);
+      const rowFrame = frame?.rows[index];
+      if (!frame || !rowFrame) return rowSvg(row, index, legends, place);
+      return rowSvg(row, index, legends, place, {
         ...rowFrame,
         pulseScale: row.rank === 1 ? frame.pulseScale : 1,
       });
     })
     .join("\n");
 
-  const asOfSvg = `<text x="${LEFT}" y="${ROWS_TOP + Math.max(rows.length, 1) * ROW_HEIGHT + 30}" font-family="Inter" font-weight="500"
+  const rowSlots = twoColumns ? COLUMN_ROWS : Math.max(rows.length, 1);
+  const asOfSvg = `<text x="${LEFT}" y="${ROWS_TOP + rowSlots * ROW_HEIGHT + 30}" font-family="Inter" font-weight="500"
     font-size="14" fill="${MUTED}">${escapeXml(asOf)}</text>`;
 
   return `<svg width="${OG_WIDTH}" height="${OG_HEIGHT}" viewBox="0 0 ${OG_WIDTH} ${OG_HEIGHT}" xmlns="http://www.w3.org/2000/svg">${
@@ -458,7 +496,8 @@ function renderBoardCard(
 </svg>`;
 }
 
-// The 1200x630 board share card: lockup, board name, up to five rows, and
+// The 1200x630 board share card: lockup, board name, up to five rows (ten in
+// two columns for a weekly top 10), and
 // an as-of line, all left of the rising stripes so nothing overlaps them.
 export function buildBoardCardSvg(input: BoardCardInput): string {
   return renderBoardCard(input, null);

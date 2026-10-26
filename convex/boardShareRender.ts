@@ -25,6 +25,7 @@ type ShareForRender = {
   }>;
   dataAsOf: number | null;
   rankingDay: string | null;
+  period: "week" | null;
   imageStorageId: Id<"_storage"> | null;
 };
 
@@ -57,6 +58,7 @@ export const renderAndStore = internalAction({
         metricLabel: share.metricLabel,
         dataAsOf: share.dataAsOf,
         rankingDay: share.rankingDay,
+        period: share.period,
         rows: share.rows.map((row, index) => ({
           rank: row.rank,
           handle: row.handle,

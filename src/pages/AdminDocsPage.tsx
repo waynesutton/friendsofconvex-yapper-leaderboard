@@ -137,6 +137,20 @@ export function AdminDocsPage() {
                 day from the last week. A past day video shows that date on
                 the card, and the file name uses it too.
               </p>
+              <p>
+                <Link className="text-link" to="/admin/weekly">/admin/weekly</Link>{" "}
+                holds the weekly top 10. Every Friday, after the morning
+                refresh saves the day&apos;s rankings, each public board gets a
+                top 10 snapshot on a two column card, listed on the public{" "}
+                <Link className="text-link" to="/weekly">/weekly</Link> page.
+                A saved day already covers the 7 days before it, so you can
+                also pick any saved day and press Capture week to post a week
+                early. Each board card has Open X post, Copy link, and Make
+                video, which opens that snapshot here, ready to render. Copy
+                all posts copies every board&apos;s post text and link in one
+                block. Internal groups never get a weekly card. From the CLI:{" "}
+                <code>npx convex run weeklyTops:captureWeek &apos;{"{"}&quot;day&quot;:&quot;2026-10-23&quot;{"}"}&apos;</code>.
+              </p>
             </div>
           </section>
 

@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { usePageTitle } from "../lib/usePageTitle";
 
 export function AboutPage() {
@@ -112,6 +113,20 @@ export function AboutPage() {
             stays listed under a divider with no rank, everyone below moves up a spot, and their
             rank on every other board stays put. Legends leave every ranking and only show up in a
             group when you search for them.
+          </p>
+        </section>
+        <section className="method-wide">
+          <span className="method-number">08</span>
+          <h2>The weekly top 10</h2>
+          <p>
+            Every Friday, after the morning refresh, each board&apos;s top 10 for the week is saved
+            on the{" "}
+            <Link className="text-link" to="/weekly">
+              weekly page
+            </Link>
+            . It is the same ranking the board showed that morning, so it covers the seven days
+            before the refresh. Weeks stay up after the daily rankings roll off, and each board
+            gets its own card to share on X.
           </p>
         </section>
       </div>

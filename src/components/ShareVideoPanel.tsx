@@ -27,6 +27,7 @@ import {
   loadFontFaces,
   renderBoardVideo,
 } from "../lib/boardVideo";
+import { weeklyPostText } from "../lib/weeklyShare";
 import { FilterDropdown, type FilterDropdownOption } from "./FilterDropdown";
 
 // The live board in the day picker; saved days use their YYYY-MM-DD key.
@@ -47,12 +48,24 @@ function toCardInput(inputs: VideoInputs): BoardCardInput {
     rows: inputs.rows,
     dataAsOf: inputs.dataAsOf,
     rankingDay: inputs.rankingDay,
+    period: inputs.period,
   };
 }
 
 // Same post text the board's Post on X builds. Keep in sync with shareText
-// and boardShareLink in src/components/Leaderboard.tsx.
+// and boardShareLink in src/components/Leaderboard.tsx. Weekly top 10s use
+// the weekly page's text.
 function postText(inputs: VideoInputs): string {
+  if (inputs.period === "week" && inputs.rankingDay) {
+    return weeklyPostText({
+      communityName: inputs.communityName,
+      boardName: inputs.boardName,
+      board: inputs.board,
+      boardLabel: inputs.boardLabel,
+      weekOf: inputs.rankingDay,
+      handles: inputs.rows.map((row) => row.handle),
+    });
+  }
   const boardTitle = `${inputs.communityName} ${inputs.boardName}`;
   const when = inputs.rankingDay ? `on ${formatDayLabel(inputs.rankingDay)}` : "right now";
   const base =
@@ -206,6 +219,16 @@ export function ShareVideoPanel() {
     };
   }, []);
 
+  // ?share=<id> (the Make video link on /admin/weekly) opens that snapshot
+  // on arrival. The ref keeps it to one open per page load.
+  const openedFromParam = useRef(false);
+  useEffect(() => {
+    if (openedFromParam.current) return;
+    openedFromParam.current = true;
+    const requested = searchParams.get("share");
+    if (requested) void run("snapshot", () => openShare(requested));
+  });
+
   // Rendered MP4s live in blob URLs; free each one when it is replaced.
   useEffect(() => {
     if (!rendered) return;
@@ -237,6 +260,7 @@ export function ShareVideoPanel() {
       (params) => {
         const updated = new URLSearchParams(params);
         updated.set("board", next);
+        updated.delete("share");
         return updated;
       },
       { replace: true },
@@ -548,7 +572,9 @@ export function ShareVideoPanel() {
             <div>
               <p className="eyebrow">
                 {inputs.rankingDay
-                  ? `Saved ranking · ${formatDayLabel(inputs.rankingDay, true)}`
+                  ? inputs.period === "week"
+                    ? `Weekly top ${inputs.rows.length} · week ending ${formatDayLabel(inputs.rankingDay, true)}`
+                    : `Saved ranking · ${formatDayLabel(inputs.rankingDay, true)}`
                   : "Snapshot"}
                 {inputs.dataAsOf ? ` · board as of ${formatAsOf(inputs.dataAsOf)}` : ""}
                 {openIsStale ? " · older than the live board" : ""}
@@ -691,7 +717,11 @@ export function ShareVideoPanel() {
                   <span>
                     <strong>
                       {share.boardLabel}
-                      {share.rankingDay ? ` · ${formatDayLabel(share.rankingDay)}` : ""}
+                      {share.rankingDay
+                        ? share.period === "week"
+                          ? ` · week ending ${formatDayLabel(share.rankingDay)}`
+                          : ` · ${formatDayLabel(share.rankingDay)}`
+                        : ""}
                     </strong>
                     <span className="share-video-handles">
                       {share.topHandles.map((handle) => `@${handle}`).join(" ")}

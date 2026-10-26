@@ -52,18 +52,25 @@
       "order": 1
     },
     {
+      "title": "Weekly top 10",
+      "path": "/weekly",
+      "description": "Every board's top 10 for the week, saved each Friday and kept as an archive.",
+      "status": "published",
+      "order": 2
+    },
+    {
       "title": "About",
       "path": "/about",
       "description": "How the board scores a week of yaps and who it is for.",
       "status": "published",
-      "order": 2
+      "order": 3
     },
     {
       "title": "Join the board",
       "path": "/join",
       "description": "Sign in with X and ask to join the Friends of Convex board.",
       "status": "published",
-      "order": 3
+      "order": 4
     }
   ],
   "endpoints": []

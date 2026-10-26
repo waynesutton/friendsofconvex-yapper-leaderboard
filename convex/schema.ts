@@ -364,7 +364,7 @@ export default defineSchema({
     boardLabel: v.string(),
     kind: v.union(v.literal("ranked"), v.literal("legends")),
     metricLabel: v.string(),
-    // At most 5 rows; bounded by createBoardShare.
+    // At most 5 rows (10 for a weekly top 10); bounded by buildShareRows.
     rows: v.array(boardShareRowValidator),
     dataAsOf: v.union(v.number(), v.null()),
     contentHash: v.string(),
@@ -378,7 +378,24 @@ export default defineSchema({
     // Pacific day (YYYY-MM-DD) when the share froze a saved daily ranking
     // instead of the live board. Missing means a live share.
     rankingDay: v.optional(v.string()),
+    // "week" marks a weekly top 10 frozen from rankingDay. Missing means a
+    // regular top 5 share.
+    period: v.optional(v.literal("week")),
   }).index("by_board_and_content_hash", ["board", "contentHash"]),
+
+  // One weekly top 10 per board per week, pointing at its frozen share.
+  // Written after the Friday ranking save (or a manual capture) and never
+  // pruned, so the archive outlives the 7 day ranking history.
+  weeklyTops: defineTable({
+    board: v.string(),
+    boardLabel: v.string(),
+    // Pacific day (YYYY-MM-DD) of the saved ranking the week was frozen from.
+    weekOf: v.string(),
+    shareId: v.id("boardShares"),
+    updatedAt: v.number(),
+  })
+    .index("by_week_of_and_board", ["weekOf", "board"])
+    .index("by_board_and_week_of", ["board", "weekOf"]),
 
   // One saved ranking per board per Pacific day, written after a full board
   // sync pass and kept for RANKING_HISTORY_DAYS. Light on purpose: the day

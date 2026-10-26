@@ -47,3 +47,21 @@ export const LONG_LABEL_INPUT: BoardCardInput = {
   ...RANKED_INPUT,
   boardLabel: "Convex Champions & Friends of the Week",
 };
+
+// A weekly top 10 on the two column card.
+export const WEEKLY_INPUT: BoardCardInput = {
+  communityName: "Friends of Convex",
+  boardLabel: "Convex Team",
+  kind: "ranked",
+  metricLabel: "Engagements",
+  dataAsOf: 1_790_000_000_000,
+  rankingDay: "2026-10-23",
+  period: "week",
+  rows: Array.from({ length: 10 }, (_, index) => ({
+    rank: index + 1,
+    handle: `weekly_yapper_${index + 1}`,
+    displayName: `Weekly Yapper Number ${index + 1}`,
+    avatar: index % 3 === 0 ? null : AVATAR,
+    value: null,
+  })),
+};

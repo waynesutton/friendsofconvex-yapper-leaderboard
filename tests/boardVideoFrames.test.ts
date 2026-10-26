@@ -11,9 +11,10 @@ import {
   LEGENDS_INPUT,
   LONG_LABEL_INPUT,
   RANKED_INPUT,
+  WEEKLY_INPUT,
 } from "./fixtures/boardCardInputs";
 
-const INPUTS = { RANKED_INPUT, CONVEX_INPUT, LEGENDS_INPUT, LONG_LABEL_INPUT };
+const INPUTS = { RANKED_INPUT, CONVEX_INPUT, LEGENDS_INPUT, LONG_LABEL_INPUT, WEEKLY_INPUT };
 
 test("the last video frame is the PNG card SVG, byte for byte", () => {
   for (const input of Object.values(INPUTS)) {
@@ -113,4 +114,31 @@ test("a five row board runs between 4.5 and 6 seconds", () => {
   expect(duration).toBeLessThanOrEqual(6);
   expect(duration - buildEnd).toBeCloseTo(3, 10);
   expect(buildEnd).toBeCloseTo(2.53, 2);
+});
+
+test("a weekly top 10 splits into two columns and still runs under 6 seconds", () => {
+  const card = buildBoardCardSvg(WEEKLY_INPUT);
+  expect(card).toContain("Top 10 for the week ending <tspan");
+  expect(card).toContain("Fri, Oct 23, 2026");
+  expect(card).toContain("Last 7 days as of");
+  // Rank 6 starts the right column back at the first row's height.
+  expect(card).toContain('<text x="518" y="253"');
+  expect(card).toContain('<text x="98" y="253"');
+  // No divider above either column's first row.
+  expect(card).not.toContain('y1="214"');
+  // Long names fold to fit half a card.
+  expect(card).toContain("Weekly Yapper Number…");
+
+  for (const input of [WEEKLY_INPUT, { ...WEEKLY_INPUT, boardLabel: "Convex Champions & Friends of the Week" }]) {
+    const timeline = boardVideoTimeline(input);
+    expect(timeline.duration).toBeGreaterThanOrEqual(4.5);
+    expect(timeline.duration).toBeLessThanOrEqual(6);
+    const end = boardVideoFrameState(input, timeline.buildEnd, timeline);
+    expect(end.rows.map((row) => row.dividerX2)).toEqual([
+      460, 460, 460, 460, 460, 880, 880, 880, 880, 880,
+    ]);
+  }
+
+  // A saved day without the weekly period keeps the daily wording.
+  expect(buildBoardCardSvg({ ...WEEKLY_INPUT, period: null })).toContain("Top 10 on <tspan");
 });
